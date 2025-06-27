@@ -11,15 +11,18 @@
     <!-- Tone.js para efeitos sonoros -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 
+    <!-- IMask.js para máscaras de formulário -->
+    <script src="https://unpkg.com/imask"></script>
+
     <!-- Firebase -->
     <script type="module">
-        // Import the functions you need from the SDKs you need
+        // Importar as funções necessárias do SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- SUA CONFIGURAÇÃO DO FIREBASE ---
-        const firebaseConfig = {
+        // --- CONFIGURAÇÃO DO FIREBASE ---
+         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyB9B2-xYb6gr92cQDbajriQiinfQurrOwI",
             authDomain: "heilog-logistica.firebaseapp.com",
             projectId: "heilog-logistica",
@@ -27,17 +30,17 @@
             messagingSenderId: "790492229739",
             appId: "1:790492229739:web:de49887de535a839e8412e"
         };
-        const appId = "heilog-logistica"; // Pega o appId da configuração
+        const appId = typeof __app_id !== 'undefined' ? __app_id : "heilog-logistica";
         // ------------------------------------
 
-        // Inicializa o Firebase
+        // Inicializar Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
         setLogLevel('debug');
 
-        // Garante que o usuário esteja autenticado (anonimamente se necessário)
-         onAuthStateChanged(auth, (user) => {
+        // Garantir que o usuário esteja autenticado
+        onAuthStateChanged(auth, (user) => {
             if (user) {
                 console.log("Firebase Auth pronta. UID:", user.uid);
                 window.isAuthReady = true;
@@ -45,12 +48,22 @@
         });
 
         const authenticate = async () => {
-             await signInAnonymously(auth);
+             try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token).catch(async (error) => {
+                        console.log("Token customizado inválido. Tentando login anônimo como fallback.");
+                        await signInAnonymously(auth);
+                    });
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                 console.error("Falha crítica na autenticação com o Firebase:", error);
+            }
         };
         authenticate();
 
-
-        // Torna o 'db' e 'appId' acessíveis globalmente para outras funções no script
+        // Tornar 'db' e 'appId' acessíveis globalmente
         window.db = db;
         window.appId = appId;
     </script>
@@ -75,6 +88,7 @@
         .form-input:focus, .form-select:focus { border-color: var(--heineken-green); box-shadow: 0 0 0 2px rgba(0, 144, 74, 0.5); outline: none; }
         .btn-green { background-color: var(--heineken-green); color: white; font-weight: bold; }
         .btn-green:hover { background-color: #007a3f; }
+        .form-input.invalid { border-color: var(--heineken-red); box-shadow: 0 0 0 2px rgba(229, 0, 37, 0.5); }
         #call-panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         #call-panel-content { padding: 3rem; border-radius: 1rem; text-align: center; color: #1a202c; animation: fadeIn 0.3s ease-out; }
@@ -123,8 +137,7 @@
     <div id="printable-area"></div>
 
     <script type="module">
-        // Importar funções do Firestore SDK
-        import { doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Variáveis globais e elementos do DOM
         const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHLJspPB5rUhpKWTUFGrtMeksd24eu1-I_l5S2qkhgFsie6cn1hITIUmr3k-ZuL4stm1x8MT0mC30s/pub?output=csv';
@@ -144,6 +157,7 @@
         let headers = [];
         let headerMap = {};
         let panelTimeout;
+        let cpfMask, phoneMask; // Variáveis para as máscaras
         
         searchButton.disabled = true;
 
@@ -218,7 +232,7 @@
              const productListHtml = dataArray.map(item => `<div class="border-t border-gray-700/50 pt-2 mt-2"><p class="text-sm text-gray-400">Descrição do Produto</p><p class="text-lg">${item[headerMap.descricao] || 'N/A'}</p><p class="text-sm text-gray-400 mt-2">Quantidade</p><p class="text-lg">${item[headerMap.plt] || 'N/A'}</p></div>`).join('');
              let resultsHtml = `<div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700"><h3 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Detalhes para o DTS: ${dt}</h3><div class="space-y-2 text-gray-300"><div><p class="text-sm text-gray-400">Destino</p><p class="text-lg">${firstResult[headerMap.deposito] || 'N/A'}</p></div>`;
              if ((firstResult[headerMap.deposito] || '').toUpperCase() === 'HEILO') {
-                 resultsHtml += `<div class="pt-4 border-t border-gray-700/50"><p class="text-sm text-gray-400">Endereço de Entrega</p><p class="text-lg font-semibold">Rua Vereador Geraldo Nogueira da Silva, 5111, Caçapava, SP, 12280-001</p></div>`;
+                  resultsHtml += `<div class="pt-4 border-t border-gray-700/50"><p class="text-sm text-gray-400">Endereço de Entrega</p><p class="text-lg font-semibold">Rua Vereador Geraldo Nogueira da Silva, 5111, Caçapava, SP, 12280-001</p></div>`;
              }
              resultsHtml += `<h4 class="text-md font-semibold text-white pt-3">Itens da Carga:</h4>${productListHtml}</div></div>`;
              resultsArea.innerHTML = resultsHtml;
@@ -228,72 +242,134 @@
             const firstResult = dataArray[0] || {};
             const isManual = !firstResult[headerMap.cliente];
             resultsArea.innerHTML = `<div class="bg-blue-900/40 p-6 rounded-xl border border-blue-700"><h3 class="text-xl font-bold text-white mb-1">${isManual ? 'Marcação Manual de Fábrica' : 'Carregamento na Fábrica'}</h3><p class="text-blue-200 mb-4 text-sm">${isManual ? 'Preencha todos os dados.' : 'Preencha os dados do motorista.'}</p><div class="space-y-4">${isManual ? `<input type="text" id="manual-client" class="form-input w-full rounded-lg p-3" placeholder="Cliente"><select id="manual-type" class="form-select w-full rounded-lg p-3"><option value="">Tipo de Carga</option><option value="Bulk">Bulk</option><option value="Embalagem">Embalagem</option><option value="Latas">Latas</option><option value="Produto Acabado">Produto Acabado</option><option value="Descarga">Descarga</option></select><input type="text" id="manual-plt" class="form-input w-full rounded-lg p-3" placeholder="Quantidade (PLT)"><input type="text" id="manual-transportadora" class="form-input w-full rounded-lg p-3" placeholder="Transportadora"><select id="manual-canal" class="form-select w-full rounded-lg p-3"><option value="">Selecione o Canal</option><option value="Y001">Y001</option><option value="Y002">Y002</option><option value="Y004">Y004</option><option value="Y006">Y006</option><option value="Y055">Y055</option></select><hr class="border-gray-600">` : ''}<input type="text" id="driver-cpf" class="form-input w-full rounded-lg p-3" placeholder="Digite o CPF para buscar motorista"><input type="text" id="driver-name" class="form-input w-full rounded-lg p-3" placeholder="Nome Completo do Motorista"><input type="text" id="driver-phone" class="form-input w-full rounded-lg p-3" placeholder="Telefone com DDD"><div class="flex gap-4"><input type="text" id="driver-cnh" class="form-input w-full rounded-lg p-3" placeholder="Nº CNH"><input type="text" id="cnh-expiry" class="form-input w-full rounded-lg p-3" placeholder="Vencimento CNH (DD/MM/AAAA)"></div><div class="grid grid-cols-3 gap-4"><input type="text" id="truck-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Cavalo"><input type="text" id="trailer-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Carreta"><select id="truck-axles" class="form-select col-span-1 rounded-lg p-3"><option value="">Eixos</option><option value="2">2 Eixos</option><option value="3">3 Eixos</option><option value="4">4 Eixos</option><option value="5">5 Eixos</option><option value="6">6 Eixos</option><option value="7">7 Eixos</option><option value="9">9 Eixos</option></select></div><input type="text" id="driver-renavam" class="form-input w-full rounded-lg p-3" placeholder="RENAVAM"><div class="flex gap-4"><input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal"><input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga"></div><button id="generate-sheet-btn" class="btn-green w-full py-3 rounded-lg">Imprimir e Chamar</button></div></div>`;
-            document.getElementById('driver-cpf').addEventListener('input', findAndFillDriver);
+            
+            // Aplicar máscaras e validações
+            applyFormMasksAndValidations();
+
+            document.getElementById('driver-cpf').addEventListener('input', findAndFillDriverData);
             document.getElementById('generate-sheet-btn').addEventListener('click', () => generateAndPrintSheet(dataArray));
         }
-
-        function findAndFillDriver(event) {
-            const cpf = event.target.value.replace(/\D/g, '');
-            if (cpf.length >= 11) {
-                const driverData = localStorage.getItem(`heilo-driver-${cpf}`);
-                if (driverData) {
-                    const parsedData = JSON.parse(driverData);
-                    document.getElementById('driver-name').value = parsedData.name || '';
-                    document.getElementById('driver-phone').value = parsedData.phone || '';
-                    document.getElementById('driver-cnh').value = parsedData.cnh || '';
-                    document.getElementById('cnh-expiry').value = parsedData.cnhExpiry || '';
-                    document.getElementById('truck-plate').value = parsedData.truckPlate || '';
-                    document.getElementById('trailer-plate').value = parsedData.trailerPlate || '';
-                    document.getElementById('truck-axles').value = parsedData.axles || '';
-                    document.getElementById('driver-renavam').value = parsedData.renavam || '';
-                    if (document.getElementById('manual-transportadora')) {
-                        document.getElementById('manual-transportadora').value = parsedData.transportadora || '';
-                    }
-                }
+        
+        function applyFormMasksAndValidations() {
+            const cpfEl = document.getElementById('driver-cpf');
+            if (cpfEl) {
+                cpfMask = IMask(cpfEl, { mask: '000.000.000-00' });
+            }
+            const phoneEl = document.getElementById('driver-phone');
+            if (phoneEl) {
+                phoneMask = IMask(phoneEl, { mask: '(00) 00000-0000' });
+            }
+            const plateEl = document.getElementById('truck-plate');
+            if (plateEl) {
+                plateEl.addEventListener('input', (e) => {
+                    e.target.value = e.target.value.toUpperCase();
+                });
             }
         }
-        
+
+        async function findAndFillDriverData(event) {
+            const cpfInput = event.target;
+            const unmaskedCpf = cpfInput.value.replace(/\D/g, '');
+
+            if (unmaskedCpf.length !== 11) return;
+
+            const { db, appId } = window;
+            const driverRef = doc(db, `artifacts/${appId}/public/data/drivers`, unmaskedCpf);
+            
+            try {
+                const docSnap = await getDoc(driverRef);
+                if (docSnap.exists()) {
+                    // Preencher com dados do Firebase
+                    const firebaseData = docSnap.data();
+                    fillFormFields(firebaseData);
+                    console.log("Motorista encontrado no Firebase.");
+                } else {
+                    // Fallback para LocalStorage se não encontrar no Firebase
+                    const localData = localStorage.getItem(`heilo-driver-${unmaskedCpf}`);
+                    if (localData) {
+                        fillFormFields(JSON.parse(localData));
+                        console.log("Motorista encontrado no LocalStorage.");
+                    }
+                }
+            } catch (error) {
+                console.error("Erro ao buscar motorista no Firebase:", error);
+            }
+        }
+
+        function fillFormFields(data) {
+            document.getElementById('driver-name').value = data.name || '';
+            document.getElementById('driver-cnh').value = data.cnh || '';
+            document.getElementById('cnh-expiry').value = data.cnhExpiry || '';
+            document.getElementById('truck-plate').value = data.truckPlate || '';
+            document.getElementById('trailer-plate').value = data.trailerPlate || '';
+            document.getElementById('truck-axles').value = data.axles || '';
+            document.getElementById('driver-renavam').value = data.renavam || '';
+            if (document.getElementById('manual-transportadora') && data.transportadora) {
+                 document.getElementById('manual-transportadora').value = data.transportadora;
+            }
+            // Usa a máscara para preencher o telefone
+            if (phoneMask && data.phone) {
+                phoneMask.resolve(data.phone);
+            }
+        }
+
         async function saveDriverData(driverData, originalSheetData) {
-            const { db, appId } = window; // Pega instâncias do escopo global
+            const { db, appId } = window;
             if (!db || !appId || !window.isAuthReady) {
                 console.error("Firestore não está pronto!");
                 alert("Erro: Não foi possível conectar ao banco de dados para salvar a operação. Tente novamente.");
                 return false;
             }
 
-            // 1. Salvar no LocalStorage (mantém comportamento original)
-            if (driverData.cpf) {
-                const cpf = driverData.cpf.replace(/\D/g, '');
-                localStorage.setItem(`heilo-driver-${cpf}`, JSON.stringify(driverData));
-            }
-            
-            // 2. Salvar no Firestore
-            try {
-                // O caminho da coleção pública é /artifacts/{appId}/public/data/{collectionName}
-                const docRef = doc(db, `artifacts/${appId}/public/data/patio`, driverData.dts);
+            const unmaskedCpf = driverData.cpf.replace(/\D/g, '');
 
-                const dataToSave = {
+            // 1. Salvar/Atualizar dados persistentes do motorista
+            try {
+                const driverDocRef = doc(db, `artifacts/${appId}/public/data/drivers`, unmaskedCpf);
+                const persistentDriverData = {
+                    name: driverData.name,
+                    cpf: unmaskedCpf,
+                    phone: driverData.phone.replace(/\D/g, ''),
+                    cnh: driverData.cnh,
+                    cnhExpiry: driverData.cnhExpiry,
+                    truckPlate: driverData.truckPlate,
+                    trailerPlate: driverData.trailerPlate,
+                    axles: driverData.axles,
+                    renavam: driverData.renavam,
+                    transportadora: driverData.transportadora,
+                    lastUpdate: new Date().toISOString()
+                };
+                await setDoc(driverDocRef, persistentDriverData, { merge: true }); // Merge para não sobrescrever dados
+                localStorage.setItem(`heilo-driver-${unmaskedCpf}`, JSON.stringify(persistentDriverData));
+            } catch (error) {
+                console.error("Erro ao salvar dados do motorista no Firestore:", error);
+                alert(`Ocorreu um erro ao salvar os dados do motorista: ${error.message}`);
+                return false;
+            }
+
+            // 2. Salvar dados da operação no pátio
+            try {
+                const patioDocRef = doc(db, `artifacts/${appId}/public/data/patio`, driverData.dts);
+                const patioDataToSave = {
                     dt: driverData.dts,
                     motorista: driverData.name,
                     transportadora: driverData.transportadora,
-                    cpf: driverData.cpf,
+                    cpf: unmaskedCpf,
                     placa: driverData.truckPlate,
+                    telefone: driverData.phone.replace(/\D/g, ''),
                     registrationTime: driverData.registrationTime,
                     status: 'Em Pátio',
-                    // Dados da planilha original para cálculo de prioridade no painel
                     agenda: originalSheetData[headerMap.agenda] || '',
                     xtAdicional: originalSheetData[headerMap.xtAdicional] || '',
                     data: originalSheetData[headerMap.data] || '',
-                    // Dados para exibição no painel
-                    origem: 'JACAREÍ/SP', // Pode ser fixo ou pego da planilha se disponível
+                    origem: 'JACAREÍ/SP',
                     destino: originalSheetData[headerMap.deposito] || 'N/A',
                 };
-
-                await setDoc(docRef, dataToSave);
-                console.log(`Operação ${driverData.dts} salva no Firestore.`);
+                await setDoc(patioDocRef, patioDataToSave);
+                console.log(`Operação ${driverData.dts} salva no pátio.`);
                 return true;
             } catch (error) {
-                console.error("Erro ao salvar no Firestore: ", error);
+                console.error("Erro ao salvar operação no pátio:", error);
                 alert(`Ocorreu um erro ao salvar a operação no painel: ${error.message}`);
                 return false;
             }
@@ -301,8 +377,34 @@
         
         async function generateAndPrintSheet(originalDataArray) {
             const isManual = !originalDataArray[0][headerMap.cliente];
-            const driverData = { name: document.getElementById('driver-name')?.value, cpf: document.getElementById('driver-cpf')?.value, phone: document.getElementById('driver-phone')?.value, cnh: document.getElementById('driver-cnh')?.value, cnhExpiry: document.getElementById('cnh-expiry')?.value, truckPlate: document.getElementById('truck-plate')?.value, trailerPlate: document.getElementById('trailer-plate')?.value, axles: document.getElementById('truck-axles')?.value, renavam: document.getElementById('driver-renavam')?.value, invoice: document.getElementById('invoice-number')?.value, unloadDt: document.getElementById('unload-dt')?.value, registrationTime: Date.now(), dts: originalDataArray[0][headerMap.dts], transportadora: isManual ? document.getElementById('manual-transportadora').value : originalDataArray[0][headerMap.transportadora] };
-            if (!driverData.name || !driverData.cpf) { resultsArea.insertAdjacentHTML('afterbegin', `<div id="temp-alert" class="bg-red-500 text-white p-3 rounded-lg mb-4">Nome e CPF do motorista são obrigatórios.</div>`); setTimeout(() => document.getElementById('temp-alert')?.remove(), 3000); return; }
+            
+            // Validar campos
+            const nameEl = document.getElementById('driver-name');
+            const cpfEl = document.getElementById('driver-cpf');
+            const phoneEl = document.getElementById('driver-phone');
+            const plateEl = document.getElementById('truck-plate');
+
+            if (!validateField(nameEl, "Nome do motorista é obrigatório.")) return;
+            if (!validateField(cpfEl, "CPF é obrigatório.", () => cpfMask.unmaskedValue.length === 11)) return;
+            if (!validateField(phoneEl, "Telefone é obrigatório.", () => phoneMask.unmaskedValue.length >= 10)) return;
+            if (!validateField(plateEl, "Placa do cavalo é obrigatória.")) return;
+
+            const driverData = {
+                name: nameEl.value,
+                cpf: cpfEl.value,
+                phone: phoneEl.value,
+                cnh: document.getElementById('driver-cnh').value,
+                cnhExpiry: document.getElementById('cnh-expiry').value,
+                truckPlate: plateEl.value,
+                trailerPlate: document.getElementById('trailer-plate').value,
+                axles: document.getElementById('truck-axles').value,
+                renavam: document.getElementById('driver-renavam').value,
+                invoice: document.getElementById('invoice-number').value,
+                unloadDt: document.getElementById('unload-dt').value,
+                registrationTime: Date.now(),
+                dts: originalDataArray[0][headerMap.dts],
+                transportadora: isManual ? document.getElementById('manual-transportadora').value : originalDataArray[0][headerMap.transportadora]
+            };
 
             const firstResult = originalDataArray[0] || {};
             const priorityInfo = getPriorityInfo(firstResult);
@@ -316,6 +418,17 @@
                 window.print();
                 showCallPanel(driverData.name, priorityInfo.isPriority || priorityInfo.isGradeQueimada || priorityInfo.isAtrasado);
             }, 200);
+        }
+
+        function validateField(element, errorMessage, condition = () => element.value.trim() !== '') {
+            if (!condition()) {
+                element.classList.add('invalid');
+                displayError(errorMessage, 4000);
+                element.focus();
+                return false;
+            }
+            element.classList.remove('invalid');
+            return true;
         }
 
         function getPriorityInfo(sheetRow) {
@@ -382,8 +495,20 @@
             dtInput.focus();
             clearTimeout(panelTimeout);
         }
-        function displayError(message) {
-            resultsArea.innerHTML = `<div class="bg-red-900/50 border border-red-700 text-red-300 p-3 rounded-lg text-sm text-center"><p>${message}</p></div>`;
+        function displayError(message, duration = 0) {
+            // Remove qualquer alerta existente para evitar duplicação
+            document.getElementById('temp-alert')?.remove();
+
+            const alertDiv = document.createElement('div');
+            alertDiv.id = 'temp-alert';
+            alertDiv.className = 'bg-red-500 text-white p-3 rounded-lg mb-4 text-center';
+            alertDiv.textContent = message;
+            
+            resultsArea.insertAdjacentElement('afterbegin', alertDiv);
+
+            if (duration > 0) {
+                setTimeout(() => alertDiv.remove(), duration);
+            }
         }
         function displayNotFound(query) {
             resultsArea.innerHTML = `<div class="bg-yellow-900/50 border border-yellow-700 text-yellow-300 p-4 rounded-xl text-center"><p class="font-semibold">DT "${query}" não encontrado na planilha.</p><button onclick="window.showDriverForm([{ '${headerMap.dts}': '${query}' }])" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all">Criar Folha de Marcação Manual</button></div>`;
@@ -400,4 +525,3 @@
     </script>
 </body>
 </html>
-
