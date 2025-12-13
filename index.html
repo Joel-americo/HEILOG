@@ -156,7 +156,8 @@
             messagingSenderId: "790492229739",
             appId: "1:790492229739:web:de49887de535a839e8412e"
         };
-        const defaultAppId = typeof __app_id !== 'undefined' ? __app_id : "heilog-logistica";
+        const ARTIFACT_APP_ID = "heilog-logistica"; // ID fixo do "artifact" para compartilhar dados
+        const defaultAppId = ARTIFACT_APP_ID;
         // ------------------------------------
 
         // --- FUNÇÕES DE INICIALIZAÇÃO E AUTENTICAÇÃO ---
@@ -197,7 +198,9 @@
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                appId = defaultAppId;
+                appId = ARTIFACT_APP_ID;
+                console.log("[HEILOG] appId usado:", appId);
+                console.log('[HEILOG] Firestore APPID em uso:', appId);
                 setLogLevel('error');
             } catch (e) {
                 console.error("Erro ao inicializar o Firebase:", e);
@@ -210,7 +213,7 @@
             try {
                 fileStatus.textContent = 'Autenticando...';
                 await authenticate();
-                fileStatus.textContent = 'Autenticado com sucesso.';
+                fileStatus.textContent = 'Autenticado com sucesso. AppID: ' + appId;
             } catch (e) {
                 fileStatus.textContent = "Erro na autenticação.";
                 fileStatus.className = 'text-red-400 text-xs h-4';
@@ -235,13 +238,11 @@
             try {
                 const baseUrl = `${GOOGLE_SHEET_CSV_URL}${GOOGLE_SHEET_CSV_URL.includes('?') ? '&' : '?'}t=${Date.now()}`;
 
+                // Ordem: tenta proxies primeiro (evita erro de CORS), e só depois tenta direto como último recurso.
                 const candidates = [
-                    // tenta direto (se o Google liberar CORS)
-                    baseUrl,
-                    // proxy principal
                     `${CORS_PROXY_URL}${encodeURIComponent(baseUrl)}`,
-                    // fallbacks
                     ...EXTRA_PROXY_BUILDERS.map(fn => fn(baseUrl)),
+                    baseUrl, // último recurso (geralmente bloqueado por CORS)
                 ];
 
                 let csvText = '';
@@ -329,7 +330,8 @@
             }).filter(Boolean);
         }
 
-        async function saveDriverData(driverData, originalSheetData) {
+        // ✅ ALTERAÇÃO: agora o pátio também grava PRIORIDADE no Firestore (para o Painel conseguir ler sem "adivinhar")
+        async function saveDriverData(driverData, originalSheetData, priorityInfo) {
             if (!isAuthReady || !db || !appId) {
                 console.error("Firestore não está pronto! Auth:", isAuthReady, "DB:", !!db, "AppID:", !!appId);
                 displayError("Erro: Conexão com o banco de dados indisponível. Tente novamente.", 5000);
@@ -338,9 +340,18 @@
 
             const unmaskedCpf = driverData.cpf.replace(/\D/g, '');
 
+            // Normaliza DT (garante que o ID do documento seja uma string sem espaços)
+            const dtId = String(driverData.dts || '').replace(/\s+/g, '').trim();
+            if (!dtId) {
+                displayError('DT inválido: não foi possível salvar no pátio.', 5000);
+                return false;
+            }
+
+
             // 1. Salvar/Atualizar dados persistentes do motorista
             try {
-                const driverDocRef = doc(db, `artifacts/${appId}/public/data/drivers`, unmaskedCpf);
+                const driverDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', unmaskedCpf);
+                const pInfoForDriver = priorityInfo || getPriorityInfo(originalSheetData || {});
                 const persistentDriverData = {
                     name: driverData.name,
                     cpf: unmaskedCpf,
@@ -352,6 +363,17 @@
                     axles: driverData.axles,
                     renavam: driverData.renavam,
                     transportadora: driverData.transportadora,
+                    lastDts: driverData.dts || "",
+                    lastPriority: {
+                        label: pInfoForDriver.label || "",
+                        isPriority: !!pInfoForDriver.isPriority,
+                        isOtif: !!pInfoForDriver.isOtif,
+                        isTop18: !!pInfoForDriver.isTop18,
+                        isAntecipacao: !!pInfoForDriver.isAntecipacao,
+                        isGradeQueimada: !!pInfoForDriver.isGradeQueimada,
+                        isAtrasado: !!pInfoForDriver.isAtrasado,
+                        reasons: pInfoForDriver.reasons || []
+                    },
                     lastUpdate: new Date().toISOString()
                 };
                 await setDoc(driverDocRef, persistentDriverData, { merge: true });
@@ -364,9 +386,30 @@
 
             // 2. Salvar dados da operação no pátio
             try {
-                const patioDocRef = doc(db, `artifacts/${appId}/public/data/patio`, driverData.dts);
+                const patioDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'patio', dtId);
+                console.log('[HEILOG] Gravando em:', `artifacts/${appId}/public/data/patio/${dtId}`);
+
+                const pInfo = priorityInfo || getPriorityInfo(originalSheetData || {});
+                const reasons = [];
+                if (pInfo.isTop18) reasons.push("TOP 18");
+                if (pInfo.isOtif) reasons.push("OTIF");
+                if (pInfo.isAntecipacao) reasons.push("Antecipação");
+
+                const label =
+                    pInfo.isGradeQueimada ? "GRADE QUEIMADA" :
+                    pInfo.isAtrasado ? "ATRASADO" :
+                    pInfo.isPriority ? "PRIORIDADE" : "NORMAL";
+
+                const level =
+                    pInfo.isGradeQueimada ? 3 :
+                    pInfo.isAtrasado ? 2 :
+                    pInfo.isPriority ? 1 : 0;
+
+                const canalValue = (originalSheetData?.[headerMap.canal] || '').toString().trim().toUpperCase();
+                const segmentoValue = (originalSheetData?.[headerMap.xtAdicional] || '').toString();
+
                 const patioDataToSave = {
-                    dt: driverData.dts,
+                    dt: dtId,
                     motorista: driverData.name,
                     transportadora: driverData.transportadora,
                     cpf: unmaskedCpf,
@@ -374,14 +417,31 @@
                     telefone: driverData.phone.replace(/\D/g, ''),
                     registrationTime: driverData.registrationTime,
                     status: 'Em Pátio',
-                    agenda: originalSheetData[headerMap.agenda] || '',
-                    xtAdicional: originalSheetData[headerMap.xtAdicional] || '',
-                    data: originalSheetData[headerMap.data] || '',
+                    agenda: originalSheetData?.[headerMap.agenda] || '',
+                    xtAdicional: originalSheetData?.[headerMap.xtAdicional] || '',
+                    data: originalSheetData?.[headerMap.data] || '',
                     origem: 'JACAREÍ/SP',
-                    destino: originalSheetData[headerMap.deposito] || 'N/A',
+                    destino: originalSheetData?.[headerMap.deposito] || 'N/A',
+
+                    // ✅ NOVOS CAMPOS (para o Painel do Analista)
+                    canal: canalValue,
+                    segmento: segmentoValue,
+                    prioridade: {
+                        label,
+                        level,
+                        reasons,
+                        isPriority: !!pInfo.isPriority,
+                        isOtif: !!pInfo.isOtif,
+                        isTop18: !!pInfo.isTop18,
+                        isAntecipacao: !!pInfo.isAntecipacao,
+                        isGradeQueimada: !!pInfo.isGradeQueimada,
+                        isAtrasado: !!pInfo.isAtrasado,
+                        updatedAt: new Date().toISOString(),
+                    }
                 };
-                await setDoc(patioDocRef, patioDataToSave);
-                console.log(`Operação ${driverData.dts} salva no pátio.`);
+
+                await setDoc(patioDocRef, patioDataToSave, { merge: true });
+                console.log(`Operação ${dtId} salva no pátio (com prioridade).`);
                 return true;
             } catch (error) {
                 console.error("Erro ao salvar operação no pátio:", error);
@@ -401,7 +461,7 @@
                 return;
             }
 
-            const driverRef = doc(db, `artifacts/${appId}/public/data/drivers`, unmaskedCpf);
+            const driverRef = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', unmaskedCpf);
 
             try {
                 const docSnap = await getDoc(driverRef);
@@ -581,7 +641,8 @@
             if (document.getElementById('manual-transportadora') && data.transportadora) {
                 document.getElementById('manual-transportadora').value = data.transportadora;
             }
-            if (phoneMask && data.phone) phoneMask.resolve(data.phone);
+            if (phoneMask && data.phone) phoneMask.unmaskedValue = String(data.phone).replace(/\D/g,'');
+            else if (document.getElementById('driver-phone') && data.phone) document.getElementById('driver-phone').value = data.phone;
         }
 
         async function generateAndPrintSheet(originalDataArray) {
@@ -610,24 +671,26 @@
                 invoice: document.getElementById('invoice-number').value,
                 unloadDt: document.getElementById('unload-dt').value,
                 registrationTime: Date.now(),
-                dts: originalDataArray[0][headerMap.dts],
+                dts: String(originalDataArray[0][headerMap.dts] || '').trim(),
                 transportadora: isManual ? document.getElementById('manual-transportadora').value : originalDataArray[0][headerMap.transportadora]
             };
 
-            const firstResult = originalDataArray[0] || {};
-            const priorityInfo = getPriorityInfo(firstResult);
-
-            const isSaved = await saveDriverData(driverData, firstResult);
-            if (!isSaved) return;
-
+            // ✅ ALTERAÇÃO: monta sheetData ANTES para calcular prioridade corretamente (manual também)
             const sheetData = isManual ? [{
                 ...originalDataArray[0],
                 [headerMap.cliente]: document.getElementById('manual-client').value,
                 [headerMap.produto]: document.getElementById('manual-type').value,
                 [headerMap.plt]: document.getElementById('manual-plt').value,
                 [headerMap.transportadora]: document.getElementById('manual-transportadora').value,
-                [headerMap.canal]: document.getElementById('manual-canal').value
+                [headerMap.canal]: document.getElementById('manual-canal').value,
+                [headerMap.deposito]: 'FÁBRICA'
             }] : originalDataArray;
+
+            const firstRowForPriority = sheetData[0] || {};
+            const priorityInfo = getPriorityInfo(firstRowForPriority);
+
+            const isSaved = await saveDriverData(driverData, firstRowForPriority, priorityInfo);
+            if (!isSaved) return;
 
             // Folha COMPLETA (igual ao original)
             buildPrintableSheet(
@@ -659,14 +722,13 @@
             return true;
         }
 
-        
         function getPriorityInfo(sheetRow) {
             let isPriority = false, isOtif = false, isTop18 = false, isAntecipacao = false, isGradeQueimada = false, isAtrasado = false;
             if (!sheetRow) return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
 
-            // --- TOP18 vem do SEGMENTO (coluna K do Google Sheet) ---
+            // --- TOP18 vem do SEGMENTO (coluna XT ADICIONAL / no CSV) ---
             const segmento = (sheetRow[headerMap.xtAdicional] || '').toString().toUpperCase();
-            isTop18 = segmento.includes('TOP18') || segmento.includes('TOP 18') || segmento.includes('TOP');
+            isTop18 = segmento.includes('TOP18') || segmento.includes('TOP 18');
 
             const canal = (sheetRow[headerMap.canal] || '').toString().trim().toUpperCase();
             const dateStr = (sheetRow[headerMap.data] || '').toString().trim();
@@ -692,9 +754,15 @@
             };
 
             const scheduledDateTime = parseScheduledDateTime(dateStr, timeStr);
+
+            // ✅ regra de OTIF/ADERENTE POR CANAL (não deixa canal vazio virar OTIF)
+            const OTIF_CANAIS = new Set(['Y001','Y002','Y055']);
+            const ADERENTE_CANAIS = new Set(['Y004','Y006']);
+            isOtif = OTIF_CANAIS.has(canal);
+
             if (!scheduledDateTime) {
-                // Sem agenda válida: não dá pra calcular janela. Mantém TOP18 como "prioridade" se for o caso.
-                isPriority = isTop18;
+                // Sem agenda válida: não dá pra calcular janela. Mantém TOP18/OTIF como prioridade se for o caso.
+                isPriority = isTop18 || isOtif;
                 return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
             }
 
@@ -721,10 +789,6 @@
                     const plannedPlus1h = scheduledDateTime.getTime() + (60 * 60 * 1000);
                     if (now.getTime() > plannedPlus1h) {
                         isAtrasado = true;
-                    } else {
-                        // Caso contrário, status base por canal
-                        // Y006/Y004 = Aderente | demais = OTIF
-                        isOtif = !(canal === 'Y004' || canal === 'Y006');
                     }
                 }
             }
@@ -732,7 +796,8 @@
             isPriority = isOtif || isTop18 || isAntecipacao;
             return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
         }
-// ===== FOLHA DE IMPRESSÃO COMPLETA (IGUAL AO ORIGINAL) =====
+
+        // ===== FOLHA DE IMPRESSÃO COMPLETA (IGUAL AO ORIGINAL) =====
         function buildPrintableSheet(driverData, sheetDataArray, isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado, isManual) {
             const now = new Date();
             const printDate = now.toLocaleDateString('pt-BR');
