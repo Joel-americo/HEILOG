@@ -96,20 +96,28 @@
   <div id="printable-area"></div>
 
   <script type="module">
+    // Importar as funções necessárias do SDK do Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+    // =========================
+    // CONFIGURAÇÕES
+    // =========================
     const GOOGLE_SHEET_CSV_URL =
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vSHLJspPB5rUhpKWTUFGrtMeksd24eu1-I_l5S2qkhgFsie6cn1hITIUmr3k-ZuL4stm1x8MT0mC30s/pub?output=csv";
 
+    // Proxies alternativos (se o direto falhar por CORS/rede)
     const PROXY_BUILDERS = [
       (u) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
       (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`
     ];
 
-    const REFRESH_INTERVAL = 300000;
+    const REFRESH_INTERVAL = 300000; // 5 min
 
+    // =========================
+    // ELEMENTOS DO DOM
+    // =========================
     const fileStatus = document.getElementById("file-status");
     const envWarning = document.getElementById("env-warning");
     const dtInput = document.getElementById("dt-input");
@@ -120,6 +128,9 @@
     const callPanelMessage = document.getElementById("call-panel-message");
     const closePanelBtn = document.getElementById("close-panel-btn");
 
+    // =========================
+    // ESTADO
+    // =========================
     let db, auth, appId;
     let isAuthReady = false;
 
@@ -130,6 +141,9 @@
     let panelTimeout;
     let cpfMask, phoneMask;
 
+    // =========================
+    // HELPERS
+    // =========================
     function escapeHtml(s = "") {
       return String(s)
         .replaceAll("&", "&amp;")
@@ -138,8 +152,14 @@
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
     }
-    function safeDigits(s = "") { return String(s).replace(/\D/g, ""); }
 
+    function safeDigits(s = "") {
+      return String(s).replace(/\D/g, "");
+    }
+
+    // =========================
+    // FIREBASE CONFIG
+    // =========================
     const firebaseConfig = typeof __firebase_config !== "undefined" ? JSON.parse(__firebase_config) : {
       apiKey: "AIzaSyB9B2-xYb6gr92cQDbajriQiinfQurrOwI",
       authDomain: "heilog-logistica.firebaseapp.com",
@@ -148,14 +168,26 @@
       messagingSenderId: "790492229739",
       appId: "1:790492229739:web:de49887de535a839e8412e"
     };
+
     const defaultAppId = typeof __app_id !== "undefined" ? __app_id : "heilog-logistica";
 
+    // =========================
+    // AUDIO (evita warning do navegador)
+    // =========================
     let audioUnlocked = false;
     async function ensureAudioUnlocked() {
       if (audioUnlocked) return;
-      try { await Tone.start(); audioUnlocked = true; } catch (_) {}
+      try {
+        await Tone.start();
+        audioUnlocked = true;
+      } catch (_) {
+        // tenta novamente no próximo gesto do usuário
+      }
     }
 
+    // =========================
+    // AUTH
+    // =========================
     async function authenticate() {
       return new Promise(async (resolve, reject) => {
         onAuthStateChanged(auth, (user) => {
@@ -193,6 +225,7 @@
         envWarning.textContent = "";
       }
 
+      // 1) Firebase
       try {
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
@@ -206,6 +239,7 @@
         return;
       }
 
+      // 2) Auth
       try {
         fileStatus.textContent = "Autenticando...";
         await authenticate();
@@ -217,8 +251,10 @@
         return;
       }
 
+      // 3) Carregar planilha
       await loadDataFromSheet(false);
 
+      // 4) Atualizações periódicas
       setInterval(() => {
         if (!document.getElementById("generate-sheet-btn")) {
           loadDataFromSheet(true);
@@ -226,6 +262,9 @@
       }, REFRESH_INTERVAL);
     }
 
+    // =========================
+    // FETCH CSV (direto + proxies)
+    // =========================
     async function fetchText(url) {
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
@@ -233,12 +272,14 @@
     }
 
     async function fetchCsvWithFallback(url) {
+      // 1) direto
       try {
         return await fetchText(url);
       } catch (eDirect) {
         console.warn("Falha no fetch direto, tentando proxies...", eDirect?.message || eDirect);
       }
 
+      // 2) proxies
       for (const build of PROXY_BUILDERS) {
         const proxied = build(url);
         try {
@@ -247,6 +288,7 @@
           console.warn("Proxy falhou:", proxied, eProxy?.message || eProxy);
         }
       }
+
       throw new Error("Não foi possível buscar a planilha (direto e via proxies).");
     }
 
@@ -277,6 +319,9 @@
       }
     }
 
+    // =========================
+    // CSV PARSE
+    // =========================
     function parseCSV(csvText) {
       const lines = csvText.trim().split(/\r?\n/);
       if (lines.length < 2) return;
@@ -297,6 +342,7 @@
       const findHeader = (...needles) =>
         headers.find(h => needles.some(n => h.includes(n))) || "";
 
+      // mantém compatível com o original (posições) + fallback por nome
       headerMap = {
         dts: headers[0] || findHeader("DT", "DTS", "TRANSP"),
         canal: headers[1] || findHeader("CANAL"),
@@ -325,6 +371,9 @@
         .filter(Boolean);
     }
 
+    // =========================
+    // FIRESTORE
+    // =========================
     async function saveDriverData(driverData, originalSheetData) {
       if (!isAuthReady || !db || !appId) {
         displayError("Erro: Conexão com o banco de dados indisponível. Tente novamente.", 5000);
@@ -334,6 +383,7 @@
       const unmaskedCpf = safeDigits(driverData.cpf);
       const dtId = safeDigits(driverData.dts) || String(driverData.dts || "").trim();
 
+      // 1) Persistente do motorista
       try {
         const driverDocRef = doc(db, `artifacts/${appId}/public/data/drivers`, unmaskedCpf);
         const persistentDriverData = {
@@ -357,6 +407,7 @@
         return false;
       }
 
+      // 2) Operação no pátio
       try {
         const patioDocRef = doc(db, `artifacts/${appId}/public/data/patio`, dtId);
         const patioDataToSave = {
@@ -395,9 +446,13 @@
         const docSnap = await getDoc(driverRef);
         if (docSnap.exists()) {
           fillFormFields(docSnap.data());
+          console.log("Motorista encontrado no Firebase.");
         } else {
           const localData = localStorage.getItem(`heilo-driver-${unmaskedCpf}`);
-          if (localData) fillFormFields(JSON.parse(localData));
+          if (localData) {
+            fillFormFields(JSON.parse(localData));
+            console.log("Motorista encontrado no LocalStorage.");
+          }
         }
       } catch (error) {
         console.error("Erro ao buscar motorista:", error);
@@ -405,6 +460,9 @@
       }
     }
 
+    // =========================
+    // BUSCA / RESULTADOS
+    // =========================
     function performSearch() {
       const query = dtInput.value.trim();
       if (!query) { displayError("Digite um número de DT para buscar."); return; }
@@ -425,20 +483,14 @@
     function displayStandardResults(dataArray) {
       const firstResult = dataArray[0] || {};
       const dt = escapeHtml(firstResult[headerMap.dts] || "N/A");
-      const deposito = escapeHtml(firstResult[headerMap.deposito] || "N/A");
-
-      const productListHtml = dataArray.map(item => {
-        const desc = escapeHtml(item[headerMap.descricao] || "N/A");
-        const plt = escapeHtml(item[headerMap.plt] || "N/A");
-        return `
-          <div class="border-t border-gray-700/50 pt-2 mt-2">
-            <p class="text-sm text-gray-400">Descrição do Produto</p>
-            <p class="text-lg">${desc}</p>
-            <p class="text-sm text-gray-400 mt-2">Quantidade</p>
-            <p class="text-lg">${plt}</p>
-          </div>
-        `;
-      }).join("");
+      const productListHtml = dataArray.map(item => `
+        <div class="border-t border-gray-700/50 pt-2 mt-2">
+          <p class="text-sm text-gray-400">Descrição do Produto</p>
+          <p class="text-lg">${escapeHtml(item[headerMap.descricao] || "N/A")}</p>
+          <p class="text-sm text-gray-400 mt-2">Quantidade</p>
+          <p class="text-lg">${escapeHtml(item[headerMap.plt] || "N/A")}</p>
+        </div>
+      `).join("");
 
       let resultsHtml = `
         <div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700">
@@ -446,12 +498,11 @@
           <div class="space-y-2 text-gray-300">
             <div>
               <p class="text-sm text-gray-400">Destino</p>
-              <p class="text-lg">${deposito}</p>
+              <p class="text-lg">${escapeHtml(firstResult[headerMap.deposito] || "N/A")}</p>
             </div>
       `;
 
-      const depUpper = (firstResult[headerMap.deposito] || "").toUpperCase();
-      if (depUpper === "HEILO") {
+      if ((firstResult[headerMap.deposito] || "").toUpperCase() === "HEILO") {
         resultsHtml += `
           <div class="pt-4 border-t border-gray-700/50">
             <p class="text-sm text-gray-400">Endereço de Entrega</p>
@@ -460,13 +511,7 @@
         `;
       }
 
-      resultsHtml += `
-            <h4 class="text-md font-semibold text-white pt-3">Itens da Carga:</h4>
-            ${productListHtml}
-          </div>
-        </div>
-      `;
-
+      resultsHtml += `<h4 class="text-md font-semibold text-white pt-3">Itens da Carga:</h4>${productListHtml}</div></div>`;
       resultsArea.innerHTML = resultsHtml;
     }
 
@@ -540,11 +585,10 @@
       `;
 
       applyFormMasksAndValidations();
-
       document.getElementById("driver-cpf").addEventListener("input", findAndFillDriverData);
 
       document.getElementById("generate-sheet-btn").addEventListener("click", async () => {
-        await ensureAudioUnlocked();
+        await ensureAudioUnlocked(); // desbloqueia áudio por gesto do usuário
         generateAndPrintSheet(dataArray);
       });
     }
@@ -574,6 +618,9 @@
       if (phoneMask && data.phone) phoneMask.resolve(data.phone);
     }
 
+    // =========================
+    // PRINT + PRIORIDADE (igual original)
+    // =========================
     async function generateAndPrintSheet(originalDataArray) {
       const firstRow = originalDataArray[0] || {};
       const isManual = !firstRow[headerMap.cliente];
@@ -621,23 +668,35 @@
           : (firstRow[headerMap.transportadora] || "")
       };
 
+      const priorityInfo = getPriorityInfo(firstRow);
+
       const isSaved = await saveDriverData(driverData, firstRow);
       if (!isSaved) return;
 
-      // Print simplificado: mantém sua estrutura original (se quiser, eu re-injeto a folha completa aqui também)
-      document.getElementById("printable-area").innerHTML = `
-        <div class="p-4 bg-white text-black print-main-container">
-          <h1 class="text-xl font-bold">HEILOG - Marcação</h1>
-          <p><strong>DT:</strong> ${escapeHtml(driverData.dts)}</p>
-          <p><strong>Motorista:</strong> ${escapeHtml(driverData.name)}</p>
-          <p><strong>CPF:</strong> ${escapeHtml(driverData.cpf)}</p>
-          <p><strong>Placa:</strong> ${escapeHtml(driverData.truckPlate)}</p>
-        </div>
-      `;
+      const sheetData = isManual ? [{
+        ...firstRow,
+        [headerMap.cliente]: document.getElementById("manual-client").value,
+        [headerMap.produto]: document.getElementById("manual-type").value,
+        [headerMap.plt]: document.getElementById("manual-plt").value,
+        [headerMap.transportadora]: document.getElementById("manual-transportadora").value,
+        [headerMap.canal]: document.getElementById("manual-canal").value
+      }] : originalDataArray;
+
+      buildPrintableSheet(
+        driverData,
+        sheetData,
+        priorityInfo.isPriority,
+        priorityInfo.isOtif,
+        priorityInfo.isTop18,
+        priorityInfo.isAntecipacao,
+        priorityInfo.isGradeQueimada,
+        priorityInfo.isAtrasado,
+        isManual
+      );
 
       setTimeout(() => {
         window.print();
-        showCallPanel(driverData.name, false);
+        showCallPanel(driverData.name, priorityInfo.isPriority || priorityInfo.isGradeQueimada || priorityInfo.isAtrasado);
       }, 200);
     }
 
@@ -652,12 +711,276 @@
       return true;
     }
 
+    function getPriorityInfo(sheetRow) {
+      let isPriority = false, isOtif = false, isTop18 = false, isAntecipacao = false, isGradeQueimada = false, isAtrasado = false;
+      if (!sheetRow) return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
+
+      // aceita HH:MM ou HH:MM:SS
+      const normalizeTime = (t) => {
+        if (!t) return null;
+        const s = String(t).trim();
+        if (/^\d{1,2}:\d{2}$/.test(s)) return `${s}:00`;
+        if (/^\d{1,2}:\d{2}:\d{2}$/.test(s)) return s;
+        return null;
+      };
+
+      const getScheduledDateTime = (dateStr, timeStr) => {
+        if (!dateStr || !dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) return null;
+        const t = normalizeTime(timeStr);
+        if (!t) return null;
+        const [day, month, year] = dateStr.split("/");
+        const [hours, minutes, seconds] = t.split(":");
+        return new Date(year, parseInt(month, 10) - 1, day, hours, minutes, seconds);
+      };
+
+      const now = new Date();
+      const dateStr = sheetRow[headerMap.data];
+      const timeStr = sheetRow[headerMap.agenda];
+      const scheduledDateTime = getScheduledDateTime(dateStr, timeStr);
+
+      isTop18 = (sheetRow[headerMap.xtAdicional] || "").toUpperCase().includes("TOP");
+
+      if (scheduledDateTime) {
+        const diffMillis = now.getTime() - scheduledDateTime.getTime();
+        const diffHours = diffMillis / 3600000;
+
+        const today = new Date(now); today.setHours(0, 0, 0, 0);
+        const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
+
+        if (today < scheduledDay) {
+          isAntecipacao = true;
+        } else if (today.getTime() === scheduledDay.getTime()) {
+          if (diffHours >= -2 && diffHours <= 1) isOtif = true;
+          else if (diffHours > 1) isAtrasado = true;
+        } else if (today > scheduledDay) {
+          isGradeQueimada = true;
+        }
+      }
+
+      isPriority = isOtif || isTop18 || isAntecipacao;
+      return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
+    }
+
+    // =========================
+    // FOLHA COMPLETA (igual original)
+    // =========================
+    function buildPrintableSheet(driverData, sheetDataArray, isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado, isManual) {
+      const now = new Date();
+      const printDate = now.toLocaleDateString("pt-BR");
+      const printTime = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      const firstResult = sheetDataArray[0] || {};
+
+      let priorityHtml = "";
+      if (isGradeQueimada) {
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FBBF24;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">GRADE QUEIMADA</h2></div>`;
+      } else if (isAtrasado) {
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FACC15;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ATRASADO</h2></div>`;
+      } else if (isPriority) {
+        let reasons = [];
+        if (isTop18) reasons.push("TOP 18");
+        if (isOtif) reasons.push("OTIF");
+        if (isAntecipacao) reasons.push("Antecipação");
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">PRIORIDADE</h2><p class="font-bold" style="font-size: 16px;">(${reasons.join(" / ")})</p></div>`;
+      } else {
+        priorityHtml = `<div class="border border-black text-center p-1"><h2 class="font-bold tracking-wider">STATUS</h2><p style="font-size: 14px;">(Normal)</p></div>`;
+      }
+
+      const allCanais = ["Y001", "Y002", "Y004", "Y006", "Y055"];
+      const canaisHtml = allCanais.map(c => `${c === (firstResult[headerMap.canal] || "") ? "[X]" : "[&nbsp;&nbsp;]"} ${escapeHtml(c)}`).join(" ");
+
+      const productHeader = isManual ? "Tipo de Carga" : "Produto";
+
+      const productTableHtml = `
+        <table class="w-full text-left text-sm border-collapse border border-black">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="border border-black p-1">${escapeHtml(productHeader)}</th>
+              <th class="border border-black p-1 text-center">Quantidade (PLT)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sheetDataArray.map(item => `
+              <tr>
+                <td class="border border-black p-1 font-bold">${escapeHtml(item[headerMap.produto] || "N/A")}</td>
+                <td class="border border-black p-1 text-center font-bold">${escapeHtml(item[headerMap.plt] || "N/A")}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+
+      document.getElementById("printable-area").innerHTML = `
+        <div class="p-2 bg-white text-black font-sans text-xs print-main-container">
+          <header class="flex justify-between items-start mb-4 border-b-2 border-black pb-2">
+            <div class="flex flex-col items-center">
+              <div class="flex items-center gap-1">
+                <span class="text-[9px] font-bold">EST.</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#E50025">
+                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                </svg>
+                <span class="text-[9px] font-bold">1873</span>
+              </div>
+              <h1 class="text-3xl font-bold font-title tracking-wider">HEINEKEN</h1>
+            </div>
+            <div class="w-1/3 pt-1">${priorityHtml}</div>
+          </header>
+
+          <div class="text-center mb-2 text-sm"><p>CANAL: ${canaisHtml}</p></div>
+
+          <div class="mb-2 border border-black p-2">
+            <table class="w-full text-left text-sm">
+              <tr>
+                <td class="w-1/2 pr-8 align-top">
+                  <p><strong>DATA/HORA:</strong> ${escapeHtml(printDate)} ${escapeHtml(printTime)}</p>
+                  <p><strong>MOTORISTA:</strong> ${escapeHtml(driverData.name)}</p>
+                  <p><strong>CPF:</strong> ${escapeHtml(driverData.cpf)}</p>
+                  <p><strong>PLACA:</strong> ${escapeHtml(driverData.truckPlate)}</p>
+                  <p><strong>CARRETA 1:</strong> ${escapeHtml(driverData.trailerPlate)}</p>
+                  <p><strong>EIXOS:</strong> ${escapeHtml(driverData.axles || "N/A")}</p>
+                  <p><strong>CELULAR:</strong> ${escapeHtml(driverData.phone)}</p>
+                </td>
+                <td class="w-1/2 align-top">
+                  <p><strong>CLIENTE:</strong></p>
+                  <p class="font-bold">${escapeHtml(firstResult[headerMap.cliente] || "N/A")}</p>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="mb-2">${productTableHtml}</div>
+
+          <table class="w-full border-collapse border-2 border-black mb-2">
+            <thead>
+              <tr class="bg-gray-200">
+                <th class="border border-black p-1">MOTORISTA</th>
+                <th class="border border-black p-1">Nº NOTA FISCAL</th>
+                <th class="border border-black p-1">Nº TRANSPORTE</th>
+                <th class="border border-black p-1">DT DESCARGA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="border border-black p-1">
+                  <p>[ ] Carregamento</p>
+                  <p>[ ] Descarregamento</p>
+                </td>
+                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${escapeHtml(driverData.invoice || "---")}</td>
+                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${escapeHtml(firstResult[headerMap.dts] || "N/A")}</td>
+                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${escapeHtml(driverData.unloadDt || "---")}</td>
+              </tr>
+              <tr>
+                <td colspan="4" class="border border-black p-1 text-xs">[X] Eu, motorista, estou ciente das regras de segurança vigentes no armazém da HEINEKEN de Jacareí</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table class="w-full border-collapse border border-black mb-2 text-xs">
+            <thead class="bg-gray-200 text-left">
+              <tr>
+                <th class="border border-black p-1">PROCESSO</th>
+                <th class="border border-black p-1">RESPONSÁVEL</th>
+                <th class="border border-black p-1">NOME</th>
+                <th class="border border-black p-1 w-1/3">ASSINATURA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="border border-black p-1 h-5">Confirmação</td>
+                <td class="border border-black p-1 text-center">Motorista</td>
+                <td class="border border-black p-1">${escapeHtml(driverData.name)}</td>
+                <td class="border border-black p-1"></td>
+              </tr>
+              <tr>
+                <td class="border border-black p-1 h-5">Recebimento</td>
+                <td class="border border-black p-1 text-center">Conferente</td>
+                <td class="border border-black p-1"></td>
+                <td class="border border-black p-1"></td>
+              </tr>
+              <tr>
+                <td class="border border-black p-1 h-5">Conferência</td>
+                <td class="border border-black p-1 text-center">Conferente</td>
+                <td class="border border-black p-1"></td>
+                <td class="border border-black p-1"></td>
+              </tr>
+              <tr>
+                <td class="border border-black p-1 h-5">Conferiu? [ ] SIM [ ] NÃO</td>
+                <td class="border border-black p-1 text-center"></td>
+                <td class="border border-black p-1"></td>
+                <td class="border border-black p-1"></td>
+              </tr>
+              <tr>
+                <td class="border border-black p-1 h-5">Liberação</td>
+                <td class="border border-black p-1 text-center">Faturista/Conferente</td>
+                <td class="border border-black p-1"></td>
+                <td class="border border-black p-1"></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="border border-black p-2 mb-2">
+            <h3 class="text-center font-bold mb-1">RESPEITE AS REGRAS DE SEGURANÇA:</h3>
+            <ul class="text-[9px] space-y-0.5" style="list-style-position: inside;">
+              <li>Proibido o uso de adornos.</li>
+              <li>Obrigatório o uso de todos os EPIs: Capacetes c/ jugular, Botas de Segurança, Colete refletivo, Óculos de segurança, Luvas e Máscaras.</li>
+              <li>Obrigatório Uso das faixas de pedestres.</li>
+              <li>Obrigatória distância de 5m entre pessoas e empilhadeiras.</li>
+              <li>Respeitar procedimentos HEINEKEN, Colaboradores e Segurança Patrimonial.</li>
+            </ul>
+          </div>
+
+          <div class="border border-black p-2">
+            <div class="flex justify-between items-center mb-1">
+              <h2 class="text-base font-bold">★ HEINEKEN UNIDADE JACAREÍ</h2>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-0 text-xs">
+              <p><strong>DATA:</strong> ${escapeHtml(printDate)}</p>
+              <p><strong>HORA CHEGADA:</strong> ${escapeHtml(printTime)}</p>
+              <p><strong>NOME:</strong> ${escapeHtml(driverData.name)}</p>
+              <p><strong>CNH:</strong> ${escapeHtml(driverData.cnh)}</p>
+              <p><strong>CPF:</strong> ${escapeHtml(driverData.cpf)}</p>
+              <p><strong>TELEFONE:</strong> ${escapeHtml(driverData.phone)}</p>
+              <p><strong>EMPRESA:</strong> ${escapeHtml(firstResult[headerMap.transportadora] || "")}</p>
+              <p><strong>PLACA 1:</strong> ${escapeHtml(driverData.truckPlate)}</p>
+              <p><strong>PLACA 2:</strong> ${escapeHtml(driverData.trailerPlate)}</p>
+              <p><strong>EIXOS:</strong> ${escapeHtml(driverData.axles || "N/A")}</p>
+              <p><strong>RENAVAM:</strong> ${escapeHtml(driverData.renavam || "N/A")}</p>
+              <p><strong>NOTA FISCAL:</strong> ${escapeHtml(driverData.invoice || "")}</p>
+              <p><strong>SETOR:</strong></p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================
+    // CALL PANEL + SOM
+    // =========================
     function showCallPanel(driverName, isAlert) {
       clearTimeout(panelTimeout);
       callPanelMessage.innerHTML = `ATENÇÃO ${escapeHtml(driverName || "")},<br>Aguarde a ser chamado, iremos mandar mensagem no celular`;
-      callPanelContent.style.backgroundColor = isAlert ? "#fecaca" : "#e5e7eb";
+
+      if (isAlert) {
+        callPanelContent.style.backgroundColor = "#fecaca"; // vermelho claro
+        playSound(true);
+      } else {
+        callPanelContent.style.backgroundColor = "#e5e7eb"; // gray-200
+        playSound(false);
+      }
+
       callPanelOverlay.style.display = "flex";
       panelTimeout = setTimeout(resetApp, 7000);
+    }
+
+    function playSound(isPrioritySound) {
+      ensureAudioUnlocked().then(() => {
+        const synth = new Tone.Synth().toDestination();
+        if (isPrioritySound) {
+          synth.triggerAttackRelease("C5", "8n", Tone.now());
+          synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+        } else {
+          synth.triggerAttackRelease("C4", "8n", Tone.now());
+        }
+      });
     }
 
     function resetApp() {
@@ -679,10 +1002,9 @@
     }
 
     function displayNotFound(query) {
-      const q = escapeHtml(query);
       resultsArea.innerHTML = `
         <div class="bg-yellow-900/50 border border-yellow-700 text-yellow-300 p-4 rounded-xl text-center">
-          <p class="font-semibold">DT "${q}" não encontrado na planilha.</p>
+          <p class="font-semibold">DT "${escapeHtml(query)}" não encontrado na planilha.</p>
           <button id="manual-form-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
             Criar Folha de Marcação Manual
           </button>
@@ -693,6 +1015,9 @@
       });
     }
 
+    // =========================
+    // EVENTOS
+    // =========================
     closePanelBtn.addEventListener("click", resetApp);
     callPanelOverlay.addEventListener("click", (e) => { if (e.target === callPanelOverlay) resetApp(); });
 
@@ -703,6 +1028,7 @@
 
     dtInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchButton.click(); });
 
+    // START
     window.addEventListener("load", initializeAppLogic);
   </script>
 </body>
