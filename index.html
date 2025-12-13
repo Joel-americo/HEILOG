@@ -659,45 +659,80 @@
             return true;
         }
 
+        
         function getPriorityInfo(sheetRow) {
             let isPriority = false, isOtif = false, isTop18 = false, isAntecipacao = false, isGradeQueimada = false, isAtrasado = false;
             if (!sheetRow) return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
 
-            const getScheduledDateTime = (dateStr, timeStr) => {
-                if (!dateStr || !dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/) || !timeStr || !timeStr.match(/^\d{1,2}:\d{2}:\d{2}$/)) return null;
-                const [day, month, year] = dateStr.split('/');
-                const [hours, minutes, seconds] = timeStr.split(':');
-                return new Date(year, parseInt(month, 10) - 1, day, hours, minutes, seconds);
+            // --- TOP18 vem do SEGMENTO (coluna K do Google Sheet) ---
+            const segmento = (sheetRow[headerMap.xtAdicional] || '').toString().toUpperCase();
+            isTop18 = segmento.includes('TOP18') || segmento.includes('TOP 18') || segmento.includes('TOP');
+
+            const canal = (sheetRow[headerMap.canal] || '').toString().trim().toUpperCase();
+            const dateStr = (sheetRow[headerMap.data] || '').toString().trim();
+            const timeStr = (sheetRow[headerMap.agenda] || '').toString().trim();
+
+            const parseScheduledDateTime = (dStr, tStr) => {
+                // dStr: DD/MM/AAAA
+                if (!dStr || !/^\d{2}\/\d{2}\/\d{4}$/.test(dStr)) return null;
+
+                // tStr pode vir HH:MM ou HH:MM:SS
+                if (!tStr) return null;
+                const t = tStr.split(':');
+                if (t.length < 2) return null;
+
+                const [day, month, year] = dStr.split('/').map(v => parseInt(v, 10));
+                const hours = parseInt(t[0], 10);
+                const minutes = parseInt(t[1], 10);
+                const seconds = t.length >= 3 ? parseInt(t[2], 10) : 0;
+
+                if ([day, month, year, hours, minutes, seconds].some(n => Number.isNaN(n))) return null;
+
+                return new Date(year, month - 1, day, hours, minutes, seconds);
             };
 
+            const scheduledDateTime = parseScheduledDateTime(dateStr, timeStr);
+            if (!scheduledDateTime) {
+                // Sem agenda válida: não dá pra calcular janela. Mantém TOP18 como "prioridade" se for o caso.
+                isPriority = isTop18;
+                return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
+            }
+
+            // No HEILOG, "marcar" = entrega de documento (chegada), então usamos o momento atual
             const now = new Date();
-            const dateStr = sheetRow[headerMap.data];
-            const timeStr = sheetRow[headerMap.agenda];
-            const scheduledDateTime = getScheduledDateTime(dateStr, timeStr);
 
-            isTop18 = (sheetRow[headerMap.xtAdicional] || '').toUpperCase().includes('TOP');
+            // Comparação por dia (regra: antecipação se chegou antes da DATA planejada; grade queimada se chegou depois)
+            const today = new Date(now); today.setHours(0, 0, 0, 0);
+            const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
 
-            if (scheduledDateTime) {
-                const diffMillis = now.getTime() - scheduledDateTime.getTime();
-                const diffHours = diffMillis / 3600000;
-                const today = new Date(now); today.setHours(0, 0, 0, 0);
-                const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
-
-                if (today < scheduledDay) {
+            if (today < scheduledDay) {
+                isAntecipacao = true;
+            } else if (today > scheduledDay) {
+                isGradeQueimada = true;
+            } else {
+                // Mesmo dia:
+                // Regra especial: se o horário planejado for 20:00 / 21:00 / 22:00 / 23:00,
+                // considerar como ANTECIPAÇÃO (independente de estar antes ou depois do horário).
+                const plannedHour = scheduledDateTime.getHours();
+                if (plannedHour >= 20 && plannedHour <= 23) {
                     isAntecipacao = true;
-                } else if (today.getTime() === scheduledDay.getTime()) {
-                    if (diffHours >= -2 && diffHours <= 1) { isOtif = true; }
-                    else if (diffHours > 1) { isAtrasado = true; }
-                } else if (today > scheduledDay) {
-                    isGradeQueimada = true;
+                } else {
+                    // Regra: se chegou 1 hora depois do horário planejado -> Atrasado
+                    const plannedPlus1h = scheduledDateTime.getTime() + (60 * 60 * 1000);
+                    if (now.getTime() > plannedPlus1h) {
+                        isAtrasado = true;
+                    } else {
+                        // Caso contrário, status base por canal
+                        // Y006/Y004 = Aderente | demais = OTIF
+                        isOtif = !(canal === 'Y004' || canal === 'Y006');
+                    }
                 }
             }
 
             isPriority = isOtif || isTop18 || isAntecipacao;
             return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
         }
-
-        // ===== FOLHA DE IMPRESSÃO COMPLETA (IGUAL AO ORIGINAL) =====
+// ===== FOLHA DE IMPRESSÃO COMPLETA (IGUAL AO ORIGINAL) =====
         function buildPrintableSheet(driverData, sheetDataArray, isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado, isManual) {
             const now = new Date();
             const printDate = now.toLocaleDateString('pt-BR');
