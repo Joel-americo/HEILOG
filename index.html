@@ -1,1035 +1,976 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HEILOG - Assistente de Logística</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEILOG - Assistente de Logística</title>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Tone.js para efeitos sonoros -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <!-- Tone.js para efeitos sonoros -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 
-  <!-- IMask.js para máscaras de formulário -->
-  <script src="https://unpkg.com/imask"></script>
+    <!-- IMask.js para máscaras de formulário -->
+    <script src="https://unpkg.com/imask"></script>
 
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <style>
-    :root {
-      --heineken-green: #00904A;
-      --heineken-red: #E50025;
-      --dark-bg: #174017;
-      --text-light: #f3f4f6;
-    }
-    body { font-family: 'Roboto', sans-serif; background-color: var(--dark-bg); color: var(--text-light); }
-    .font-title { font-family: 'Oswald', sans-serif; }
-    .transition-all { transition: all 0.3s ease-in-out; }
-    .card { background-color: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-    .form-input, .form-select { background-color: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; }
-    .form-input:focus, .form-select:focus { border-color: var(--heineken-green); box-shadow: 0 0 0 2px rgba(0, 144, 74, 0.5); outline: none; }
-    .btn-green { background-color: var(--heineken-green); color: white; font-weight: bold; }
-    .btn-green:hover { background-color: #007a3f; }
-    .form-input.invalid, .form-select.invalid { border-color: var(--heineken-red); box-shadow: 0 0 0 2px rgba(229, 0, 37, 0.5); }
-    #call-panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
-    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-    #call-panel-content { padding: 3rem; border-radius: 1rem; text-align: center; color: #1a202c; animation: fadeIn 0.3s ease-out; }
-
-    @media print {
-      body * { visibility: hidden; }
-      #printable-area, #printable-area * { visibility: visible; }
-      #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
-      .print-main-container { border: 4px solid black !important; padding: 1rem; color: black !important; }
-      #app-container, #call-panel-overlay { display: none; }
-    }
-  </style>
+    <style>
+        :root {
+            --heineken-green: #00904A;
+            --heineken-red: #E50025;
+            --dark-bg: #174017;
+            --text-light: #f3f4f6;
+        }
+        body { font-family: 'Roboto', sans-serif; background-color: var(--dark-bg); color: var(--text-light); }
+        .font-title { font-family: 'Oswald', sans-serif; }
+        .transition-all { transition: all 0.3s ease-in-out; }
+        .card { background-color: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .form-input, .form-select { background-color: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; }
+        .form-input:focus, .form-select:focus { border-color: var(--heineken-green); box-shadow: 0 0 0 2px rgba(0, 144, 74, 0.5); outline: none; }
+        .btn-green { background-color: var(--heineken-green); color: white; font-weight: bold; }
+        .btn-green:hover { background-color: #007a3f; }
+        .form-input.invalid { border-color: var(--heineken-red); box-shadow: 0 0 0 2px rgba(229, 0, 37, 0.5); }
+        #call-panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        #call-panel-content { padding: 3rem; border-radius: 1rem; text-align: center; color: #1a202c; animation: fadeIn 0.3s ease-out; }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .print-main-container { border: 4px solid black !important; padding: 1rem; color: black !important; }
+            #app-container, #call-panel-overlay { display: none; }
+        }
+    </style>
 </head>
-
 <body class="antialiased">
 
-  <!-- Painel de Chamada -->
-  <div id="call-panel-overlay">
-    <div id="call-panel-content" class="w-full max-w-2xl">
-      <h2 id="call-panel-message" class="text-4xl md:text-6xl font-bold uppercase mb-6"></h2>
-      <button id="close-panel-btn" class="bg-white/80 hover:bg-white text-gray-800 font-bold py-3 px-8 rounded-lg transition-all">Fechar</button>
-    </div>
-  </div>
-
-  <div id="app-container" class="min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="w-full max-w-md card shadow-2xl rounded-2xl p-8 space-y-6">
-      <div class="text-center">
-        <svg class="w-20 h-20 mx-auto mb-2" viewBox="0 0 24 24" fill="#E50025" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z"/>
-        </svg>
-        <h1 class="font-title text-5xl font-bold text-white uppercase tracking-wider">HEILOG</h1>
-        <p class="text-gray-400 mt-1">Seu assistente de logística.</p>
-      </div>
-
-      <div class="space-y-4">
-        <label for="dt-input" class="font-semibold text-white">Consultar Documento de Transporte (DT)</label>
-        <div class="flex gap-2">
-          <input type="text" id="dt-input" placeholder="Digite o número do DT"
-            class="form-input w-full rounded-lg p-3 placeholder-gray-500 transition-all">
-          <button id="search-button"
-            class="btn-green py-3 px-5 rounded-lg flex items-center justify-center transition-all disabled:opacity-50 disabled:bg-gray-600 disabled:cursor-not-allowed">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-          </button>
+    <!-- Painel de Chamada -->
+    <div id="call-panel-overlay">
+        <div id="call-panel-content" class="w-full max-w-2xl">
+            <h2 id="call-panel-message" class="text-4xl md:text-6xl font-bold uppercase mb-6"></h2>
+            <button id="close-panel-btn" class="bg-white/80 hover:bg-white text-gray-800 font-bold py-3 px-8 rounded-lg transition-all">Fechar</button>
         </div>
-      </div>
-
-      <div id="results-area" class="pt-4 min-h-[5rem]"></div>
-
-      <div class="text-center pt-4 border-t border-gray-700/50">
-        <p id="file-status" class="text-yellow-400 text-xs h-4"></p>
-        <p id="env-warning" class="text-yellow-300 text-[10px] mt-1"></p>
-      </div>
     </div>
-  </div>
 
-  <div id="printable-area"></div>
+    <div id="app-container" class="min-h-screen flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-md card shadow-2xl rounded-2xl p-8 space-y-6">
+            <div class="text-center">
+                <svg class="w-20 h-20 mx-auto mb-2" viewBox="0 0 24 24" fill="#E50025" xmlns="http://www.w3.org/2000/svg"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z"/></svg>
+                <h1 class="font-title text-5xl font-bold text-white uppercase tracking-wider">HEILOG</h1>
+                <p class="text-gray-400 mt-1">Seu assistente de logística.</p>
+            </div>
+            <div class="space-y-4">
+                <label for="dt-input" class="font-semibold text-white">Consultar Documento de Transporte (DT)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="dt-input" placeholder="Digite o número do DT" class="form-input w-full rounded-lg p-3 placeholder-gray-500 transition-all">
+                    <button id="search-button" class="btn-green py-3 px-5 rounded-lg flex items-center justify-center transition-all disabled:opacity-50 disabled:bg-gray-600 disabled:cursor-not-allowed">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="results-area" class="pt-4 min-h-[5rem]"></div>
+            <div class="text-center pt-4 border-t border-gray-700/50">
+                <p id="file-status" class="text-yellow-400 text-xs h-4"></p>
+            </div>
+        </div>
+    </div>
 
-  <script type="module">
-    // Importar as funções necessárias do SDK do Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <div id="printable-area"></div>
 
-    // =========================
-    // CONFIGURAÇÕES
-    // =========================
-    const GOOGLE_SHEET_CSV_URL =
-      "https://docs.google.com/spreadsheets/d/e/2PACX-1vSHLJspPB5rUhpKWTUFGrtMeksd24eu1-I_l5S2qkhgFsie6cn1hITIUmr3k-ZuL4stm1x8MT0mC30s/pub?output=csv";
+    <script type="module">
+        // Importar as funções necessárias do SDK do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // Proxies alternativos (se o direto falhar por CORS/rede)
-    const PROXY_BUILDERS = [
-      (u) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
-      (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`
-    ];
+        // --- Variáveis Globais e Constantes ---
+        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHLJspPB5rUhpKWTUFGrtMeksd24eu1-I_l5S2qkhgFsie6cn1hITIUmr3k-ZuL4stm1x8MT0mC30s/pub?output=csv';
 
-    const REFRESH_INTERVAL = 300000; // 5 min
+        // Proxy principal + fallbacks (se um cair, tenta o próximo)
+        const CORS_PROXY_URL = 'https://api.allorigins.win/raw?url=';
+        const EXTRA_PROXY_BUILDERS = [
+            // corsproxy.io
+            (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+            // codetabs
+            (url) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`,
+        ];
 
-    // =========================
-    // ELEMENTOS DO DOM
-    // =========================
-    const fileStatus = document.getElementById("file-status");
-    const envWarning = document.getElementById("env-warning");
-    const dtInput = document.getElementById("dt-input");
-    const searchButton = document.getElementById("search-button");
-    const resultsArea = document.getElementById("results-area");
-    const callPanelOverlay = document.getElementById("call-panel-overlay");
-    const callPanelContent = document.getElementById("call-panel-content");
-    const callPanelMessage = document.getElementById("call-panel-message");
-    const closePanelBtn = document.getElementById("close-panel-btn");
+        const FETCH_TIMEOUT_MS = 15000;
+        const REFRESH_INTERVAL = 300000; // 5 minutos
 
-    // =========================
-    // ESTADO
-    // =========================
-    let db, auth, appId;
-    let isAuthReady = false;
+        // --- Elementos do DOM ---
+        const fileStatus = document.getElementById('file-status');
+        const dtInput = document.getElementById('dt-input');
+        const searchButton = document.getElementById('search-button');
+        const resultsArea = document.getElementById('results-area');
+        const callPanelOverlay = document.getElementById('call-panel-overlay');
+        const callPanelContent = document.getElementById('call-panel-content');
+        const callPanelMessage = document.getElementById('call-panel-message');
+        const closePanelBtn = document.getElementById('close-panel-btn');
 
-    let database = [];
-    let headers = [];
-    let headerMap = {};
+        // --- Variáveis de Estado da Aplicação ---
+        let db, auth, appId;
+        let isAuthReady = false;
+        let database = [];
+        let headers = [];
+        let headerMap = {};
+        let panelTimeout;
+        let cpfMask, phoneMask;
 
-    let panelTimeout;
-    let cpfMask, phoneMask;
+        // --- Audio Unlock (evita erro do AudioContext / autoplay) ---
+        let audioUnlocked = false;
+        async function unlockAudio() {
+            if (audioUnlocked) return true;
+            try {
+                await Tone.start();
+                audioUnlocked = true;
+                return true;
+            } catch (e) {
+                console.warn("Não foi possível destravar áudio:", e);
+                return false;
+            }
+        }
+        document.addEventListener('pointerdown', () => unlockAudio(), { once: true });
 
-    // =========================
-    // HELPERS
-    // =========================
-    function escapeHtml(s = "") {
-      return String(s)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
+        async function fetchWithTimeout(url, timeoutMs = FETCH_TIMEOUT_MS) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                return await fetch(url, { cache: 'no-store', credentials: 'omit', signal: controller.signal });
+            } finally {
+                clearTimeout(timer);
+            }
+        }
 
-    function safeDigits(s = "") {
-      return String(s).replace(/\D/g, "");
-    }
+        // --- CONFIGURAÇÃO DO FIREBASE ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyB9B2-xYb6gr92cQDbajriQiinfQurrOwI", // Substitua se necessário
+            authDomain: "heilog-logistica.firebaseapp.com",
+            projectId: "heilog-logistica",
+            storageBucket: "heilog-logistica.appspot.com",
+            messagingSenderId: "790492229739",
+            appId: "1:790492229739:web:de49887de535a839e8412e"
+        };
+        const defaultAppId = typeof __app_id !== 'undefined' ? __app_id : "heilog-logistica";
+        // ------------------------------------
 
-    // =========================
-    // FIREBASE CONFIG
-    // =========================
-    const firebaseConfig = typeof __firebase_config !== "undefined" ? JSON.parse(__firebase_config) : {
-      apiKey: "AIzaSyB9B2-xYb6gr92cQDbajriQiinfQurrOwI",
-      authDomain: "heilog-logistica.firebaseapp.com",
-      projectId: "heilog-logistica",
-      storageBucket: "heilog-logistica.appspot.com",
-      messagingSenderId: "790492229739",
-      appId: "1:790492229739:web:de49887de535a839e8412e"
-    };
+        // --- FUNÇÕES DE INICIALIZAÇÃO E AUTENTICAÇÃO ---
+        async function authenticate() {
+            return new Promise(async (resolve, reject) => {
+                onAuthStateChanged(auth, (user) => {
+                    if (user && !isAuthReady) {
+                        console.log("Firebase Auth pronta. UID:", user.uid);
+                        isAuthReady = true;
+                        resolve(user);
+                    }
+                });
 
-    const defaultAppId = typeof __app_id !== "undefined" ? __app_id : "heilog-logistica";
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else if (!auth.currentUser) {
+                        await signInAnonymously(auth);
+                    } else {
+                        // User is already signed in from a previous session
+                        isAuthReady = true;
+                        resolve(auth.currentUser);
+                    }
+                } catch (error) {
+                    console.error("Falha na autenticação com o Firebase:", error);
+                    displayError("Falha na autenticação. A aplicação pode não funcionar corretamente.");
+                    reject(error);
+                }
+            });
+        }
 
-    // =========================
-    // AUDIO (evita warning do navegador)
-    // =========================
-    let audioUnlocked = false;
-    async function ensureAudioUnlocked() {
-      if (audioUnlocked) return;
-      try {
-        await Tone.start();
-        audioUnlocked = true;
-      } catch (_) {
-        // tenta novamente no próximo gesto do usuário
-      }
-    }
+        async function initializeAppLogic() {
+            searchButton.disabled = true;
+            fileStatus.textContent = 'Inicializando...';
 
-    // =========================
-    // AUTH
-    // =========================
-    async function authenticate() {
-      return new Promise(async (resolve, reject) => {
-        onAuthStateChanged(auth, (user) => {
-          if (user && !isAuthReady) {
-            console.log("Firebase Auth pronta. UID:", user.uid);
-            isAuthReady = true;
-            resolve(user);
-          }
+            // 1. Inicializar Firebase
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                appId = defaultAppId;
+                setLogLevel('error');
+            } catch (e) {
+                console.error("Erro ao inicializar o Firebase:", e);
+                fileStatus.textContent = "Erro crítico na inicialização.";
+                fileStatus.className = 'text-red-400 text-xs h-4';
+                return;
+            }
+
+            // 2. Aguardar autenticação
+            try {
+                fileStatus.textContent = 'Autenticando...';
+                await authenticate();
+                fileStatus.textContent = 'Autenticado com sucesso.';
+            } catch (e) {
+                fileStatus.textContent = "Erro na autenticação.";
+                fileStatus.className = 'text-red-400 text-xs h-4';
+                return;
+            }
+
+            // 3. Carregar dados da planilha
+            await loadDataFromSheet(false);
+
+            // 4. Configurar atualizações periódicas
+            setInterval(() => {
+                if (!document.getElementById('generate-sheet-btn')) {
+                    loadDataFromSheet(true);
+                }
+            }, REFRESH_INTERVAL);
+        }
+
+        // --- FUNÇÕES DE DADOS E LÓGICA DE NEGÓCIO ---
+        async function loadDataFromSheet(isSilent = false) {
+            if (!isSilent) fileStatus.textContent = 'Conectando à planilha...';
+
+            try {
+                const baseUrl = `${GOOGLE_SHEET_CSV_URL}${GOOGLE_SHEET_CSV_URL.includes('?') ? '&' : '?'}t=${Date.now()}`;
+
+                const candidates = [
+                    // tenta direto (se o Google liberar CORS)
+                    baseUrl,
+                    // proxy principal
+                    `${CORS_PROXY_URL}${encodeURIComponent(baseUrl)}`,
+                    // fallbacks
+                    ...EXTRA_PROXY_BUILDERS.map(fn => fn(baseUrl)),
+                ];
+
+                let csvText = '';
+                let lastErr = null;
+
+                for (const url of candidates) {
+                    try {
+                        const response = await fetchWithTimeout(url);
+                        if (!response.ok) throw new Error(`Falha na rede (${response.status}): ${response.statusText}`);
+                        csvText = await response.text();
+                        if (csvText && csvText.trim().length > 0) break;
+                    } catch (e) {
+                        lastErr = e;
+                    }
+                }
+
+                if (!csvText) throw lastErr || new Error('Falha ao buscar CSV.');
+
+                parseCSV(csvText);
+
+                const lastUpdatedTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                fileStatus.textContent = `Planilha atualizada às ${lastUpdatedTime}.`;
+                fileStatus.className = 'text-green-400 text-xs h-4';
+
+                if (searchButton.disabled) {
+                    searchButton.disabled = false;
+                    dtInput.focus();
+                }
+
+            } catch (error) {
+                const lastErrorTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                fileStatus.textContent = `Erro ao atualizar às ${lastErrorTime}.`;
+                fileStatus.className = 'text-red-400 text-xs h-4';
+                console.error("Erro ao buscar dados da planilha:", error);
+
+                if (database.length > 0) {
+                    if (!isSilent) displayError('Não foi possível atualizar agora, mas vou usar a última base carregada.', 5000);
+                    if (searchButton.disabled) searchButton.disabled = false;
+                } else {
+                    if (!isSilent) displayError('Não foi possível conectar à planilha.');
+                }
+            }
+        }
+
+        function parseCSV(csvText) {
+            const cleaned = csvText.replace(/^\uFEFF/, ''); // remove BOM se vier
+            const lines = cleaned.trim().split(/\r?\n/);
+            if (lines.length < 2) return;
+
+            const parseLine = (line) => {
+                const values = [];
+                const regex = /("([^"]|"")*"|[^,]*)(,|$)/g;
+                line.replace(regex, (match, p1) => {
+                    let value = p1;
+                    if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1).replace(/""/g, '"');
+                    values.push(value.trim());
+                });
+                return values;
+            };
+
+            headers = parseLine(lines[0]).map(h => h.toUpperCase().replace(/"/g, ''));
+            headerMap = {
+                dts: headers[0],
+                canal: headers[1],
+                cliente: headers[2],
+                produto: headers[3],
+                descricao: headers[4],
+                plt: headers[5],
+                deposito: headers[6],
+                transportadora: headers[7],
+                data: headers[8],
+                descarga: headers[9],
+                xtAdicional: headers[10],
+                agenda: headers[11],
+                cpf: headers.find(h => h.includes('CPF')),
+                motorista: headers.find(h => h.includes('MOTORISTA')),
+            };
+
+            database = lines.slice(1).map(line => {
+                if (line.trim() === '') return null;
+                const values = parseLine(line);
+                const entry = {};
+                headers.forEach((header, j) => { entry[header] = values[j] || ''; });
+                return entry;
+            }).filter(Boolean);
+        }
+
+        async function saveDriverData(driverData, originalSheetData) {
+            if (!isAuthReady || !db || !appId) {
+                console.error("Firestore não está pronto! Auth:", isAuthReady, "DB:", !!db, "AppID:", !!appId);
+                displayError("Erro: Conexão com o banco de dados indisponível. Tente novamente.", 5000);
+                return false;
+            }
+
+            const unmaskedCpf = driverData.cpf.replace(/\D/g, '');
+
+            // 1. Salvar/Atualizar dados persistentes do motorista
+            try {
+                const driverDocRef = doc(db, `artifacts/${appId}/public/data/drivers`, unmaskedCpf);
+                const persistentDriverData = {
+                    name: driverData.name,
+                    cpf: unmaskedCpf,
+                    phone: driverData.phone.replace(/\D/g, ''),
+                    cnh: driverData.cnh,
+                    cnhExpiry: driverData.cnhExpiry,
+                    truckPlate: driverData.truckPlate,
+                    trailerPlate: driverData.trailerPlate,
+                    axles: driverData.axles,
+                    renavam: driverData.renavam,
+                    transportadora: driverData.transportadora,
+                    lastUpdate: new Date().toISOString()
+                };
+                await setDoc(driverDocRef, persistentDriverData, { merge: true });
+                localStorage.setItem(`heilo-driver-${unmaskedCpf}`, JSON.stringify(persistentDriverData));
+            } catch (error) {
+                console.error("Erro ao salvar dados do motorista no Firestore:", error);
+                displayError(`Erro ao salvar dados do motorista: ${error.message}`, 5000);
+                return false;
+            }
+
+            // 2. Salvar dados da operação no pátio
+            try {
+                const patioDocRef = doc(db, `artifacts/${appId}/public/data/patio`, driverData.dts);
+                const patioDataToSave = {
+                    dt: driverData.dts,
+                    motorista: driverData.name,
+                    transportadora: driverData.transportadora,
+                    cpf: unmaskedCpf,
+                    placa: driverData.truckPlate,
+                    telefone: driverData.phone.replace(/\D/g, ''),
+                    registrationTime: driverData.registrationTime,
+                    status: 'Em Pátio',
+                    agenda: originalSheetData[headerMap.agenda] || '',
+                    xtAdicional: originalSheetData[headerMap.xtAdicional] || '',
+                    data: originalSheetData[headerMap.data] || '',
+                    origem: 'JACAREÍ/SP',
+                    destino: originalSheetData[headerMap.deposito] || 'N/A',
+                };
+                await setDoc(patioDocRef, patioDataToSave);
+                console.log(`Operação ${driverData.dts} salva no pátio.`);
+                return true;
+            } catch (error) {
+                console.error("Erro ao salvar operação no pátio:", error);
+                displayError(`Ocorreu um erro ao salvar a operação no painel: Verifique suas permissões.`, 5000);
+                return false;
+            }
+        }
+
+        async function findAndFillDriverData(event) {
+            const cpfInput = event.target;
+            const unmaskedCpf = cpfInput.value.replace(/\D/g, '');
+
+            if (unmaskedCpf.length !== 11) return;
+
+            if (!isAuthReady) {
+                console.warn("Auth não está pronta para buscar dados do motorista.");
+                return;
+            }
+
+            const driverRef = doc(db, `artifacts/${appId}/public/data/drivers`, unmaskedCpf);
+
+            try {
+                const docSnap = await getDoc(driverRef);
+                if (docSnap.exists()) {
+                    fillFormFields(docSnap.data());
+                    console.log("Motorista encontrado no Firebase.");
+                } else {
+                    const localData = localStorage.getItem(`heilo-driver-${unmaskedCpf}`);
+                    if (localData) {
+                        fillFormFields(JSON.parse(localData));
+                        console.log("Motorista encontrado no LocalStorage.");
+                    }
+                }
+            } catch (error) {
+                console.error("Erro ao buscar motorista no Firebase:", error);
+                displayError("Erro ao consultar o banco de dados de motoristas.", 4000);
+            }
+        }
+
+        // --- FUNÇÕES DE UI E MANIPULAÇÃO DO DOM ---
+        function performSearch() {
+            const query = dtInput.value.trim();
+            if (!query) { displayError("Digite um número de DT para buscar."); return; }
+            if (database.length === 0) { displayError("Os dados da planilha ainda não foram carregados."); return; }
+
+            const results = database.filter(row => row[headerMap.dts]?.toLowerCase() === query.toLowerCase());
+            if (results.length > 0) {
+                const deposito = results[0][headerMap.deposito] || '';
+                const normalizedDeposito = deposito.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                if (normalizedDeposito.includes('FABRICA')) {
+                    showDriverForm(results);
+                } else {
+                    displayStandardResults(results);
+                }
+            } else {
+                displayNotFound(query);
+            }
+        }
+
+        function displayStandardResults(dataArray) {
+            const firstResult = dataArray[0];
+            const dt = firstResult[headerMap.dts] || 'N/A';
+            const productListHtml = dataArray.map(item => `
+                <div class="border-t border-gray-700/50 pt-2 mt-2">
+                    <p class="text-sm text-gray-400">Descrição do Produto</p>
+                    <p class="text-lg">${item[headerMap.descricao] || 'N/A'}</p>
+                    <p class="text-sm text-gray-400 mt-2">Quantidade</p>
+                    <p class="text-lg">${item[headerMap.plt] || 'N/A'}</p>
+                </div>
+            `).join('');
+
+            let resultsHtml = `
+                <div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700">
+                    <h3 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Detalhes para o DTS: ${dt}</h3>
+                    <div class="space-y-2 text-gray-300">
+                        <div>
+                            <p class="text-sm text-gray-400">Destino</p>
+                            <p class="text-lg">${firstResult[headerMap.deposito] || 'N/A'}</p>
+                        </div>
+            `;
+
+            if ((firstResult[headerMap.deposito] || '').toUpperCase() === 'HEILO') {
+                resultsHtml += `
+                    <div class="pt-4 border-t border-gray-700/50">
+                        <p class="text-sm text-gray-400">Endereço de Entrega</p>
+                        <p class="text-lg font-semibold">Rua Vereador Geraldo Nogueira da Silva, 5111, Caçapava, SP, 12280-001</p>
+                    </div>
+                `;
+            }
+
+            resultsHtml += `
+                        <h4 class="text-md font-semibold text-white pt-3">Itens da Carga:</h4>
+                        ${productListHtml}
+                    </div>
+                </div>
+            `;
+            resultsArea.innerHTML = resultsHtml;
+        }
+
+        function showDriverForm(dataArray) {
+            const firstResult = dataArray[0] || {};
+            const isManual = !firstResult[headerMap.cliente];
+
+            resultsArea.innerHTML = `
+                <div class="bg-blue-900/40 p-6 rounded-xl border border-blue-700">
+                    <h3 class="text-xl font-bold text-white mb-1">${isManual ? 'Marcação Manual de Fábrica' : 'Carregamento na Fábrica'}</h3>
+                    <p class="text-blue-200 mb-4 text-sm">${isManual ? 'Preencha todos os dados.' : 'Preencha os dados do motorista.'}</p>
+
+                    <div class="space-y-4">
+                        ${isManual ? `
+                            <input type="text" id="manual-client" class="form-input w-full rounded-lg p-3" placeholder="Cliente">
+                            <select id="manual-type" class="form-select w-full rounded-lg p-3">
+                                <option value="">Tipo de Carga</option>
+                                <option value="Bulk">Bulk</option>
+                                <option value="Embalagem">Embalagem</option>
+                                <option value="Latas">Latas</option>
+                                <option value="Produto Acabado">Produto Acabado</option>
+                                <option value="Descarga">Descarga</option>
+                            </select>
+                            <input type="text" id="manual-plt" class="form-input w-full rounded-lg p-3" placeholder="Quantidade (PLT)">
+                            <input type="text" id="manual-transportadora" class="form-input w-full rounded-lg p-3" placeholder="Transportadora">
+                            <select id="manual-canal" class="form-select w-full rounded-lg p-3">
+                                <option value="">Selecione o Canal</option>
+                                <option value="Y001">Y001</option>
+                                <option value="Y002">Y002</option>
+                                <option value="Y004">Y004</option>
+                                <option value="Y006">Y006</option>
+                                <option value="Y055">Y055</option>
+                            </select>
+                            <hr class="border-gray-600">
+                        ` : ''}
+
+                        <input type="text" id="driver-cpf" class="form-input w-full rounded-lg p-3" placeholder="Digite o CPF para buscar motorista">
+                        <input type="text" id="driver-name" class="form-input w-full rounded-lg p-3" placeholder="Nome Completo do Motorista">
+                        <input type="text" id="driver-phone" class="form-input w-full rounded-lg p-3" placeholder="Telefone com DDD">
+
+                        <div class="flex gap-4">
+                            <input type="text" id="driver-cnh" class="form-input w-full rounded-lg p-3" placeholder="Nº CNH">
+                            <input type="text" id="cnh-expiry" class="form-input w-full rounded-lg p-3" placeholder="Vencimento CNH (DD/MM/AAAA)">
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-4">
+                            <input type="text" id="truck-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Cavalo">
+                            <input type="text" id="trailer-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Carreta">
+                            <select id="truck-axles" class="form-select col-span-1 rounded-lg p-3">
+                                <option value="">Eixos</option>
+                                <option value="2">2 Eixos</option>
+                                <option value="3">3 Eixos</option>
+                                <option value="4">4 Eixos</option>
+                                <option value="5">5 Eixos</option>
+                                <option value="6">6 Eixos</option>
+                                <option value="7">7 Eixos</option>
+                                <option value="9">9 Eixos</option>
+                            </select>
+                        </div>
+
+                        <input type="text" id="driver-renavam" class="form-input w-full rounded-lg p-3" placeholder="RENAVAM">
+
+                        <div class="flex gap-4">
+                            <input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal">
+                            <input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga">
+                        </div>
+
+                        <button id="generate-sheet-btn" class="btn-green w-full py-3 rounded-lg">Imprimir e Chamar</button>
+                    </div>
+                </div>
+            `;
+
+            applyFormMasksAndValidations();
+
+            document.getElementById('driver-cpf').addEventListener('input', findAndFillDriverData);
+            document.getElementById('generate-sheet-btn').addEventListener('click', async () => {
+                await unlockAudio();
+                generateAndPrintSheet(dataArray);
+            });
+        }
+
+        function applyFormMasksAndValidations() {
+            const cpfEl = document.getElementById('driver-cpf');
+            if (cpfEl) cpfMask = IMask(cpfEl, { mask: '000.000.000-00' });
+
+            const phoneEl = document.getElementById('driver-phone');
+            if (phoneEl) phoneMask = IMask(phoneEl, { mask: '(00) 00000-0000' });
+
+            const plateEl = document.getElementById('truck-plate');
+            if (plateEl) plateEl.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
+        }
+
+        function fillFormFields(data) {
+            document.getElementById('driver-name').value = data.name || '';
+            document.getElementById('driver-cnh').value = data.cnh || '';
+            document.getElementById('cnh-expiry').value = data.cnhExpiry || '';
+            document.getElementById('truck-plate').value = data.truckPlate || '';
+            document.getElementById('trailer-plate').value = data.trailerPlate || '';
+            document.getElementById('truck-axles').value = data.axles || '';
+            document.getElementById('driver-renavam').value = data.renavam || '';
+            if (document.getElementById('manual-transportadora') && data.transportadora) {
+                document.getElementById('manual-transportadora').value = data.transportadora;
+            }
+            if (phoneMask && data.phone) phoneMask.resolve(data.phone);
+        }
+
+        async function generateAndPrintSheet(originalDataArray) {
+            const isManual = !originalDataArray[0][headerMap.cliente];
+
+            const nameEl = document.getElementById('driver-name');
+            const cpfEl = document.getElementById('driver-cpf');
+            const phoneEl = document.getElementById('driver-phone');
+            const plateEl = document.getElementById('truck-plate');
+
+            if (!validateField(nameEl, "Nome do motorista é obrigatório.")) return;
+            if (!validateField(cpfEl, "CPF é obrigatório.", () => cpfMask.unmaskedValue.length === 11)) return;
+            if (!validateField(phoneEl, "Telefone é obrigatório.", () => phoneMask.unmaskedValue.length >= 10)) return;
+            if (!validateField(plateEl, "Placa do cavalo é obrigatória.")) return;
+
+            const driverData = {
+                name: nameEl.value,
+                cpf: cpfEl.value,
+                phone: phoneEl.value,
+                cnh: document.getElementById('driver-cnh').value,
+                cnhExpiry: document.getElementById('cnh-expiry').value,
+                truckPlate: plateEl.value,
+                trailerPlate: document.getElementById('trailer-plate').value,
+                axles: document.getElementById('truck-axles').value,
+                renavam: document.getElementById('driver-renavam').value,
+                invoice: document.getElementById('invoice-number').value,
+                unloadDt: document.getElementById('unload-dt').value,
+                registrationTime: Date.now(),
+                dts: originalDataArray[0][headerMap.dts],
+                transportadora: isManual ? document.getElementById('manual-transportadora').value : originalDataArray[0][headerMap.transportadora]
+            };
+
+            const firstResult = originalDataArray[0] || {};
+            const priorityInfo = getPriorityInfo(firstResult);
+
+            const isSaved = await saveDriverData(driverData, firstResult);
+            if (!isSaved) return;
+
+            const sheetData = isManual ? [{
+                ...originalDataArray[0],
+                [headerMap.cliente]: document.getElementById('manual-client').value,
+                [headerMap.produto]: document.getElementById('manual-type').value,
+                [headerMap.plt]: document.getElementById('manual-plt').value,
+                [headerMap.transportadora]: document.getElementById('manual-transportadora').value,
+                [headerMap.canal]: document.getElementById('manual-canal').value
+            }] : originalDataArray;
+
+            // Folha COMPLETA (igual ao original)
+            buildPrintableSheet(
+                driverData,
+                sheetData,
+                priorityInfo.isPriority,
+                priorityInfo.isOtif,
+                priorityInfo.isTop18,
+                priorityInfo.isAntecipacao,
+                priorityInfo.isGradeQueimada,
+                priorityInfo.isAtrasado,
+                isManual
+            );
+
+            setTimeout(() => {
+                window.print();
+                showCallPanel(driverData.name, priorityInfo.isPriority || priorityInfo.isGradeQueimada || priorityInfo.isAtrasado);
+            }, 200);
+        }
+
+        function validateField(element, errorMessage, condition = () => element.value.trim() !== '') {
+            if (!condition()) {
+                element.classList.add('invalid');
+                displayError(errorMessage, 4000);
+                element.focus();
+                return false;
+            }
+            element.classList.remove('invalid');
+            return true;
+        }
+
+        function getPriorityInfo(sheetRow) {
+            let isPriority = false, isOtif = false, isTop18 = false, isAntecipacao = false, isGradeQueimada = false, isAtrasado = false;
+            if (!sheetRow) return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
+
+            const getScheduledDateTime = (dateStr, timeStr) => {
+                if (!dateStr || !dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/) || !timeStr || !timeStr.match(/^\d{1,2}:\d{2}:\d{2}$/)) return null;
+                const [day, month, year] = dateStr.split('/');
+                const [hours, minutes, seconds] = timeStr.split(':');
+                return new Date(year, parseInt(month, 10) - 1, day, hours, minutes, seconds);
+            };
+
+            const now = new Date();
+            const dateStr = sheetRow[headerMap.data];
+            const timeStr = sheetRow[headerMap.agenda];
+            const scheduledDateTime = getScheduledDateTime(dateStr, timeStr);
+
+            isTop18 = (sheetRow[headerMap.xtAdicional] || '').toUpperCase().includes('TOP');
+
+            if (scheduledDateTime) {
+                const diffMillis = now.getTime() - scheduledDateTime.getTime();
+                const diffHours = diffMillis / 3600000;
+                const today = new Date(now); today.setHours(0, 0, 0, 0);
+                const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
+
+                if (today < scheduledDay) {
+                    isAntecipacao = true;
+                } else if (today.getTime() === scheduledDay.getTime()) {
+                    if (diffHours >= -2 && diffHours <= 1) { isOtif = true; }
+                    else if (diffHours > 1) { isAtrasado = true; }
+                } else if (today > scheduledDay) {
+                    isGradeQueimada = true;
+                }
+            }
+
+            isPriority = isOtif || isTop18 || isAntecipacao;
+            return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
+        }
+
+        // ===== FOLHA DE IMPRESSÃO COMPLETA (IGUAL AO ORIGINAL) =====
+        function buildPrintableSheet(driverData, sheetDataArray, isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado, isManual) {
+            const now = new Date();
+            const printDate = now.toLocaleDateString('pt-BR');
+            const printTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const firstResult = sheetDataArray[0];
+
+            let priorityHtml = '';
+            if (isGradeQueimada) {
+                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FBBF24;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">GRADE QUEIMADA</h2></div>`;
+            } else if (isAtrasado) {
+                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FACC15;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ATRASADO</h2></div>`;
+            } else if (isPriority) {
+                let reasons = [];
+                if (isTop18) reasons.push("TOP 18");
+                if (isOtif) reasons.push("OTIF");
+                if (isAntecipacao) reasons.push("Antecipação");
+                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">PRIORIDADE</h2><p class="font-bold" style="font-size: 16px;">(${reasons.join(' / ')})</p></div>`;
+            } else {
+                priorityHtml = `<div class="border border-black text-center p-1"><h2 class="font-bold tracking-wider">STATUS</h2><p style="font-size: 14px;">(Normal)</p></div>`;
+            }
+
+            const allCanais = ['Y001', 'Y002', 'Y004', 'Y006', 'Y055'];
+            const canaisHtml = allCanais.map(c => `${c === firstResult[headerMap.canal] ? '[X]' : '[&nbsp;&nbsp;]'} ${c}`).join(' ');
+
+            const productHeader = isManual ? "Tipo de Carga" : "Produto";
+            const productTableHtml = `
+                <table class="w-full text-left text-sm border-collapse border border-black">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="border border-black p-1">${productHeader}</th>
+                            <th class="border border-black p-1 text-center">Quantidade (PLT)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sheetDataArray.map(item => `
+                            <tr>
+                                <td class="border border-black p-1 font-bold">${item[headerMap.produto] || 'N/A'}</td>
+                                <td class="border border-black p-1 text-center font-bold">${item[headerMap.plt] || 'N/A'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById('printable-area').innerHTML = `
+                <div class="p-2 bg-white text-black font-sans text-xs print-main-container">
+                    <header class="flex justify-between items-start mb-4 border-b-2 border-black pb-2">
+                        <div class="flex flex-col items-center">
+                            <div class="flex items-center gap-1">
+                                <span class="text-[9px] font-bold">EST.</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#E50025">
+                                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                                </svg>
+                                <span class="text-[9px] font-bold">1873</span>
+                            </div>
+                            <h1 class="text-3xl font-bold font-title tracking-wider">HEINEKEN</h1>
+                        </div>
+                        <div class="w-1/3 pt-1">${priorityHtml}</div>
+                    </header>
+
+                    <div class="text-center mb-2 text-sm">
+                        <p>CANAL: ${canaisHtml}</p>
+                    </div>
+
+                    <div class="mb-2 border border-black p-2">
+                        <table class="w-full text-left text-sm">
+                            <tr>
+                                <td class="w-1/2 pr-8 align-top">
+                                    <p><strong>DATA/HORA:</strong> ${printDate} ${printTime}</p>
+                                    <p><strong>MOTORISTA:</strong> ${driverData.name}</p>
+                                    <p><strong>CPF:</strong> ${driverData.cpf}</p>
+                                    <p><strong>PLACA:</strong> ${driverData.truckPlate}</p>
+                                    <p><strong>CARRETA 1:</strong> ${driverData.trailerPlate}</p>
+                                    <p><strong>EIXOS:</strong> ${driverData.axles || 'N/A'}</p>
+                                    <p><strong>CELULAR:</strong> ${driverData.phone}</p>
+                                </td>
+                                <td class="w-1/2 align-top">
+                                    <p><strong>CLIENTE:</strong></p>
+                                    <p class="font-bold">${firstResult[headerMap.cliente] || 'N/A'}</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="mb-2">${productTableHtml}</div>
+
+                    <table class="w-full border-collapse border-2 border-black mb-2">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border border-black p-1">MOTORISTA</th>
+                                <th class="border border-black p-1">Nº NOTA FISCAL</th>
+                                <th class="border border-black p-1">Nº TRANSPORTE</th>
+                                <th class="border border-black p-1">DT DESCARGA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border border-black p-1">
+                                    <p>[ ] Carregamento</p>
+                                    <p>[ ] Descarregamento</p>
+                                </td>
+                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${driverData.invoice || '---'}</td>
+                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${firstResult[headerMap.dts] || 'N/A'}</td>
+                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${driverData.unloadDt || '---'}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" class="border border-black p-1 text-xs">
+                                    [X] Eu, motorista, estou ciente das regras de segurança vigentes no armazém da HEINEKEN de Jacareí
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <table class="w-full border-collapse border border-black mb-2 text-xs">
+                        <thead class="bg-gray-200 text-left">
+                            <tr>
+                                <th class="border border-black p-1">PROCESSO</th>
+                                <th class="border border-black p-1">RESPONSÁVEL</th>
+                                <th class="border border-black p-1">NOME</th>
+                                <th class="border border-black p-1 w-1/3">ASSINATURA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border border-black p-1 h-5">Confirmação</td>
+                                <td class="border border-black p-1 text-center">Motorista</td>
+                                <td class="border border-black p-1">${driverData.name}</td>
+                                <td class="border border-black p-1"></td>
+                            </tr>
+                            <tr>
+                                <td class="border border-black p-1 h-5">Recebimento</td>
+                                <td class="border border-black p-1 text-center">Conferente</td>
+                                <td class="border border-black p-1"></td>
+                                <td class="border border-black p-1"></td>
+                            </tr>
+                            <tr>
+                                <td class="border border-black p-1 h-5">Conferência</td>
+                                <td class="border border-black p-1 text-center">Conferente</td>
+                                <td class="border border-black p-1"></td>
+                                <td class="border border-black p-1"></td>
+                            </tr>
+                            <tr>
+                                <td class="border border-black p-1 h-5">Conferiu? [ ] SIM [ ] NÃO</td>
+                                <td class="border border-black p-1 text-center"></td>
+                                <td class="border border-black p-1"></td>
+                                <td class="border border-black p-1"></td>
+                            </tr>
+                            <tr>
+                                <td class="border border-black p-1 h-5">Liberação</td>
+                                <td class="border border-black p-1 text-center">Faturista/Conferente</td>
+                                <td class="border border-black p-1"></td>
+                                <td class="border border-black p-1"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="border border-black p-2 mb-2">
+                        <h3 class="text-center font-bold mb-1">RESPEITE AS REGRAS DE SEGURANÇA:</h3>
+                        <ul class="text-[9px] space-y-0.5" style="list-style-position: inside;">
+                            <li>Proibido o uso de adornos.</li>
+                            <li>Obrigatório o uso de todos os EPIs: Capacetes c/ jugular, Botas de Segurança, Colete refletivo, Óculos de segurança, Luvas e Máscaras.</li>
+                            <li>Obrigatório Uso das faixas de pedestres.</li>
+                            <li>Obrigatória distância de 5m entre pessoas e empilhadeiras.</li>
+                            <li>Respeitar procedimentos HEINEKEN, Colaboradores e Segurança Patrimonial.</li>
+                        </ul>
+                    </div>
+
+                    <div class="border border-black p-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <h2 class="text-base font-bold">★ HEINEKEN UNIDADE JACAREÍ</h2>
+                        </div>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-0 text-xs">
+                            <p><strong>DATA:</strong> ${printDate}</p>
+                            <p><strong>HORA CHEGADA:</strong> ${printTime}</p>
+                            <p><strong>NOME:</strong> ${driverData.name}</p>
+                            <p><strong>CNH:</strong> ${driverData.cnh}</p>
+                            <p><strong>CPF:</strong> ${driverData.cpf}</p>
+                            <p><strong>TELEFONE:</strong> ${driverData.phone}</p>
+                            <p><strong>EMPRESA:</strong> ${firstResult[headerMap.transportadora]}</p>
+                            <p><strong>PLACA 1:</strong> ${driverData.truckPlate}</p>
+                            <p><strong>PLACA 2:</strong> ${driverData.trailerPlate}</p>
+                            <p><strong>EIXOS:</strong> ${driverData.axles || 'N/A'}</p>
+                            <p><strong>RENAVAM:</strong> ${driverData.renavam || 'N/A'}</p>
+                            <p><strong>NOTA FISCAL:</strong> ${driverData.invoice}</p>
+                            <p><strong>SETOR:</strong></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        // ===== /FOLHA COMPLETA =====
+
+        function showCallPanel(driverName, isAlert) {
+            clearTimeout(panelTimeout);
+            callPanelMessage.innerHTML = `ATENÇÃO ${driverName},<br>Aguarde a ser chamado, iremos mandar mensagem no celular`;
+
+            if (isAlert) {
+                callPanelContent.style.backgroundColor = '#fecaca'; // Vermelho claro
+                playSound(true);
+            } else {
+                callPanelContent.style.backgroundColor = '#e5e7eb'; // gray-200
+                playSound(false);
+            }
+
+            callPanelOverlay.style.display = 'flex';
+            panelTimeout = setTimeout(resetApp, 7000);
+        }
+
+        function playSound(isPrioritySound) {
+            if (!audioUnlocked) return;
+            const synth = new Tone.Synth().toDestination();
+            if (isPrioritySound) {
+                synth.triggerAttackRelease("C5", "8n", Tone.now());
+                synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+            } else {
+                synth.triggerAttackRelease("C4", "8n", Tone.now());
+            }
+        }
+
+        function resetApp() {
+            callPanelOverlay.style.display = 'none';
+            resultsArea.innerHTML = '';
+            dtInput.value = '';
+            dtInput.focus();
+            clearTimeout(panelTimeout);
+        }
+
+        function displayError(message, duration = 0) {
+            document.getElementById('temp-alert')?.remove();
+            const alertDiv = document.createElement('div');
+            alertDiv.id = 'temp-alert';
+            alertDiv.className = 'bg-red-500 text-white p-3 rounded-lg mb-4 text-center';
+            alertDiv.textContent = message;
+            resultsArea.insertAdjacentElement('afterbegin', alertDiv);
+            if (duration > 0) {
+                setTimeout(() => alertDiv.remove(), duration);
+            }
+        }
+
+        function displayNotFound(query) {
+            resultsArea.innerHTML = `
+                <div class="bg-yellow-900/50 border border-yellow-700 text-yellow-300 p-4 rounded-xl text-center">
+                    <p class="font-semibold">DT "${query}" não encontrado na planilha.</p>
+                    <button id="manual-form-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
+                        Criar Folha de Marcação Manual
+                    </button>
+                </div>
+            `;
+            document.getElementById('manual-form-btn').addEventListener('click', async () => {
+                await unlockAudio();
+                showDriverForm([{ [headerMap.dts]: query }]);
+            });
+        }
+
+        // --- Event Listeners ---
+        closePanelBtn.addEventListener('click', resetApp);
+        callPanelOverlay.addEventListener('click', (e) => { if (e.target === callPanelOverlay) resetApp(); });
+
+        searchButton.addEventListener('click', async () => {
+            await unlockAudio();
+            performSearch();
         });
 
-        try {
-          if (typeof __initial_auth_token !== "undefined" && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else if (!auth.currentUser) {
-            await signInAnonymously(auth);
-          } else {
-            isAuthReady = true;
-            resolve(auth.currentUser);
-          }
-        } catch (error) {
-          console.error("Falha na autenticação com o Firebase:", error);
-          displayError("Falha na autenticação. A aplicação pode não funcionar corretamente.");
-          reject(error);
-        }
-      });
-    }
-
-    async function initializeAppLogic() {
-      searchButton.disabled = true;
-      fileStatus.textContent = "Inicializando...";
-
-      if (location.protocol === "file:") {
-        envWarning.textContent = "Atenção: abra via http/https (GitHub Pages ou localhost). file:// pode bloquear CORS.";
-      } else {
-        envWarning.textContent = "";
-      }
-
-      // 1) Firebase
-      try {
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-        appId = defaultAppId;
-        setLogLevel("debug");
-      } catch (e) {
-        console.error("Erro ao inicializar o Firebase:", e);
-        fileStatus.textContent = "Erro crítico na inicialização.";
-        fileStatus.className = "text-red-400 text-xs h-4";
-        return;
-      }
-
-      // 2) Auth
-      try {
-        fileStatus.textContent = "Autenticando...";
-        await authenticate();
-        fileStatus.textContent = "Autenticado com sucesso.";
-        fileStatus.className = "text-green-400 text-xs h-4";
-      } catch (e) {
-        fileStatus.textContent = "Erro na autenticação.";
-        fileStatus.className = "text-red-400 text-xs h-4";
-        return;
-      }
-
-      // 3) Carregar planilha
-      await loadDataFromSheet(false);
-
-      // 4) Atualizações periódicas
-      setInterval(() => {
-        if (!document.getElementById("generate-sheet-btn")) {
-          loadDataFromSheet(true);
-        }
-      }, REFRESH_INTERVAL);
-    }
-
-    // =========================
-    // FETCH CSV (direto + proxies)
-    // =========================
-    async function fetchText(url) {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
-      return await res.text();
-    }
-
-    async function fetchCsvWithFallback(url) {
-      // 1) direto
-      try {
-        return await fetchText(url);
-      } catch (eDirect) {
-        console.warn("Falha no fetch direto, tentando proxies...", eDirect?.message || eDirect);
-      }
-
-      // 2) proxies
-      for (const build of PROXY_BUILDERS) {
-        const proxied = build(url);
-        try {
-          return await fetchText(proxied);
-        } catch (eProxy) {
-          console.warn("Proxy falhou:", proxied, eProxy?.message || eProxy);
-        }
-      }
-
-      throw new Error("Não foi possível buscar a planilha (direto e via proxies).");
-    }
-
-    async function loadDataFromSheet(isSilent = false) {
-      if (!isSilent) fileStatus.textContent = "Conectando à planilha...";
-
-      try {
-        const join = GOOGLE_SHEET_CSV_URL.includes("?") ? "&" : "?";
-        const targetUrl = `${GOOGLE_SHEET_CSV_URL}${join}t=${Date.now()}`;
-
-        const csvText = await fetchCsvWithFallback(targetUrl);
-        parseCSV(csvText);
-
-        const lastUpdatedTime = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-        fileStatus.textContent = `Planilha atualizada às ${lastUpdatedTime}.`;
-        fileStatus.className = "text-green-400 text-xs h-4";
-
-        if (searchButton.disabled) {
-          searchButton.disabled = false;
-          dtInput.focus();
-        }
-      } catch (error) {
-        const lastErrorTime = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-        fileStatus.textContent = `Erro ao atualizar às ${lastErrorTime}.`;
-        fileStatus.className = "text-red-400 text-xs h-4";
-        console.error("Erro ao buscar dados da planilha:", error);
-        if (!isSilent) displayError(`Não foi possível conectar à planilha. (${error.message || error})`);
-      }
-    }
-
-    // =========================
-    // CSV PARSE
-    // =========================
-    function parseCSV(csvText) {
-      const lines = csvText.trim().split(/\r?\n/);
-      if (lines.length < 2) return;
-
-      const parseLine = (line) => {
-        const values = [];
-        const regex = /("([^"]|"")*"|[^,]*)(,|$)/g;
-        line.replace(regex, (match, p1) => {
-          let value = p1;
-          if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1).replace(/""/g, '"');
-          values.push(value.trim());
+        dtInput.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                await unlockAudio();
+                searchButton.click();
+            }
         });
-        return values;
-      };
 
-      headers = parseLine(lines[0]).map(h => h.toUpperCase().replace(/"/g, ""));
+        // --- Ponto de Entrada da Aplicação ---
+        window.addEventListener('load', initializeAppLogic);
 
-      const findHeader = (...needles) =>
-        headers.find(h => needles.some(n => h.includes(n))) || "";
-
-      // mantém compatível com o original (posições) + fallback por nome
-      headerMap = {
-        dts: headers[0] || findHeader("DT", "DTS", "TRANSP"),
-        canal: headers[1] || findHeader("CANAL"),
-        cliente: headers[2] || findHeader("CLIENTE"),
-        produto: headers[3] || findHeader("PRODUTO"),
-        descricao: headers[4] || findHeader("DESCR"),
-        plt: headers[5] || findHeader("PLT", "QTD"),
-        deposito: headers[6] || findHeader("DEPOS", "DESTINO"),
-        transportadora: headers[7] || findHeader("TRANSPORT"),
-        data: headers[8] || findHeader("DATA"),
-        descarga: headers[9] || findHeader("DESCARG"),
-        xtAdicional: headers[10] || findHeader("XT", "ADIC"),
-        agenda: headers[11] || findHeader("AGENDA", "HORA"),
-        cpf: findHeader("CPF"),
-        motorista: findHeader("MOTORISTA"),
-      };
-
-      database = lines.slice(1)
-        .map(line => {
-          if (line.trim() === "") return null;
-          const values = parseLine(line);
-          const entry = {};
-          headers.forEach((header, j) => { entry[header] = values[j] || ""; });
-          return entry;
-        })
-        .filter(Boolean);
-    }
-
-    // =========================
-    // FIRESTORE
-    // =========================
-    async function saveDriverData(driverData, originalSheetData) {
-      if (!isAuthReady || !db || !appId) {
-        displayError("Erro: Conexão com o banco de dados indisponível. Tente novamente.", 5000);
-        return false;
-      }
-
-      const unmaskedCpf = safeDigits(driverData.cpf);
-      const dtId = safeDigits(driverData.dts) || String(driverData.dts || "").trim();
-
-      // 1) Persistente do motorista
-      try {
-        const driverDocRef = doc(db, `artifacts/${appId}/public/data/drivers`, unmaskedCpf);
-        const persistentDriverData = {
-          name: driverData.name,
-          cpf: unmaskedCpf,
-          phone: safeDigits(driverData.phone),
-          cnh: driverData.cnh,
-          cnhExpiry: driverData.cnhExpiry,
-          truckPlate: driverData.truckPlate,
-          trailerPlate: driverData.trailerPlate,
-          axles: driverData.axles,
-          renavam: driverData.renavam,
-          transportadora: driverData.transportadora,
-          lastUpdate: new Date().toISOString(),
-        };
-        await setDoc(driverDocRef, persistentDriverData, { merge: true });
-        localStorage.setItem(`heilo-driver-${unmaskedCpf}`, JSON.stringify(persistentDriverData));
-      } catch (error) {
-        console.error("Erro ao salvar motorista:", error);
-        displayError(`Erro ao salvar dados do motorista: ${error.message}`, 5000);
-        return false;
-      }
-
-      // 2) Operação no pátio
-      try {
-        const patioDocRef = doc(db, `artifacts/${appId}/public/data/patio`, dtId);
-        const patioDataToSave = {
-          dt: driverData.dts,
-          motorista: driverData.name,
-          transportadora: driverData.transportadora,
-          cpf: unmaskedCpf,
-          placa: driverData.truckPlate,
-          telefone: safeDigits(driverData.phone),
-          registrationTime: driverData.registrationTime,
-          status: "Em Pátio",
-          agenda: originalSheetData[headerMap.agenda] || "",
-          xtAdicional: originalSheetData[headerMap.xtAdicional] || "",
-          data: originalSheetData[headerMap.data] || "",
-          origem: "JACAREÍ/SP",
-          destino: originalSheetData[headerMap.deposito] || "N/A",
-        };
-        await setDoc(patioDocRef, patioDataToSave, { merge: true });
-        return true;
-      } catch (error) {
-        console.error("Erro ao salvar pátio:", error);
-        displayError("Ocorreu um erro ao salvar a operação no painel: Verifique suas permissões.", 5000);
-        return false;
-      }
-    }
-
-    async function findAndFillDriverData(event) {
-      const cpfInput = event.target;
-      const unmaskedCpf = safeDigits(cpfInput.value);
-      if (unmaskedCpf.length !== 11) return;
-      if (!isAuthReady) return;
-
-      const driverRef = doc(db, `artifacts/${appId}/public/data/drivers`, unmaskedCpf);
-
-      try {
-        const docSnap = await getDoc(driverRef);
-        if (docSnap.exists()) {
-          fillFormFields(docSnap.data());
-          console.log("Motorista encontrado no Firebase.");
-        } else {
-          const localData = localStorage.getItem(`heilo-driver-${unmaskedCpf}`);
-          if (localData) {
-            fillFormFields(JSON.parse(localData));
-            console.log("Motorista encontrado no LocalStorage.");
-          }
-        }
-      } catch (error) {
-        console.error("Erro ao buscar motorista:", error);
-        displayError("Erro ao consultar o banco de dados de motoristas.", 4000);
-      }
-    }
-
-    // =========================
-    // BUSCA / RESULTADOS
-    // =========================
-    function performSearch() {
-      const query = dtInput.value.trim();
-      if (!query) { displayError("Digite um número de DT para buscar."); return; }
-      if (database.length === 0) { displayError("Os dados da planilha ainda não foram carregados."); return; }
-
-      const results = database.filter(row => (row[headerMap.dts] || "").toLowerCase() === query.toLowerCase());
-
-      if (results.length > 0) {
-        const deposito = results[0][headerMap.deposito] || "";
-        const normalizedDeposito = deposito.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (normalizedDeposito.includes("FABRICA")) showDriverForm(results);
-        else displayStandardResults(results);
-      } else {
-        displayNotFound(query);
-      }
-    }
-
-    function displayStandardResults(dataArray) {
-      const firstResult = dataArray[0] || {};
-      const dt = escapeHtml(firstResult[headerMap.dts] || "N/A");
-      const productListHtml = dataArray.map(item => `
-        <div class="border-t border-gray-700/50 pt-2 mt-2">
-          <p class="text-sm text-gray-400">Descrição do Produto</p>
-          <p class="text-lg">${escapeHtml(item[headerMap.descricao] || "N/A")}</p>
-          <p class="text-sm text-gray-400 mt-2">Quantidade</p>
-          <p class="text-lg">${escapeHtml(item[headerMap.plt] || "N/A")}</p>
-        </div>
-      `).join("");
-
-      let resultsHtml = `
-        <div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700">
-          <h3 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Detalhes para o DTS: ${dt}</h3>
-          <div class="space-y-2 text-gray-300">
-            <div>
-              <p class="text-sm text-gray-400">Destino</p>
-              <p class="text-lg">${escapeHtml(firstResult[headerMap.deposito] || "N/A")}</p>
-            </div>
-      `;
-
-      if ((firstResult[headerMap.deposito] || "").toUpperCase() === "HEILO") {
-        resultsHtml += `
-          <div class="pt-4 border-t border-gray-700/50">
-            <p class="text-sm text-gray-400">Endereço de Entrega</p>
-            <p class="text-lg font-semibold">Rua Vereador Geraldo Nogueira da Silva, 5111, Caçapava, SP, 12280-001</p>
-          </div>
-        `;
-      }
-
-      resultsHtml += `<h4 class="text-md font-semibold text-white pt-3">Itens da Carga:</h4>${productListHtml}</div></div>`;
-      resultsArea.innerHTML = resultsHtml;
-    }
-
-    function showDriverForm(dataArray) {
-      const firstResult = dataArray[0] || {};
-      const isManual = !firstResult[headerMap.cliente];
-
-      resultsArea.innerHTML = `
-        <div class="bg-blue-900/40 p-6 rounded-xl border border-blue-700">
-          <h3 class="text-xl font-bold text-white mb-1">${isManual ? "Marcação Manual de Fábrica" : "Carregamento na Fábrica"}</h3>
-          <p class="text-blue-200 mb-4 text-sm">${isManual ? "Preencha todos os dados." : "Preencha os dados do motorista."}</p>
-
-          <div class="space-y-4">
-            ${isManual ? `
-              <input type="text" id="manual-client" class="form-input w-full rounded-lg p-3" placeholder="Cliente">
-              <select id="manual-type" class="form-select w-full rounded-lg p-3">
-                <option value="">Tipo de Carga</option>
-                <option value="Bulk">Bulk</option>
-                <option value="Embalagem">Embalagem</option>
-                <option value="Latas">Latas</option>
-                <option value="Produto Acabado">Produto Acabado</option>
-                <option value="Descarga">Descarga</option>
-              </select>
-              <input type="text" id="manual-plt" class="form-input w-full rounded-lg p-3" placeholder="Quantidade (PLT)">
-              <input type="text" id="manual-transportadora" class="form-input w-full rounded-lg p-3" placeholder="Transportadora">
-              <select id="manual-canal" class="form-select w-full rounded-lg p-3">
-                <option value="">Selecione o Canal</option>
-                <option value="Y001">Y001</option>
-                <option value="Y002">Y002</option>
-                <option value="Y004">Y004</option>
-                <option value="Y006">Y006</option>
-                <option value="Y055">Y055</option>
-              </select>
-              <hr class="border-gray-600">
-            ` : ""}
-
-            <input type="text" id="driver-cpf" class="form-input w-full rounded-lg p-3" placeholder="Digite o CPF para buscar motorista">
-            <input type="text" id="driver-name" class="form-input w-full rounded-lg p-3" placeholder="Nome Completo do Motorista">
-            <input type="text" id="driver-phone" class="form-input w-full rounded-lg p-3" placeholder="Telefone com DDD">
-
-            <div class="flex gap-4">
-              <input type="text" id="driver-cnh" class="form-input w-full rounded-lg p-3" placeholder="Nº CNH">
-              <input type="text" id="cnh-expiry" class="form-input w-full rounded-lg p-3" placeholder="Vencimento CNH (DD/MM/AAAA)">
-            </div>
-
-            <div class="grid grid-cols-3 gap-4">
-              <input type="text" id="truck-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Cavalo">
-              <input type="text" id="trailer-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Carreta">
-              <select id="truck-axles" class="form-select col-span-1 rounded-lg p-3">
-                <option value="">Eixos</option>
-                <option value="2">2 Eixos</option>
-                <option value="3">3 Eixos</option>
-                <option value="4">4 Eixos</option>
-                <option value="5">5 Eixos</option>
-                <option value="6">6 Eixos</option>
-                <option value="7">7 Eixos</option>
-                <option value="9">9 Eixos</option>
-              </select>
-            </div>
-
-            <input type="text" id="driver-renavam" class="form-input w-full rounded-lg p-3" placeholder="RENAVAM">
-
-            <div class="flex gap-4">
-              <input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal">
-              <input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga">
-            </div>
-
-            <button id="generate-sheet-btn" class="btn-green w-full py-3 rounded-lg">Imprimir e Chamar</button>
-          </div>
-        </div>
-      `;
-
-      applyFormMasksAndValidations();
-      document.getElementById("driver-cpf").addEventListener("input", findAndFillDriverData);
-
-      document.getElementById("generate-sheet-btn").addEventListener("click", async () => {
-        await ensureAudioUnlocked(); // desbloqueia áudio por gesto do usuário
-        generateAndPrintSheet(dataArray);
-      });
-    }
-
-    function applyFormMasksAndValidations() {
-      const cpfEl = document.getElementById("driver-cpf");
-      if (cpfEl) cpfMask = IMask(cpfEl, { mask: "000.000.000-00" });
-
-      const phoneEl = document.getElementById("driver-phone");
-      if (phoneEl) phoneMask = IMask(phoneEl, { mask: "(00) 00000-0000" });
-
-      const plateEl = document.getElementById("truck-plate");
-      if (plateEl) plateEl.addEventListener("input", (e) => e.target.value = e.target.value.toUpperCase());
-    }
-
-    function fillFormFields(data) {
-      document.getElementById("driver-name").value = data.name || "";
-      document.getElementById("driver-cnh").value = data.cnh || "";
-      document.getElementById("cnh-expiry").value = data.cnhExpiry || "";
-      document.getElementById("truck-plate").value = data.truckPlate || "";
-      document.getElementById("trailer-plate").value = data.trailerPlate || "";
-      document.getElementById("truck-axles").value = data.axles || "";
-      document.getElementById("driver-renavam").value = data.renavam || "";
-      if (document.getElementById("manual-transportadora") && data.transportadora) {
-        document.getElementById("manual-transportadora").value = data.transportadora;
-      }
-      if (phoneMask && data.phone) phoneMask.resolve(data.phone);
-    }
-
-    // =========================
-    // PRINT + PRIORIDADE (igual original)
-    // =========================
-    async function generateAndPrintSheet(originalDataArray) {
-      const firstRow = originalDataArray[0] || {};
-      const isManual = !firstRow[headerMap.cliente];
-
-      const nameEl = document.getElementById("driver-name");
-      const cpfEl = document.getElementById("driver-cpf");
-      const phoneEl = document.getElementById("driver-phone");
-      const plateEl = document.getElementById("truck-plate");
-
-      if (!validateField(nameEl, "Nome do motorista é obrigatório.")) return;
-      if (!validateField(cpfEl, "CPF é obrigatório.", () => cpfMask?.unmaskedValue?.length === 11)) return;
-      if (!validateField(phoneEl, "Telefone é obrigatório.", () => (phoneMask?.unmaskedValue?.length || 0) >= 10)) return;
-      if (!validateField(plateEl, "Placa do cavalo é obrigatória.")) return;
-
-      if (isManual) {
-        const mClient = document.getElementById("manual-client");
-        const mType = document.getElementById("manual-type");
-        const mPlt = document.getElementById("manual-plt");
-        const mTransp = document.getElementById("manual-transportadora");
-        const mCanal = document.getElementById("manual-canal");
-
-        if (!validateField(mClient, "Cliente é obrigatório (manual).")) return;
-        if (!validateField(mType, "Tipo de carga é obrigatório (manual).", () => mType.value.trim() !== "")) return;
-        if (!validateField(mPlt, "Quantidade (PLT) é obrigatória (manual).")) return;
-        if (!validateField(mTransp, "Transportadora é obrigatória (manual).")) return;
-        if (!validateField(mCanal, "Canal é obrigatório (manual).", () => mCanal.value.trim() !== "")) return;
-      }
-
-      const driverData = {
-        name: nameEl.value,
-        cpf: cpfEl.value,
-        phone: phoneEl.value,
-        cnh: document.getElementById("driver-cnh").value,
-        cnhExpiry: document.getElementById("cnh-expiry").value,
-        truckPlate: plateEl.value,
-        trailerPlate: document.getElementById("trailer-plate").value,
-        axles: document.getElementById("truck-axles").value,
-        renavam: document.getElementById("driver-renavam").value,
-        invoice: document.getElementById("invoice-number").value,
-        unloadDt: document.getElementById("unload-dt").value,
-        registrationTime: Date.now(),
-        dts: firstRow[headerMap.dts] || dtInput.value.trim(),
-        transportadora: isManual
-          ? document.getElementById("manual-transportadora").value
-          : (firstRow[headerMap.transportadora] || "")
-      };
-
-      const priorityInfo = getPriorityInfo(firstRow);
-
-      const isSaved = await saveDriverData(driverData, firstRow);
-      if (!isSaved) return;
-
-      const sheetData = isManual ? [{
-        ...firstRow,
-        [headerMap.cliente]: document.getElementById("manual-client").value,
-        [headerMap.produto]: document.getElementById("manual-type").value,
-        [headerMap.plt]: document.getElementById("manual-plt").value,
-        [headerMap.transportadora]: document.getElementById("manual-transportadora").value,
-        [headerMap.canal]: document.getElementById("manual-canal").value
-      }] : originalDataArray;
-
-      buildPrintableSheet(
-        driverData,
-        sheetData,
-        priorityInfo.isPriority,
-        priorityInfo.isOtif,
-        priorityInfo.isTop18,
-        priorityInfo.isAntecipacao,
-        priorityInfo.isGradeQueimada,
-        priorityInfo.isAtrasado,
-        isManual
-      );
-
-      setTimeout(() => {
-        window.print();
-        showCallPanel(driverData.name, priorityInfo.isPriority || priorityInfo.isGradeQueimada || priorityInfo.isAtrasado);
-      }, 200);
-    }
-
-    function validateField(element, errorMessage, condition = () => element.value.trim() !== "") {
-      if (!condition()) {
-        element.classList.add("invalid");
-        displayError(errorMessage, 4000);
-        element.focus();
-        return false;
-      }
-      element.classList.remove("invalid");
-      return true;
-    }
-
-    function getPriorityInfo(sheetRow) {
-      let isPriority = false, isOtif = false, isTop18 = false, isAntecipacao = false, isGradeQueimada = false, isAtrasado = false;
-      if (!sheetRow) return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
-
-      // aceita HH:MM ou HH:MM:SS
-      const normalizeTime = (t) => {
-        if (!t) return null;
-        const s = String(t).trim();
-        if (/^\d{1,2}:\d{2}$/.test(s)) return `${s}:00`;
-        if (/^\d{1,2}:\d{2}:\d{2}$/.test(s)) return s;
-        return null;
-      };
-
-      const getScheduledDateTime = (dateStr, timeStr) => {
-        if (!dateStr || !dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) return null;
-        const t = normalizeTime(timeStr);
-        if (!t) return null;
-        const [day, month, year] = dateStr.split("/");
-        const [hours, minutes, seconds] = t.split(":");
-        return new Date(year, parseInt(month, 10) - 1, day, hours, minutes, seconds);
-      };
-
-      const now = new Date();
-      const dateStr = sheetRow[headerMap.data];
-      const timeStr = sheetRow[headerMap.agenda];
-      const scheduledDateTime = getScheduledDateTime(dateStr, timeStr);
-
-      isTop18 = (sheetRow[headerMap.xtAdicional] || "").toUpperCase().includes("TOP");
-
-      if (scheduledDateTime) {
-        const diffMillis = now.getTime() - scheduledDateTime.getTime();
-        const diffHours = diffMillis / 3600000;
-
-        const today = new Date(now); today.setHours(0, 0, 0, 0);
-        const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
-
-        if (today < scheduledDay) {
-          isAntecipacao = true;
-        } else if (today.getTime() === scheduledDay.getTime()) {
-          if (diffHours >= -2 && diffHours <= 1) isOtif = true;
-          else if (diffHours > 1) isAtrasado = true;
-        } else if (today > scheduledDay) {
-          isGradeQueimada = true;
-        }
-      }
-
-      isPriority = isOtif || isTop18 || isAntecipacao;
-      return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
-    }
-
-    // =========================
-    // FOLHA COMPLETA (igual original)
-    // =========================
-    function buildPrintableSheet(driverData, sheetDataArray, isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado, isManual) {
-      const now = new Date();
-      const printDate = now.toLocaleDateString("pt-BR");
-      const printTime = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-      const firstResult = sheetDataArray[0] || {};
-
-      let priorityHtml = "";
-      if (isGradeQueimada) {
-        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FBBF24;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">GRADE QUEIMADA</h2></div>`;
-      } else if (isAtrasado) {
-        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FACC15;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ATRASADO</h2></div>`;
-      } else if (isPriority) {
-        let reasons = [];
-        if (isTop18) reasons.push("TOP 18");
-        if (isOtif) reasons.push("OTIF");
-        if (isAntecipacao) reasons.push("Antecipação");
-        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">PRIORIDADE</h2><p class="font-bold" style="font-size: 16px;">(${reasons.join(" / ")})</p></div>`;
-      } else {
-        priorityHtml = `<div class="border border-black text-center p-1"><h2 class="font-bold tracking-wider">STATUS</h2><p style="font-size: 14px;">(Normal)</p></div>`;
-      }
-
-      const allCanais = ["Y001", "Y002", "Y004", "Y006", "Y055"];
-      const canaisHtml = allCanais.map(c => `${c === (firstResult[headerMap.canal] || "") ? "[X]" : "[&nbsp;&nbsp;]"} ${escapeHtml(c)}`).join(" ");
-
-      const productHeader = isManual ? "Tipo de Carga" : "Produto";
-
-      const productTableHtml = `
-        <table class="w-full text-left text-sm border-collapse border border-black">
-          <thead class="bg-gray-200">
-            <tr>
-              <th class="border border-black p-1">${escapeHtml(productHeader)}</th>
-              <th class="border border-black p-1 text-center">Quantidade (PLT)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${sheetDataArray.map(item => `
-              <tr>
-                <td class="border border-black p-1 font-bold">${escapeHtml(item[headerMap.produto] || "N/A")}</td>
-                <td class="border border-black p-1 text-center font-bold">${escapeHtml(item[headerMap.plt] || "N/A")}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      `;
-
-      document.getElementById("printable-area").innerHTML = `
-        <div class="p-2 bg-white text-black font-sans text-xs print-main-container">
-          <header class="flex justify-between items-start mb-4 border-b-2 border-black pb-2">
-            <div class="flex flex-col items-center">
-              <div class="flex items-center gap-1">
-                <span class="text-[9px] font-bold">EST.</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#E50025">
-                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                </svg>
-                <span class="text-[9px] font-bold">1873</span>
-              </div>
-              <h1 class="text-3xl font-bold font-title tracking-wider">HEINEKEN</h1>
-            </div>
-            <div class="w-1/3 pt-1">${priorityHtml}</div>
-          </header>
-
-          <div class="text-center mb-2 text-sm"><p>CANAL: ${canaisHtml}</p></div>
-
-          <div class="mb-2 border border-black p-2">
-            <table class="w-full text-left text-sm">
-              <tr>
-                <td class="w-1/2 pr-8 align-top">
-                  <p><strong>DATA/HORA:</strong> ${escapeHtml(printDate)} ${escapeHtml(printTime)}</p>
-                  <p><strong>MOTORISTA:</strong> ${escapeHtml(driverData.name)}</p>
-                  <p><strong>CPF:</strong> ${escapeHtml(driverData.cpf)}</p>
-                  <p><strong>PLACA:</strong> ${escapeHtml(driverData.truckPlate)}</p>
-                  <p><strong>CARRETA 1:</strong> ${escapeHtml(driverData.trailerPlate)}</p>
-                  <p><strong>EIXOS:</strong> ${escapeHtml(driverData.axles || "N/A")}</p>
-                  <p><strong>CELULAR:</strong> ${escapeHtml(driverData.phone)}</p>
-                </td>
-                <td class="w-1/2 align-top">
-                  <p><strong>CLIENTE:</strong></p>
-                  <p class="font-bold">${escapeHtml(firstResult[headerMap.cliente] || "N/A")}</p>
-                </td>
-              </tr>
-            </table>
-          </div>
-
-          <div class="mb-2">${productTableHtml}</div>
-
-          <table class="w-full border-collapse border-2 border-black mb-2">
-            <thead>
-              <tr class="bg-gray-200">
-                <th class="border border-black p-1">MOTORISTA</th>
-                <th class="border border-black p-1">Nº NOTA FISCAL</th>
-                <th class="border border-black p-1">Nº TRANSPORTE</th>
-                <th class="border border-black p-1">DT DESCARGA</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="border border-black p-1">
-                  <p>[ ] Carregamento</p>
-                  <p>[ ] Descarregamento</p>
-                </td>
-                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${escapeHtml(driverData.invoice || "---")}</td>
-                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${escapeHtml(firstResult[headerMap.dts] || "N/A")}</td>
-                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${escapeHtml(driverData.unloadDt || "---")}</td>
-              </tr>
-              <tr>
-                <td colspan="4" class="border border-black p-1 text-xs">[X] Eu, motorista, estou ciente das regras de segurança vigentes no armazém da HEINEKEN de Jacareí</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <table class="w-full border-collapse border border-black mb-2 text-xs">
-            <thead class="bg-gray-200 text-left">
-              <tr>
-                <th class="border border-black p-1">PROCESSO</th>
-                <th class="border border-black p-1">RESPONSÁVEL</th>
-                <th class="border border-black p-1">NOME</th>
-                <th class="border border-black p-1 w-1/3">ASSINATURA</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="border border-black p-1 h-5">Confirmação</td>
-                <td class="border border-black p-1 text-center">Motorista</td>
-                <td class="border border-black p-1">${escapeHtml(driverData.name)}</td>
-                <td class="border border-black p-1"></td>
-              </tr>
-              <tr>
-                <td class="border border-black p-1 h-5">Recebimento</td>
-                <td class="border border-black p-1 text-center">Conferente</td>
-                <td class="border border-black p-1"></td>
-                <td class="border border-black p-1"></td>
-              </tr>
-              <tr>
-                <td class="border border-black p-1 h-5">Conferência</td>
-                <td class="border border-black p-1 text-center">Conferente</td>
-                <td class="border border-black p-1"></td>
-                <td class="border border-black p-1"></td>
-              </tr>
-              <tr>
-                <td class="border border-black p-1 h-5">Conferiu? [ ] SIM [ ] NÃO</td>
-                <td class="border border-black p-1 text-center"></td>
-                <td class="border border-black p-1"></td>
-                <td class="border border-black p-1"></td>
-              </tr>
-              <tr>
-                <td class="border border-black p-1 h-5">Liberação</td>
-                <td class="border border-black p-1 text-center">Faturista/Conferente</td>
-                <td class="border border-black p-1"></td>
-                <td class="border border-black p-1"></td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="border border-black p-2 mb-2">
-            <h3 class="text-center font-bold mb-1">RESPEITE AS REGRAS DE SEGURANÇA:</h3>
-            <ul class="text-[9px] space-y-0.5" style="list-style-position: inside;">
-              <li>Proibido o uso de adornos.</li>
-              <li>Obrigatório o uso de todos os EPIs: Capacetes c/ jugular, Botas de Segurança, Colete refletivo, Óculos de segurança, Luvas e Máscaras.</li>
-              <li>Obrigatório Uso das faixas de pedestres.</li>
-              <li>Obrigatória distância de 5m entre pessoas e empilhadeiras.</li>
-              <li>Respeitar procedimentos HEINEKEN, Colaboradores e Segurança Patrimonial.</li>
-            </ul>
-          </div>
-
-          <div class="border border-black p-2">
-            <div class="flex justify-between items-center mb-1">
-              <h2 class="text-base font-bold">★ HEINEKEN UNIDADE JACAREÍ</h2>
-            </div>
-            <div class="grid grid-cols-2 gap-x-4 gap-y-0 text-xs">
-              <p><strong>DATA:</strong> ${escapeHtml(printDate)}</p>
-              <p><strong>HORA CHEGADA:</strong> ${escapeHtml(printTime)}</p>
-              <p><strong>NOME:</strong> ${escapeHtml(driverData.name)}</p>
-              <p><strong>CNH:</strong> ${escapeHtml(driverData.cnh)}</p>
-              <p><strong>CPF:</strong> ${escapeHtml(driverData.cpf)}</p>
-              <p><strong>TELEFONE:</strong> ${escapeHtml(driverData.phone)}</p>
-              <p><strong>EMPRESA:</strong> ${escapeHtml(firstResult[headerMap.transportadora] || "")}</p>
-              <p><strong>PLACA 1:</strong> ${escapeHtml(driverData.truckPlate)}</p>
-              <p><strong>PLACA 2:</strong> ${escapeHtml(driverData.trailerPlate)}</p>
-              <p><strong>EIXOS:</strong> ${escapeHtml(driverData.axles || "N/A")}</p>
-              <p><strong>RENAVAM:</strong> ${escapeHtml(driverData.renavam || "N/A")}</p>
-              <p><strong>NOTA FISCAL:</strong> ${escapeHtml(driverData.invoice || "")}</p>
-              <p><strong>SETOR:</strong></p>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // =========================
-    // CALL PANEL + SOM
-    // =========================
-    function showCallPanel(driverName, isAlert) {
-      clearTimeout(panelTimeout);
-      callPanelMessage.innerHTML = `ATENÇÃO ${escapeHtml(driverName || "")},<br>Aguarde a ser chamado, iremos mandar mensagem no celular`;
-
-      if (isAlert) {
-        callPanelContent.style.backgroundColor = "#fecaca"; // vermelho claro
-        playSound(true);
-      } else {
-        callPanelContent.style.backgroundColor = "#e5e7eb"; // gray-200
-        playSound(false);
-      }
-
-      callPanelOverlay.style.display = "flex";
-      panelTimeout = setTimeout(resetApp, 7000);
-    }
-
-    function playSound(isPrioritySound) {
-      ensureAudioUnlocked().then(() => {
-        const synth = new Tone.Synth().toDestination();
-        if (isPrioritySound) {
-          synth.triggerAttackRelease("C5", "8n", Tone.now());
-          synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
-        } else {
-          synth.triggerAttackRelease("C4", "8n", Tone.now());
-        }
-      });
-    }
-
-    function resetApp() {
-      callPanelOverlay.style.display = "none";
-      resultsArea.innerHTML = "";
-      dtInput.value = "";
-      dtInput.focus();
-      clearTimeout(panelTimeout);
-    }
-
-    function displayError(message, duration = 0) {
-      document.getElementById("temp-alert")?.remove();
-      const alertDiv = document.createElement("div");
-      alertDiv.id = "temp-alert";
-      alertDiv.className = "bg-red-500 text-white p-3 rounded-lg mb-4 text-center";
-      alertDiv.textContent = message;
-      resultsArea.insertAdjacentElement("afterbegin", alertDiv);
-      if (duration > 0) setTimeout(() => alertDiv.remove(), duration);
-    }
-
-    function displayNotFound(query) {
-      resultsArea.innerHTML = `
-        <div class="bg-yellow-900/50 border border-yellow-700 text-yellow-300 p-4 rounded-xl text-center">
-          <p class="font-semibold">DT "${escapeHtml(query)}" não encontrado na planilha.</p>
-          <button id="manual-form-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
-            Criar Folha de Marcação Manual
-          </button>
-        </div>
-      `;
-      document.getElementById("manual-form-btn").addEventListener("click", () => {
-        showDriverForm([{ [headerMap.dts]: query }]);
-      });
-    }
-
-    // =========================
-    // EVENTOS
-    // =========================
-    closePanelBtn.addEventListener("click", resetApp);
-    callPanelOverlay.addEventListener("click", (e) => { if (e.target === callPanelOverlay) resetApp(); });
-
-    searchButton.addEventListener("click", async () => {
-      await ensureAudioUnlocked();
-      performSearch();
-    });
-
-    dtInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchButton.click(); });
-
-    // START
-    window.addEventListener("load", initializeAppLogic);
-  </script>
+    </script>
 </body>
 </html>
