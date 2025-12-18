@@ -34,6 +34,10 @@
         .form-input:focus, .form-select:focus { border-color: var(--heineken-green); box-shadow: 0 0 0 2px rgba(0, 144, 74, 0.5); outline: none; }
         .btn-green { background-color: var(--heineken-green); color: white; font-weight: bold; }
         .btn-green:hover { background-color: #007a3f; }
+        .btn-ghost { background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.12); font-weight: 700; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.14); }
+        .btn-danger { background-color: var(--heineken-red); color: white; font-weight: bold; }
+        .btn-danger:hover { background-color: #c6001f; }
         .form-input.invalid { border-color: var(--heineken-red); box-shadow: 0 0 0 2px rgba(229, 0, 37, 0.5); }
         #call-panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -45,6 +49,20 @@
             .print-main-container { border: 4px solid black !important; padding: 1rem; color: black !important; }
             #app-container, #call-panel-overlay { display: none; }
         }
+    
+        /* ✅ Menu tiles (modo inicial) */
+        .mode-tile { min-height: 74px; }
+        .mode-tile .emoji { font-size: 26px; line-height: 1; }
+        .mode-tile .label { font-size: 0.98rem; }
+
+        /* ✅ Alto contraste (somente nas opções) */
+        .hc .mode-btn {
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(255,255,255,0.25);
+        }
+        .hc .mode-btn:hover { background: rgba(255,255,255,0.18); }
+        .hc .mode-btn:focus { outline: 2px solid rgba(0, 144, 74, 0.65); outline-offset: 2px; }
+
     </style>
 </head>
 <body class="antialiased">
@@ -64,16 +82,12 @@
                 <h1 class="font-title text-5xl font-bold text-white uppercase tracking-wider">HEILOG</h1>
                 <p class="text-gray-400 mt-1">Seu assistente de logística.</p>
             </div>
-            <div class="space-y-4">
-                <label for="dt-input" class="font-semibold text-white">Consultar Documento de Transporte (DT)</label>
-                <div class="flex gap-2">
-                    <input type="text" id="dt-input" placeholder="Digite o número do DT" class="form-input w-full rounded-lg p-3 placeholder-gray-500 transition-all">
-                    <button id="search-button" class="btn-green py-3 px-5 rounded-lg flex items-center justify-center transition-all disabled:opacity-50 disabled:bg-gray-600 disabled:cursor-not-allowed">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </button>
-                </div>
-            </div>
-            <div id="results-area" class="pt-4 min-h-[5rem]"></div>
+
+            <!-- ✅ NOVO: passo inicial (o que você quer fazer?) -->
+            <div id="action-area" class="space-y-4"></div>
+
+            <div id="results-area" class="pt-2 min-h-[5rem]"></div>
+
             <div class="text-center pt-4 border-t border-gray-700/50">
                 <p id="file-status" class="text-yellow-400 text-xs h-4"></p>
             </div>
@@ -105,9 +119,8 @@
 
         // --- Elementos do DOM ---
         const fileStatus = document.getElementById('file-status');
-        const dtInput = document.getElementById('dt-input');
-        const searchButton = document.getElementById('search-button');
         const resultsArea = document.getElementById('results-area');
+        const actionArea = document.getElementById('action-area');
         const callPanelOverlay = document.getElementById('call-panel-overlay');
         const callPanelContent = document.getElementById('call-panel-content');
         const callPanelMessage = document.getElementById('call-panel-message');
@@ -121,6 +134,30 @@
         let headerMap = {};
         let panelTimeout;
         let cpfMask, phoneMask;
+
+        // ✅ NOVO: estado do fluxo (layout novo)
+        let currentMode = null;                 // LOAD | UNLOAD | BOTH | LATA_INSUMO | RITMO
+        let isSheetReady = false;               // base do Sheets carregou?
+        let pendingUnloadDt = '';               // DT de descarga para preencher no form
+        let requireUnloadDtInForm = false;      // valida DT descarga no form?
+        let manualPresetType = '';              // "Latas" | "Insumo" | "Descarga" | "Ritmo"...
+        let manualDtIdOverride = '';            // quando não tem DT, gera um ID
+        let hideManualExtras = false;           // deixa manual mais "enxuto" (oculta cliente/plt)
+        let showUnloadInputs = true;            // mostra bloco Nota Fiscal / DT Descarga no form?
+
+        // --- Helpers ---
+        function normalizeDtId(dt) {
+            // Firestore docId não pode ter "/". Então, por segurança, mantemos só números.
+            const onlyDigits = String(dt || '').replace(/\D/g, '');
+            return onlyDigits;
+        }
+
+        function generateInternalId(prefix) {
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const id = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+            return `${prefix}_${id}`;
+        }
 
         // --- Audio Unlock (evita erro do AudioContext / autoplay) ---
         let audioUnlocked = false;
@@ -149,15 +186,14 @@
 
         // --- CONFIGURAÇÃO DO FIREBASE ---
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyB9B2-xYb6gr92cQDbajriQiinfQurrOwI", // Substitua se necessário
+            apiKey: "AIzaSyB9B2-xYb6gr92cQDbajriQiinfQurrOwI",
             authDomain: "heilog-logistica.firebaseapp.com",
             projectId: "heilog-logistica",
             storageBucket: "heilog-logistica.appspot.com",
             messagingSenderId: "790492229739",
             appId: "1:790492229739:web:de49887de535a839e8412e"
         };
-        const ARTIFACT_APP_ID = "heilog-logistica"; // ID fixo do "artifact" para compartilhar dados
-        const defaultAppId = ARTIFACT_APP_ID;
+        const ARTIFACT_APP_ID = "heilog-logistica";
         // ------------------------------------
 
         // --- FUNÇÕES DE INICIALIZAÇÃO E AUTENTICAÇÃO ---
@@ -177,7 +213,6 @@
                     } else if (!auth.currentUser) {
                         await signInAnonymously(auth);
                     } else {
-                        // User is already signed in from a previous session
                         isAuthReady = true;
                         resolve(auth.currentUser);
                     }
@@ -190,8 +225,10 @@
         }
 
         async function initializeAppLogic() {
-            searchButton.disabled = true;
             fileStatus.textContent = 'Inicializando...';
+
+            // ✅ Layout novo: já desenha o menu inicial
+            renderActionSelector();
 
             // 1. Inicializar Firebase
             try {
@@ -220,11 +257,12 @@
                 return;
             }
 
-            // 3. Carregar dados da planilha
+            // 3. Carregar dados da planilha (só necessário para fluxos com DT)
             await loadDataFromSheet(false);
 
             // 4. Configurar atualizações periódicas
             setInterval(() => {
+                // Se estiver no formulário de motorista, evita recarregar no meio da digitação
                 if (!document.getElementById('generate-sheet-btn')) {
                     loadDataFromSheet(true);
                 }
@@ -238,11 +276,10 @@
             try {
                 const baseUrl = `${GOOGLE_SHEET_CSV_URL}${GOOGLE_SHEET_CSV_URL.includes('?') ? '&' : '?'}t=${Date.now()}`;
 
-                // Ordem: tenta proxies primeiro (evita erro de CORS), e só depois tenta direto como último recurso.
                 const candidates = [
                     `${CORS_PROXY_URL}${encodeURIComponent(baseUrl)}`,
                     ...EXTRA_PROXY_BUILDERS.map(fn => fn(baseUrl)),
-                    baseUrl, // último recurso (geralmente bloqueado por CORS)
+                    baseUrl,
                 ];
 
                 let csvText = '';
@@ -267,10 +304,8 @@
                 fileStatus.textContent = `Planilha atualizada às ${lastUpdatedTime}.`;
                 fileStatus.className = 'text-green-400 text-xs h-4';
 
-                if (searchButton.disabled) {
-                    searchButton.disabled = false;
-                    dtInput.focus();
-                }
+                isSheetReady = database.length > 0;
+                updateModeAvailability();
 
             } catch (error) {
                 const lastErrorTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -278,17 +313,19 @@
                 fileStatus.className = 'text-red-400 text-xs h-4';
                 console.error("Erro ao buscar dados da planilha:", error);
 
+                isSheetReady = database.length > 0;
+                updateModeAvailability();
+
                 if (database.length > 0) {
                     if (!isSilent) displayError('Não foi possível atualizar agora, mas vou usar a última base carregada.', 5000);
-                    if (searchButton.disabled) searchButton.disabled = false;
                 } else {
-                    if (!isSilent) displayError('Não foi possível conectar à planilha.');
+                    if (!isSilent) displayError('Não foi possível conectar à planilha. Fluxos com DT ficarão indisponíveis.', 6000);
                 }
             }
         }
 
         function parseCSV(csvText) {
-            const cleaned = csvText.replace(/^\uFEFF/, ''); // remove BOM se vier
+            const cleaned = csvText.replace(/^\uFEFF/, '');
             const lines = cleaned.trim().split(/\r?\n/);
             if (lines.length < 2) return;
 
@@ -304,6 +341,9 @@
             };
 
             headers = parseLine(lines[0]).map(h => h.toUpperCase().replace(/"/g, ''));
+
+            // ⚠️ Mantive seu mapeamento por ordem para não quebrar seu CSV atual.
+            // Se quiser, depois eu troco para mapeamento por NOME da coluna (mais robusto).
             headerMap = {
                 dts: headers[0],
                 canal: headers[1],
@@ -340,13 +380,12 @@
 
             const unmaskedCpf = driverData.cpf.replace(/\D/g, '');
 
-            // Normaliza DT (garante que o ID do documento seja uma string sem espaços)
-            const dtId = String(driverData.dts || '').replace(/\s+/g, '').trim();
+            // Normaliza DT (Firestore docId seguro)
+            const dtId = normalizeDtId(driverData.dts);
             if (!dtId) {
-                displayError('DT inválido: não foi possível salvar no pátio.', 5000);
+                displayError('ID inválido: não foi possível salvar no pátio.', 5000);
                 return false;
             }
-
 
             // 1. Salvar/Atualizar dados persistentes do motorista
             try {
@@ -423,7 +462,7 @@
                     origem: 'JACAREÍ/SP',
                     destino: originalSheetData?.[headerMap.deposito] || 'N/A',
 
-                    // ✅ NOVOS CAMPOS (para o Painel do Analista)
+                    // ✅ Campos para Painel do Analista
                     canal: canalValue,
                     segmento: segmentoValue,
                     prioridade: {
@@ -455,11 +494,7 @@
             const unmaskedCpf = cpfInput.value.replace(/\D/g, '');
 
             if (unmaskedCpf.length !== 11) return;
-
-            if (!isAuthReady) {
-                console.warn("Auth não está pronta para buscar dados do motorista.");
-                return;
-            }
+            if (!isAuthReady) return;
 
             const driverRef = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', unmaskedCpf);
 
@@ -481,26 +516,343 @@
             }
         }
 
-        // --- FUNÇÕES DE UI E MANIPULAÇÃO DO DOM ---
-        function performSearch() {
-            const query = dtInput.value.trim();
-            if (!query) { displayError("Digite um número de DT para buscar."); return; }
+        // =======================
+        // ✅ NOVO LAYOUT / FLUXOS
+        // =======================
+        function renderActionSelector() {
+            currentMode = null;
+            pendingUnloadDt = '';
+            requireUnloadDtInForm = false;
+            manualPresetType = '';
+            manualDtIdOverride = '';
+            hideManualExtras = false;
+            showUnloadInputs = true;
+
+            actionArea.innerHTML = `
+                <div id="mode-root" class="space-y-3">
+                    <div class="flex items-center justify-between gap-3">
+                        <p class="font-semibold text-white">O que você quer fazer?</p>
+
+                        <button id="contrast-toggle"
+                                class="btn-ghost px-3 py-2 rounded-lg text-xs"
+                                type="button"
+                                title="Melhora a visibilidade das opções">
+                            Alto contraste
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button data-mode="LOAD"
+                                class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center"
+                                title="Carregamento usando DT (consulta na planilha)">
+                            <div class="emoji">🚚</div>
+                            <div class="label font-bold">Carregar</div>
+</button>
+
+                        <button data-mode="UNLOAD"
+                                class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center"
+                                title="Descarregamento com DT de descarga (sem planilha)">
+                            <div class="emoji">📥</div>
+                            <div class="label font-bold">Descarregar</div>
+</button>
+
+                        <button data-mode="BOTH"
+                                class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center sm:col-span-2"
+                                title="Carga + Descarga (DT de carga + DT de descarga)">
+                            <div class="emoji">🔁</div>
+                            <div class="label font-bold">Carga + Descarga</div>
+</button>
+
+                        <button data-mode="LATA_INSUMO"
+                                class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center"
+                                title="Sem DT: vai direto para dados do motorista">
+                            <div class="emoji">🥫</div>
+                            <div class="label font-bold">Lata / Insumo</div>
+</button>
+
+                        <button data-mode="RITMO"
+                                class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center"
+                                title="Ritmo: DT opcional (se vazio, gera ID interno)">
+                            <div class="emoji">⚡</div>
+                            <div class="label font-bold">Ritmo</div>
+</button>
+                    </div>
+
+                    <p class="text-xs text-gray-400">
+                        Dica: se a planilha estiver fora do ar, use os fluxos sem DT.
+                    </p>
+                </div>
+`;
+
+            // ✅ Alto contraste (somente nas opções) - persiste no localStorage
+            const hcKey = "heilog-hc";
+            const applyHc = (on) => {
+                actionArea.classList.toggle("hc", !!on);
+                try { localStorage.setItem(hcKey, on ? "1" : "0"); } catch {}
+            };
+            const hcSaved = (() => {
+                try { return localStorage.getItem(hcKey) === "1"; } catch { return false; }
+            })();
+            applyHc(hcSaved);
+
+            const hcBtn = document.getElementById("contrast-toggle");
+            if (hcBtn) {
+                hcBtn.addEventListener("click", () => {
+                    const next = !actionArea.classList.contains("hc");
+                    applyHc(next);
+                });
+            }
+
+
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    await unlockAudio();
+                    currentMode = btn.dataset.mode;
+                    renderModeForm(currentMode);
+                });
+            });
+
+            updateModeAvailability();
+        }
+
+        function updateModeAvailability() {
+            const needsSheet = new Set(['LOAD', 'BOTH']);
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                const mode = btn.dataset.mode;
+                if (!mode) return;
+                if (needsSheet.has(mode)) {
+                    const disabled = !isSheetReady;
+                    btn.disabled = disabled;
+                    btn.classList.toggle('opacity-50', disabled);
+                    btn.classList.toggle('cursor-not-allowed', disabled);
+                    btn.title = disabled ? 'Planilha não carregou ainda.' : '';
+                }
+            });
+        }
+
+        function renderModeForm(mode) {
+            resultsArea.innerHTML = '';
+            pendingUnloadDt = '';
+            requireUnloadDtInForm = false;
+            manualPresetType = '';
+            manualDtIdOverride = '';
+            hideManualExtras = false;
+            showUnloadInputs = true;
+
+            const backBtn = `
+                <button id="back-to-modes" class="btn-ghost w-full py-2 rounded-lg">⬅ Voltar</button>
+            `;
+
+            let html = '';
+
+            if (mode === 'LOAD') {
+                html = `
+                    <div class="space-y-3">
+                        <p class="font-semibold text-white">Carregamento</p>
+                        <input type="text" id="mode-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT (carregar)">
+                        <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Buscar DT</button>
+                        ${backBtn}
+                    </div>
+                `;
+            }
+
+            if (mode === 'UNLOAD') {
+                html = `
+                    <div class="space-y-3">
+                        <p class="font-semibold text-white">Descarregamento</p>
+                        <input type="text" id="mode-unload-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT de descarga">
+                        <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Continuar</button>
+                        ${backBtn}
+                    </div>
+                `;
+            }
+
+            if (mode === 'BOTH') {
+                html = `
+                    <div class="space-y-3">
+                        <p class="font-semibold text-white">Carga + Descarga</p>
+                        <input type="text" id="mode-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT (carga)">
+                        <input type="text" id="mode-unload-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT de descarga">
+                        <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Buscar DT</button>
+                        ${backBtn}
+                    </div>
+                `;
+            }
+
+            if (mode === 'LATA_INSUMO') {
+                html = `
+                    <div class="space-y-3">
+                        <p class="font-semibold text-white">Lata / Insumo</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="pick-lata" class="btn-green py-3 rounded-lg">🥫 Latas</button>
+                            <button id="pick-insumo" class="btn-green py-3 rounded-lg">🧪 Insumo</button>
+                        </div>
+                        <p class="text-xs text-gray-400">Você vai direto pro formulário do motorista (sem DT).</p>
+                        ${backBtn}
+                    </div>
+                `;
+            }
+
+            if (mode === 'RITMO') {
+                html = `
+                    <div class="space-y-3">
+                        <p class="font-semibold text-white">Ritmo</p>
+                        <input type="text" id="mode-dt-optional" class="form-input w-full rounded-lg p-3" placeholder="DT (opcional)">
+                        <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Continuar</button>
+                        ${backBtn}
+                    </div>
+                `;
+            }
+
+            actionArea.innerHTML = html;
+
+            document.getElementById('back-to-modes')?.addEventListener('click', () => {
+                renderActionSelector();
+            });
+
+            // Handlers
+            if (mode === 'LOAD' || mode === 'BOTH') {
+                const dtEl = document.getElementById('mode-dt');
+                const unloadEl = document.getElementById('mode-unload-dt');
+                document.getElementById('mode-go')?.addEventListener('click', async () => {
+                    await unlockAudio();
+                    const dt = dtEl?.value?.trim() || '';
+                    if (!dt) return displayError('Digite a DT.', 4000);
+                    if (!isSheetReady || database.length === 0) return displayError('Planilha ainda não carregou. Tente novamente.', 4000);
+
+                    pendingUnloadDt = (unloadEl?.value || '').trim();
+                    requireUnloadDtInForm = (mode === 'BOTH');
+                    showUnloadInputs = (mode === 'BOTH'); // só mostra DT Descarga no form quando for "2 DTs"
+
+                    performSearchByDt(dt);
+                });
+
+                dtEl?.addEventListener('keydown', async (e) => {
+                    if (e.key === 'Enter') {
+                        await unlockAudio();
+                        document.getElementById('mode-go')?.click();
+                    }
+                });
+                unloadEl?.addEventListener('keydown', async (e) => {
+                    if (e.key === 'Enter') {
+                        await unlockAudio();
+                        document.getElementById('mode-go')?.click();
+                    }
+                });
+                dtEl?.focus();
+            }
+
+            if (mode === 'UNLOAD') {
+                const unloadEl = document.getElementById('mode-unload-dt');
+                document.getElementById('mode-go')?.addEventListener('click', async () => {
+                    await unlockAudio();
+                    const unloadDt = unloadEl?.value?.trim() || '';
+                    if (!unloadDt) return displayError('Digite a DT de descarga.', 4000);
+
+                    // Para descarregar: sem planilha -> vai direto pro formulário (manual), com DT Descarga obrigatória
+                    manualPresetType = 'Descarga';
+                    hideManualExtras = true;      // deixa manual mais enxuto
+                    showUnloadInputs = true;      // mostra DT Descarga no form
+                    requireUnloadDtInForm = true; // obriga preencher (vamos pré-preencher com o que digitou)
+                    pendingUnloadDt = unloadDt;
+
+                    // usa a própria DT de descarga como "ID" (pátio/print)
+                    const dtId = normalizeDtId(unloadDt) || generateInternalId('DESC');
+                    manualDtIdOverride = dtId;
+
+                    showDriverForm([{ [headerMap.dts]: dtId }], {
+                        modeLabel: 'Descarregamento',
+                        isManualOverride: true
+                    });
+                });
+
+                unloadEl?.addEventListener('keydown', async (e) => {
+                    if (e.key === 'Enter') {
+                        await unlockAudio();
+                        document.getElementById('mode-go')?.click();
+                    }
+                });
+                unloadEl?.focus();
+            }
+
+            if (mode === 'LATA_INSUMO') {
+                document.getElementById('pick-lata')?.addEventListener('click', async () => {
+                    await unlockAudio();
+                    manualPresetType = 'Latas';
+                    hideManualExtras = true;
+                    showUnloadInputs = false;         // não precisa Nota/DT Descarga
+                    requireUnloadDtInForm = false;
+                    pendingUnloadDt = '';
+
+                    manualDtIdOverride = generateInternalId('SEM_DT');
+                    showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Latas / sem DT', isManualOverride: true });
+                });
+
+                document.getElementById('pick-insumo')?.addEventListener('click', async () => {
+                    await unlockAudio();
+                    manualPresetType = 'Insumo';
+                    hideManualExtras = true;
+                    showUnloadInputs = false;
+                    requireUnloadDtInForm = false;
+                    pendingUnloadDt = '';
+
+                    manualDtIdOverride = generateInternalId('SEM_DT');
+                    showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Insumo / sem DT', isManualOverride: true });
+                });
+            }
+
+            if (mode === 'RITMO') {
+                const optEl = document.getElementById('mode-dt-optional');
+                document.getElementById('mode-go')?.addEventListener('click', async () => {
+                    await unlockAudio();
+                    manualPresetType = 'Ritmo';
+                    hideManualExtras = true;
+                    showUnloadInputs = false;
+                    requireUnloadDtInForm = false;
+                    pendingUnloadDt = '';
+
+                    const typed = optEl?.value?.trim() || '';
+                    const dtId = normalizeDtId(typed) || generateInternalId('RITMO');
+                    manualDtIdOverride = dtId;
+
+                    showDriverForm([{ [headerMap.dts]: dtId }], { modeLabel: 'Ritmo', isManualOverride: true });
+                });
+
+                optEl?.addEventListener('keydown', async (e) => {
+                    if (e.key === 'Enter') {
+                        await unlockAudio();
+                        document.getElementById('mode-go')?.click();
+                    }
+                });
+                optEl?.focus();
+            }
+        }
+
+        function performSearchByDt(query) {
+            const q = query.trim();
+            if (!q) { displayError("Digite um número de DT para buscar."); return; }
             if (database.length === 0) { displayError("Os dados da planilha ainda não foram carregados."); return; }
 
-            const results = database.filter(row => row[headerMap.dts]?.toLowerCase() === query.toLowerCase());
+            const results = database.filter(row => (row[headerMap.dts] || '').toString().trim().toLowerCase() === q.toLowerCase());
             if (results.length > 0) {
                 const deposito = results[0][headerMap.deposito] || '';
                 const normalizedDeposito = deposito.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 if (normalizedDeposito.includes('FABRICA')) {
-                    showDriverForm(results);
+                    // Fluxo fábrica -> formulário motorista
+                    showDriverForm(results, {
+                        modeLabel: currentMode === 'BOTH' ? 'Carga + Descarga' : 'Carregamento',
+                        isManualOverride: false
+                    });
                 } else {
+                    // Outros destinos -> só mostra detalhes
                     displayStandardResults(results);
                 }
             } else {
-                displayNotFound(query);
+                displayNotFound(q);
             }
         }
 
+        // --- FUNÇÕES DE UI E MANIPULAÇÃO DO DOM ---
         function displayStandardResults(dataArray) {
             const firstResult = dataArray[0];
             const dt = firstResult[headerMap.dts] || 'N/A';
@@ -541,37 +893,61 @@
             resultsArea.innerHTML = resultsHtml;
         }
 
-        function showDriverForm(dataArray) {
+        function showDriverForm(dataArray, options = {}) {
             const firstResult = dataArray[0] || {};
-            const isManual = !firstResult[headerMap.cliente];
+            const isManual = options.isManualOverride === true ? true : !firstResult[headerMap.cliente];
+
+            const modeLabel = options.modeLabel || 'Operação';
 
             resultsArea.innerHTML = `
                 <div class="bg-blue-900/40 p-6 rounded-xl border border-blue-700">
-                    <h3 class="text-xl font-bold text-white mb-1">${isManual ? 'Marcação Manual de Fábrica' : 'Carregamento na Fábrica'}</h3>
-                    <p class="text-blue-200 mb-4 text-sm">${isManual ? 'Preencha todos os dados.' : 'Preencha os dados do motorista.'}</p>
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <h3 class="text-xl font-bold text-white mb-1">${modeLabel}</h3>
+                            <p class="text-blue-200 mb-4 text-sm">${isManual ? 'Preencha os dados do motorista (e opcionalmente os dados da operação).' : 'Preencha os dados do motorista.'}</p>
+                        </div>
+                        <button id="back-from-form" class="btn-ghost px-3 py-2 rounded-lg text-sm">⬅ Voltar</button>
+                    </div>
 
                     <div class="space-y-4">
                         ${isManual ? `
-                            <input type="text" id="manual-client" class="form-input w-full rounded-lg p-3" placeholder="Cliente">
-                            <select id="manual-type" class="form-select w-full rounded-lg p-3">
-                                <option value="">Tipo de Carga</option>
-                                <option value="Bulk">Bulk</option>
-                                <option value="Embalagem">Embalagem</option>
-                                <option value="Latas">Latas</option>
-                                <option value="Produto Acabado">Produto Acabado</option>
-                                <option value="Descarga">Descarga</option>
-                            </select>
-                            <input type="text" id="manual-plt" class="form-input w-full rounded-lg p-3" placeholder="Quantidade (PLT)">
-                            <input type="text" id="manual-transportadora" class="form-input w-full rounded-lg p-3" placeholder="Transportadora">
-                            <select id="manual-canal" class="form-select w-full rounded-lg p-3">
-                                <option value="">Selecione o Canal</option>
-                                <option value="Y001">Y001</option>
-                                <option value="Y002">Y002</option>
-                                <option value="Y004">Y004</option>
-                                <option value="Y006">Y006</option>
-                                <option value="Y055">Y055</option>
-                            </select>
-                            <hr class="border-gray-600">
+                            <div class="bg-black/20 p-3 rounded-lg border border-white/10">
+                                <p class="text-xs text-gray-200 mb-2 font-semibold">Dados da Operação (opcional)</p>
+
+                                <div ${hideManualExtras ? 'hidden' : ''}>
+                                    <input type="text" id="manual-client" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Cliente (opcional)">
+                                </div>
+
+                                <select id="manual-type" class="form-select w-full rounded-lg p-3 mb-2">
+                                    <option value="">Tipo de Carga</option>
+                                    <option value="Bulk">Bulk</option>
+                                    <option value="Embalagem">Embalagem</option>
+                                    <option value="Latas">Latas</option>
+                                    <option value="Produto Acabado">Produto Acabado</option>
+                                    <option value="Insumo">Insumo</option>
+                                    <option value="Ritmo">Ritmo</option>
+                                    <option value="Descarga">Descarga</option>
+                                </select>
+
+                                <div ${hideManualExtras ? 'hidden' : ''}>
+                                    <input type="text" id="manual-plt" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Quantidade (PLT) (opcional)">
+                                </div>
+
+                                <input type="text" id="manual-transportadora" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Transportadora (opcional)">
+
+                                <select id="manual-canal" class="form-select w-full rounded-lg p-3">
+                                    <option value="">Canal (opcional)</option>
+                                    <option value="Y001">Y001</option>
+                                    <option value="Y002">Y002</option>
+                                    <option value="Y004">Y004</option>
+                                    <option value="Y006">Y006</option>
+                                    <option value="Y055">Y055</option>
+                                </select>
+
+                                <div class="text-xs text-gray-300 mt-2">
+                                    <span class="font-semibold">ID:</span> ${firstResult[headerMap.dts] || 'N/A'}
+                                </div>
+                            </div>
                         ` : ''}
 
                         <input type="text" id="driver-cpf" class="form-input w-full rounded-lg p-3" placeholder="Digite o CPF para buscar motorista">
@@ -600,22 +976,51 @@
 
                         <input type="text" id="driver-renavam" class="form-input w-full rounded-lg p-3" placeholder="RENAVAM">
 
-                        <div class="flex gap-4">
-                            <input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal">
-                            <input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga">
-                        </div>
+                        ${showUnloadInputs ? `
+                            <div class="flex gap-4">
+                                <input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal (opcional)">
+                                <input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga ${requireUnloadDtInForm ? '(obrigatório)' : '(opcional)'}">
+                            </div>
+                        ` : `
+                            <input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal (opcional)" hidden>
+                            <input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga" hidden>
+                        `}
 
                         <button id="generate-sheet-btn" class="btn-green w-full py-3 rounded-lg">Imprimir e Chamar</button>
                     </div>
                 </div>
             `;
 
+            document.getElementById('back-from-form')?.addEventListener('click', () => {
+                // volta para o menu do modo atual (ou menu principal)
+                if (currentMode) renderModeForm(currentMode);
+                else renderActionSelector();
+                resultsArea.innerHTML = '';
+            });
+
             applyFormMasksAndValidations();
+
+            // Prefills para modos (Lata/Insumo/Descarga/Ritmo)
+            if (isManual) {
+                const manualTypeEl = document.getElementById('manual-type');
+                const manualClientEl = document.getElementById('manual-client');
+                const manualPltEl = document.getElementById('manual-plt');
+                const manualTranspEl = document.getElementById('manual-transportadora');
+
+                if (manualTypeEl && manualPresetType) manualTypeEl.value = manualPresetType;
+                if (manualClientEl && hideManualExtras && !manualClientEl.value) manualClientEl.value = 'N/A';
+                if (manualPltEl && hideManualExtras && !manualPltEl.value) manualPltEl.value = '';
+                if (manualTranspEl && firstResult[headerMap.transportadora]) manualTranspEl.value = firstResult[headerMap.transportadora];
+            }
+
+            // Prefill DT descarga
+            const unloadEl = document.getElementById('unload-dt');
+            if (unloadEl && pendingUnloadDt) unloadEl.value = pendingUnloadDt;
 
             document.getElementById('driver-cpf').addEventListener('input', findAndFillDriverData);
             document.getElementById('generate-sheet-btn').addEventListener('click', async () => {
                 await unlockAudio();
-                generateAndPrintSheet(dataArray);
+                generateAndPrintSheet(dataArray, { isManual });
             });
         }
 
@@ -638,16 +1043,18 @@
             document.getElementById('trailer-plate').value = data.trailerPlate || '';
             document.getElementById('truck-axles').value = data.axles || '';
             document.getElementById('driver-renavam').value = data.renavam || '';
-            if (document.getElementById('manual-transportadora') && data.transportadora) {
-                document.getElementById('manual-transportadora').value = data.transportadora;
+
+            const manualTransp = document.getElementById('manual-transportadora');
+            if (manualTransp && data.transportadora) {
+                manualTransp.value = data.transportadora;
             }
+
             if (phoneMask && data.phone) phoneMask.unmaskedValue = String(data.phone).replace(/\D/g,'');
             else if (document.getElementById('driver-phone') && data.phone) document.getElementById('driver-phone').value = data.phone;
         }
 
-        async function generateAndPrintSheet(originalDataArray) {
-            const isManual = !originalDataArray[0][headerMap.cliente];
-
+        async function generateAndPrintSheet(originalDataArray, { isManual }) {
+            // validações principais
             const nameEl = document.getElementById('driver-name');
             const cpfEl = document.getElementById('driver-cpf');
             const phoneEl = document.getElementById('driver-phone');
@@ -657,6 +1064,19 @@
             if (!validateField(cpfEl, "CPF é obrigatório.", () => cpfMask.unmaskedValue.length === 11)) return;
             if (!validateField(phoneEl, "Telefone é obrigatório.", () => phoneMask.unmaskedValue.length >= 10)) return;
             if (!validateField(plateEl, "Placa do cavalo é obrigatória.")) return;
+
+            // ✅ valida DT descarga quando o modo exigir
+            const unloadDtEl = document.getElementById('unload-dt');
+            if (requireUnloadDtInForm && unloadDtEl) {
+                if (!validateField(unloadDtEl, "DT de descarga é obrigatória.", () => unloadDtEl.value.trim().length > 0)) return;
+            }
+
+            const firstOriginal = originalDataArray[0] || {};
+
+            // Decide DT/ID para salvar no pátio
+            const baseDt = String(firstOriginal[headerMap.dts] || '').trim();
+            const dtFromOverride = String(manualDtIdOverride || '').trim();
+            const dtToUse = dtFromOverride || baseDt || generateInternalId('SEM_DT');
 
             const driverData = {
                 name: nameEl.value,
@@ -668,21 +1088,22 @@
                 trailerPlate: document.getElementById('trailer-plate').value,
                 axles: document.getElementById('truck-axles').value,
                 renavam: document.getElementById('driver-renavam').value,
-                invoice: document.getElementById('invoice-number').value,
-                unloadDt: document.getElementById('unload-dt').value,
+                invoice: (document.getElementById('invoice-number')?.value || ''),
+                unloadDt: (document.getElementById('unload-dt')?.value || ''),
                 registrationTime: Date.now(),
-                dts: String(originalDataArray[0][headerMap.dts] || '').trim(),
-                transportadora: isManual ? document.getElementById('manual-transportadora').value : originalDataArray[0][headerMap.transportadora]
+                dts: dtToUse,
+                transportadora: isManual ? (document.getElementById('manual-transportadora')?.value || '') : (firstOriginal[headerMap.transportadora] || '')
             };
 
-            // ✅ ALTERAÇÃO: monta sheetData ANTES para calcular prioridade corretamente (manual também)
+            // monta sheetData ANTES (manual também)
             const sheetData = isManual ? [{
-                ...originalDataArray[0],
-                [headerMap.cliente]: document.getElementById('manual-client').value,
-                [headerMap.produto]: document.getElementById('manual-type').value,
-                [headerMap.plt]: document.getElementById('manual-plt').value,
-                [headerMap.transportadora]: document.getElementById('manual-transportadora').value,
-                [headerMap.canal]: document.getElementById('manual-canal').value,
+                ...firstOriginal,
+                [headerMap.dts]: dtToUse,
+                [headerMap.cliente]: (document.getElementById('manual-client')?.value || ''),
+                [headerMap.produto]: (document.getElementById('manual-type')?.value || ''),
+                [headerMap.plt]: (document.getElementById('manual-plt')?.value || ''),
+                [headerMap.transportadora]: (document.getElementById('manual-transportadora')?.value || ''),
+                [headerMap.canal]: (document.getElementById('manual-canal')?.value || ''),
                 [headerMap.deposito]: 'FÁBRICA'
             }] : originalDataArray;
 
@@ -692,7 +1113,6 @@
             const isSaved = await saveDriverData(driverData, firstRowForPriority, priorityInfo);
             if (!isSaved) return;
 
-            // Folha COMPLETA (igual ao original)
             buildPrintableSheet(
                 driverData,
                 sheetData,
@@ -705,10 +1125,13 @@
                 isManual
             );
 
-            setTimeout(() => {
-                window.print();
+            // ✅ print mais estável
+            window.onafterprint = () => {
                 showCallPanel(driverData.name, priorityInfo.isPriority || priorityInfo.isGradeQueimada || priorityInfo.isAtrasado);
-            }, 200);
+                window.onafterprint = null;
+            };
+
+            setTimeout(() => window.print(), 150);
         }
 
         function validateField(element, errorMessage, condition = () => element.value.trim() !== '') {
@@ -735,10 +1158,7 @@
             const timeStr = (sheetRow[headerMap.agenda] || '').toString().trim();
 
             const parseScheduledDateTime = (dStr, tStr) => {
-                // dStr: DD/MM/AAAA
                 if (!dStr || !/^\d{2}\/\d{2}\/\d{4}$/.test(dStr)) return null;
-
-                // tStr pode vir HH:MM ou HH:MM:SS
                 if (!tStr) return null;
                 const t = tStr.split(':');
                 if (t.length < 2) return null;
@@ -749,27 +1169,21 @@
                 const seconds = t.length >= 3 ? parseInt(t[2], 10) : 0;
 
                 if ([day, month, year, hours, minutes, seconds].some(n => Number.isNaN(n))) return null;
-
                 return new Date(year, month - 1, day, hours, minutes, seconds);
             };
 
             const scheduledDateTime = parseScheduledDateTime(dateStr, timeStr);
 
-            // ✅ regra de OTIF/ADERENTE POR CANAL (não deixa canal vazio virar OTIF)
             const OTIF_CANAIS = new Set(['Y001','Y002','Y055']);
-            const ADERENTE_CANAIS = new Set(['Y004','Y006']);
             isOtif = OTIF_CANAIS.has(canal);
 
             if (!scheduledDateTime) {
-                // Sem agenda válida: não dá pra calcular janela. Mantém TOP18/OTIF como prioridade se for o caso.
                 isPriority = isTop18 || isOtif;
                 return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
             }
 
-            // No HEILOG, "marcar" = entrega de documento (chegada), então usamos o momento atual
             const now = new Date();
 
-            // Comparação por dia (regra: antecipação se chegou antes da DATA planejada; grade queimada se chegou depois)
             const today = new Date(now); today.setHours(0, 0, 0, 0);
             const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
 
@@ -778,14 +1192,10 @@
             } else if (today > scheduledDay) {
                 isGradeQueimada = true;
             } else {
-                // Mesmo dia:
-                // Regra especial: se o horário planejado for 20:00 / 21:00 / 22:00 / 23:00,
-                // considerar como ANTECIPAÇÃO (independente de estar antes ou depois do horário).
                 const plannedHour = scheduledDateTime.getHours();
                 if (plannedHour >= 20 && plannedHour <= 23) {
                     isAntecipacao = true;
                 } else {
-                    // Regra: se chegou 1 hora depois do horário planejado -> Atrasado
                     const plannedPlus1h = scheduledDateTime.getTime() + (60 * 60 * 1000);
                     if (now.getTime() > plannedPlus1h) {
                         isAtrasado = true;
@@ -820,7 +1230,8 @@
             }
 
             const allCanais = ['Y001', 'Y002', 'Y004', 'Y006', 'Y055'];
-            const canaisHtml = allCanais.map(c => `${c === firstResult[headerMap.canal] ? '[X]' : '[&nbsp;&nbsp;]'} ${c}`).join(' ');
+            const canalPrint = (firstResult[headerMap.canal] || '').toString().trim().toUpperCase();
+            const canaisHtml = allCanais.map(c => `${c === canalPrint ? '[X]' : '[&nbsp;&nbsp;]'} ${c}`).join(' ');
 
             const productHeader = isManual ? "Tipo de Carga" : "Produto";
             const productTableHtml = `
@@ -976,12 +1387,12 @@
                             <p><strong>CNH:</strong> ${driverData.cnh}</p>
                             <p><strong>CPF:</strong> ${driverData.cpf}</p>
                             <p><strong>TELEFONE:</strong> ${driverData.phone}</p>
-                            <p><strong>EMPRESA:</strong> ${firstResult[headerMap.transportadora]}</p>
+                            <p><strong>EMPRESA:</strong> ${firstResult[headerMap.transportadora] || driverData.transportadora || ''}</p>
                             <p><strong>PLACA 1:</strong> ${driverData.truckPlate}</p>
                             <p><strong>PLACA 2:</strong> ${driverData.trailerPlate}</p>
                             <p><strong>EIXOS:</strong> ${driverData.axles || 'N/A'}</p>
                             <p><strong>RENAVAM:</strong> ${driverData.renavam || 'N/A'}</p>
-                            <p><strong>NOTA FISCAL:</strong> ${driverData.invoice}</p>
+                            <p><strong>NOTA FISCAL:</strong> ${driverData.invoice || ''}</p>
                             <p><strong>SETOR:</strong></p>
                         </div>
                     </div>
@@ -995,10 +1406,10 @@
             callPanelMessage.innerHTML = `ATENÇÃO ${driverName},<br>Aguarde a ser chamado, iremos mandar mensagem no celular`;
 
             if (isAlert) {
-                callPanelContent.style.backgroundColor = '#fecaca'; // Vermelho claro
+                callPanelContent.style.backgroundColor = '#fecaca';
                 playSound(true);
             } else {
-                callPanelContent.style.backgroundColor = '#e5e7eb'; // gray-200
+                callPanelContent.style.backgroundColor = '#e5e7eb';
                 playSound(false);
             }
 
@@ -1020,8 +1431,7 @@
         function resetApp() {
             callPanelOverlay.style.display = 'none';
             resultsArea.innerHTML = '';
-            dtInput.value = '';
-            dtInput.focus();
+            renderActionSelector();
             clearTimeout(panelTimeout);
         }
 
@@ -1048,25 +1458,21 @@
             `;
             document.getElementById('manual-form-btn').addEventListener('click', async () => {
                 await unlockAudio();
-                showDriverForm([{ [headerMap.dts]: query }]);
+                // Manual com DT digitada como ID
+                manualPresetType = '';
+                hideManualExtras = false;
+                showUnloadInputs = true;
+                requireUnloadDtInForm = false;
+                pendingUnloadDt = '';
+
+                manualDtIdOverride = normalizeDtId(query) || generateInternalId('MANUAL');
+                showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Marcação Manual', isManualOverride: true });
             });
         }
 
         // --- Event Listeners ---
         closePanelBtn.addEventListener('click', resetApp);
         callPanelOverlay.addEventListener('click', (e) => { if (e.target === callPanelOverlay) resetApp(); });
-
-        searchButton.addEventListener('click', async () => {
-            await unlockAudio();
-            performSearch();
-        });
-
-        dtInput.addEventListener('keydown', async (e) => {
-            if (e.key === 'Enter') {
-                await unlockAudio();
-                searchButton.click();
-            }
-        });
 
         // --- Ponto de Entrada da Aplicação ---
         window.addEventListener('load', initializeAppLogic);
