@@ -606,8 +606,8 @@
 
             document.querySelectorAll('.mode-btn').forEach(btn => {
                 btn.addEventListener('click', async () => {
-                    await unlockAudio();
-                    currentMode = btn.dataset.mode;
+                    unlockAudio();
+                currentMode = btn.dataset.mode;
                     renderModeForm(currentMode);
                 });
             });
@@ -715,8 +715,8 @@
                 const dtEl = document.getElementById('mode-dt');
                 const unloadEl = document.getElementById('mode-unload-dt');
                 document.getElementById('mode-go')?.addEventListener('click', async () => {
-                    await unlockAudio();
-                    const dt = dtEl?.value?.trim() || '';
+                    unlockAudio();
+                const dt = dtEl?.value?.trim() || '';
                     if (!dt) return displayError('Digite a DT.', 4000);
                     if (!isSheetReady || database.length === 0) return displayError('Planilha ainda não carregou. Tente novamente.', 4000);
 
@@ -729,14 +729,14 @@
 
                 dtEl?.addEventListener('keydown', async (e) => {
                     if (e.key === 'Enter') {
-                        await unlockAudio();
-                        document.getElementById('mode-go')?.click();
+                        unlockAudio();
+                document.getElementById('mode-go')?.click();
                     }
                 });
                 unloadEl?.addEventListener('keydown', async (e) => {
                     if (e.key === 'Enter') {
-                        await unlockAudio();
-                        document.getElementById('mode-go')?.click();
+                        unlockAudio();
+                document.getElementById('mode-go')?.click();
                     }
                 });
                 dtEl?.focus();
@@ -745,8 +745,8 @@
             if (mode === 'UNLOAD') {
                 const unloadEl = document.getElementById('mode-unload-dt');
                 document.getElementById('mode-go')?.addEventListener('click', async () => {
-                    await unlockAudio();
-                    const unloadDt = unloadEl?.value?.trim() || '';
+                    unlockAudio();
+                const unloadDt = unloadEl?.value?.trim() || '';
                     if (!unloadDt) return displayError('Digite a DT de descarga.', 4000);
 
                     // Para descarregar: sem planilha -> vai direto pro formulário (manual), com DT Descarga obrigatória
@@ -768,8 +768,8 @@
 
                 unloadEl?.addEventListener('keydown', async (e) => {
                     if (e.key === 'Enter') {
-                        await unlockAudio();
-                        document.getElementById('mode-go')?.click();
+                        unlockAudio();
+                document.getElementById('mode-go')?.click();
                     }
                 });
                 unloadEl?.focus();
@@ -777,8 +777,8 @@
 
             if (mode === 'LATA_INSUMO') {
                 document.getElementById('pick-lata')?.addEventListener('click', async () => {
-                    await unlockAudio();
-                    manualPresetType = 'Latas';
+                    unlockAudio();
+                manualPresetType = 'Latas';
                     hideManualExtras = true;
                     showUnloadInputs = false;         // não precisa Nota/DT Descarga
                     requireUnloadDtInForm = false;
@@ -789,8 +789,8 @@
                 });
 
                 document.getElementById('pick-insumo')?.addEventListener('click', async () => {
-                    await unlockAudio();
-                    manualPresetType = 'Insumo';
+                    unlockAudio();
+                manualPresetType = 'Insumo';
                     hideManualExtras = true;
                     showUnloadInputs = false;
                     requireUnloadDtInForm = false;
@@ -804,8 +804,8 @@
             if (mode === 'RITMO') {
                 const optEl = document.getElementById('mode-dt-optional');
                 document.getElementById('mode-go')?.addEventListener('click', async () => {
-                    await unlockAudio();
-                    manualPresetType = 'Ritmo';
+                    unlockAudio();
+                manualPresetType = 'Ritmo';
                     hideManualExtras = true;
                     showUnloadInputs = false;
                     requireUnloadDtInForm = false;
@@ -820,8 +820,8 @@
 
                 optEl?.addEventListener('keydown', async (e) => {
                     if (e.key === 'Enter') {
-                        await unlockAudio();
-                        document.getElementById('mode-go')?.click();
+                        unlockAudio();
+                document.getElementById('mode-go')?.click();
                     }
                 });
                 optEl?.focus();
@@ -945,7 +945,7 @@
                                 </select>
 
                                 <div class="text-xs text-gray-300 mt-2">
-                                    <span class="font-semibold">ID:</span> ${firstResult[headerMap.dts] || 'N/A'}
+                                    <span class="font-semibold">ID:</span> ${String(firstResult[headerMap.dts] || '').trim()}
                                 </div>
                             </div>
                         ` : ''}
@@ -1018,8 +1018,8 @@
             if (unloadEl && pendingUnloadDt) unloadEl.value = pendingUnloadDt;
 
             document.getElementById('driver-cpf').addEventListener('input', findAndFillDriverData);
-            document.getElementById('generate-sheet-btn').addEventListener('click', async () => {
-                await unlockAudio();
+            document.getElementById('generate-sheet-btn').addEventListener('click', () => {
+                unlockAudio(); // não bloqueia o print
                 generateAndPrintSheet(dataArray, { isManual });
             });
         }
@@ -1053,7 +1053,7 @@
             else if (document.getElementById('driver-phone') && data.phone) document.getElementById('driver-phone').value = data.phone;
         }
 
-        async function generateAndPrintSheet(originalDataArray, { isManual }) {
+        function generateAndPrintSheet(originalDataArray, { isManual }) {
             // validações principais
             const nameEl = document.getElementById('driver-name');
             const cpfEl = document.getElementById('driver-cpf');
@@ -1109,11 +1109,7 @@
 
             const firstRowForPriority = sheetData[0] || {};
             const priorityInfo = getPriorityInfo(firstRowForPriority);
-
-            const isSaved = await saveDriverData(driverData, firstRowForPriority, priorityInfo);
-            if (!isSaved) return;
-
-            buildPrintableSheet(
+buildPrintableSheet(
                 driverData,
                 sheetData,
                 priorityInfo.isPriority,
@@ -1125,14 +1121,38 @@
                 isManual
             );
 
-            // ✅ print mais estável
-            window.onafterprint = () => {
+            
+            // ✅ PRINT (robusto): imprime no gesto do clique + força reflow + pós-print com fallback
+            let afterPrintFired = false;
+            const afterPrint = async () => {
+                if (afterPrintFired) return;
+                afterPrintFired = true;
+
+                const isSaved = await saveDriverData(driverData, firstRowForPriority, priorityInfo);
+                if (!isSaved) {
+                    displayError('Não consegui salvar no painel agora, mas a folha foi impressa.', 7000);
+                }
                 showCallPanel(driverData.name, priorityInfo.isPriority || priorityInfo.isGradeQueimada || priorityInfo.isAtrasado);
+
+                // limpa handler
                 window.onafterprint = null;
             };
 
-            setTimeout(() => window.print(), 150);
-        }
+            window.onafterprint = () => { afterPrint(); };
+
+            // força o navegador a "ver" o DOM antes do print (sem setTimeout)
+            try { document.getElementById('printable-area').offsetHeight; } catch {}
+
+            try {
+                window.print();
+            } catch (e) {
+                console.error('Falha ao abrir impressão:', e);
+                displayError('Não consegui abrir a impressão. Verifique se o navegador está bloqueando a janela de impressão.', 8000);
+            }
+
+            // fallback: se o afterprint não disparar, executa depois de 1,5s
+            setTimeout(() => { if (!afterPrintFired) afterPrint(); }, 1500);
+}
 
         function validateField(element, errorMessage, condition = () => element.value.trim() !== '') {
             if (!condition()) {
@@ -1212,9 +1232,26 @@
             const now = new Date();
             const printDate = now.toLocaleDateString('pt-BR');
             const printTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
             const firstResult = sheetDataArray[0];
 
-            let priorityHtml = '';
+            // ✅ NOVO: Tag de operação no topo da folha (RITMO / INSUMO / LATA)
+            const productRaw = (firstResult[headerMap.produto] || '').toString().toUpperCase();
+            let operationTag = '';
+            if (productRaw.includes('RITMO')) operationTag = 'RITMO';
+            else if (productRaw.includes('INSUMO')) operationTag = 'INSUMO';
+            else if (productRaw.includes('LATA')) operationTag = 'LATA';
+
+            
+            const companyPrint = ((firstResult[headerMap.transportadora] || driverData.transportadora || '') + '').toString().trim();
+// ✅ NOVO: quando não tiver DT real, imprime em branco (sem caracteres)
+            const rawTransport = (firstResult[headerMap.dts] || '').toString().trim();
+            const transportNumberPrint = (/^\d+$/.test(rawTransport) ? rawTransport : '');
+
+            
+            const unloadDtRaw = (driverData.unloadDt || '').toString().trim();
+            const unloadDtPrint = unloadDtRaw ? unloadDtRaw : '';
+let priorityHtml = '';
             if (isGradeQueimada) {
                 priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FBBF24;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">GRADE QUEIMADA</h2></div>`;
             } else if (isAtrasado) {
@@ -1226,7 +1263,7 @@
                 if (isAntecipacao) reasons.push("Antecipação");
                 priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">PRIORIDADE</h2><p class="font-bold" style="font-size: 16px;">(${reasons.join(' / ')})</p></div>`;
             } else {
-                priorityHtml = `<div class="border border-black text-center p-1"><h2 class="font-bold tracking-wider">STATUS</h2><p style="font-size: 14px;">(Normal)</p></div>`;
+                priorityHtml = `<div class="border border-black text-center p-1"><h2 class="font-bold tracking-wider">STATUS</h2><p style="font-size: 14px;">(${operationTag || 'Normal'})</p></div>`;
             }
 
             const allCanais = ['Y001', 'Y002', 'Y004', 'Y006', 'Y055'];
@@ -1269,6 +1306,12 @@
                         <div class="w-1/3 pt-1">${priorityHtml}</div>
                     </header>
 
+
+                    ${operationTag ? `
+                    <div class="text-center mb-2 text-base font-extrabold tracking-widest">
+                        ${operationTag}
+                    </div>` : ``}
+
                     <div class="text-center mb-2 text-sm">
                         <p>CANAL: ${canaisHtml}</p>
                     </div>
@@ -1282,7 +1325,7 @@
                                     <p><strong>CPF:</strong> ${driverData.cpf}</p>
                                     <p><strong>PLACA:</strong> ${driverData.truckPlate}</p>
                                     <p><strong>CARRETA 1:</strong> ${driverData.trailerPlate}</p>
-                                    <p><strong>EIXOS:</strong> ${driverData.axles || 'N/A'}</p>
+                                    <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
                                     <p><strong>CELULAR:</strong> ${driverData.phone}</p>
                                 </td>
                                 <td class="w-1/2 align-top">
@@ -1311,8 +1354,8 @@
                                     <p>[ ] Descarregamento</p>
                                 </td>
                                 <td class="border border-black p-1 text-center text-lg font-bold align-middle">${driverData.invoice || '---'}</td>
-                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${firstResult[headerMap.dts] || 'N/A'}</td>
-                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${driverData.unloadDt || '---'}</td>
+                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${transportNumberPrint}</td>
+                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${unloadDtPrint}</td>
                             </tr>
                             <tr>
                                 <td colspan="4" class="border border-black p-1 text-xs">
@@ -1350,13 +1393,7 @@
                                 <td class="border border-black p-1"></td>
                                 <td class="border border-black p-1"></td>
                             </tr>
-                            <tr>
-                                <td class="border border-black p-1 h-5">Conferiu? [ ] SIM [ ] NÃO</td>
-                                <td class="border border-black p-1 text-center"></td>
-                                <td class="border border-black p-1"></td>
-                                <td class="border border-black p-1"></td>
-                            </tr>
-                            <tr>
+<tr>
                                 <td class="border border-black p-1 h-5">Liberação</td>
                                 <td class="border border-black p-1 text-center">Faturista/Conferente</td>
                                 <td class="border border-black p-1"></td>
@@ -1376,24 +1413,32 @@
                         </ul>
                     </div>
 
-                    <div class="border border-black p-2">
+                                        <div class="border border-black p-2">
                         <div class="flex justify-between items-center mb-1">
                             <h2 class="text-base font-bold">★ HEINEKEN UNIDADE JACAREÍ</h2>
                         </div>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-0 text-xs">
-                            <p><strong>DATA:</strong> ${printDate}</p>
-                            <p><strong>HORA CHEGADA:</strong> ${printTime}</p>
-                            <p><strong>NOME:</strong> ${driverData.name}</p>
-                            <p><strong>CNH:</strong> ${driverData.cnh}</p>
-                            <p><strong>CPF:</strong> ${driverData.cpf}</p>
-                            <p><strong>TELEFONE:</strong> ${driverData.phone}</p>
-                            <p><strong>EMPRESA:</strong> ${firstResult[headerMap.transportadora] || driverData.transportadora || ''}</p>
-                            <p><strong>PLACA 1:</strong> ${driverData.truckPlate}</p>
-                            <p><strong>PLACA 2:</strong> ${driverData.trailerPlate}</p>
-                            <p><strong>EIXOS:</strong> ${driverData.axles || 'N/A'}</p>
-                            <p><strong>RENAVAM:</strong> ${driverData.renavam || 'N/A'}</p>
-                            <p><strong>NOTA FISCAL:</strong> ${driverData.invoice || ''}</p>
-                            <p><strong>SETOR:</strong></p>
+
+                                                <!-- ✅ Rodapé lado a lado (inline CSS para funcionar no print mesmo com HTML dinâmico) -->
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; column-gap:24px; font-size:12px; line-height:1.25;">
+                            <div style="display:flex; flex-direction:column; row-gap:2px;">
+                                <p><strong>DATA:</strong> ${printDate}</p>
+                                <p><strong>NOME:</strong> ${driverData.name}</p>
+                                <p><strong>TELEFONE:</strong> ${driverData.phone}</p>
+                                <p><strong>PLACA 1:</strong> ${driverData.truckPlate}</p>
+                                <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
+                                <p><strong>NOTA FISCAL:</strong> ${driverData.invoice || ''}</p>
+                                <p><strong>SETOR:</strong></p>
+                            </div>
+
+                            <div style="display:flex; flex-direction:column; row-gap:2px;">
+                                <p><strong>HORA CHEGADA:</strong> ${printTime}</p>
+                                <p><strong>CNH:</strong> ${driverData.cnh || ''}</p>
+                                <p><strong>CPF:</strong> ${driverData.cpf}</p>
+                                <p><strong>EMPRESA:</strong> ${companyPrint}</p>
+                                <p><strong>OPERAÇÃO:</strong> ${operationTag || ''}</p>
+                                <p><strong>PLACA 2:</strong> ${driverData.trailerPlate || ''}</p>
+                                <p><strong>RENAVAM:</strong> ${driverData.renavam || ''}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1457,7 +1502,7 @@
                 </div>
             `;
             document.getElementById('manual-form-btn').addEventListener('click', async () => {
-                await unlockAudio();
+                unlockAudio();
                 // Manual com DT digitada como ID
                 manualPresetType = '';
                 hideManualExtras = false;
