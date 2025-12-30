@@ -1,1527 +1,1936 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HEILOG - Assistente de Logística</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HEILOG - Assistente de Logística</title>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Tone.js para efeitos sonoros -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+  <!-- Tone.js para efeitos sonoros -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 
-    <!-- IMask.js para máscaras de formulário -->
-    <script src="https://unpkg.com/imask"></script>
+  <!-- IMask.js para máscaras de formulário -->
+  <script src="https://unpkg.com/imask"></script>
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <style>
-        :root {
-            --heineken-green: #00904A;
-            --heineken-red: #E50025;
-            --dark-bg: #174017;
-            --text-light: #f3f4f6;
-        }
-        body { font-family: 'Roboto', sans-serif; background-color: var(--dark-bg); color: var(--text-light); }
-        .font-title { font-family: 'Oswald', sans-serif; }
-        .transition-all { transition: all 0.3s ease-in-out; }
-        .card { background-color: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .form-input, .form-select { background-color: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; }
-        .form-input:focus, .form-select:focus { border-color: var(--heineken-green); box-shadow: 0 0 0 2px rgba(0, 144, 74, 0.5); outline: none; }
-        .btn-green { background-color: var(--heineken-green); color: white; font-weight: bold; }
-        .btn-green:hover { background-color: #007a3f; }
-        .btn-ghost { background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.12); font-weight: 700; }
-        .btn-ghost:hover { background: rgba(255,255,255,0.14); }
-        .btn-danger { background-color: var(--heineken-red); color: white; font-weight: bold; }
-        .btn-danger:hover { background-color: #c6001f; }
-        .form-input.invalid { border-color: var(--heineken-red); box-shadow: 0 0 0 2px rgba(229, 0, 37, 0.5); }
-        #call-panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        #call-panel-content { padding: 3rem; border-radius: 1rem; text-align: center; color: #1a202c; animation: fadeIn 0.3s ease-out; }
-        @media print {
-            body * { visibility: hidden; }
-            #printable-area, #printable-area * { visibility: visible; }
-            #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
-            .print-main-container { border: 4px solid black !important; padding: 1rem; color: black !important; }
-            #app-container, #call-panel-overlay { display: none; }
-        }
-    
-        /* ✅ Menu tiles (modo inicial) */
-        .mode-tile { min-height: 74px; }
-        .mode-tile .emoji { font-size: 26px; line-height: 1; }
-        .mode-tile .label { font-size: 0.98rem; }
+  <style>
+    :root {
+      --heineken-green: #00904A;
+      --heineken-red: #E50025;
+      --dark-bg: #174017;
+      --text-light: #f3f4f6;
+    }
+    body { font-family: 'Roboto', sans-serif; background-color: var(--dark-bg); color: var(--text-light); }
+    .font-title { font-family: 'Oswald', sans-serif; }
+    .transition-all { transition: all 0.3s ease-in-out; }
+    .card { background-color: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .form-input, .form-select { background-color: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; }
+    .form-input:focus, .form-select:focus { border-color: var(--heineken-green); box-shadow: 0 0 0 2px rgba(0, 144, 74, 0.5); outline: none; }
+    .btn-green { background-color: var(--heineken-green); color: white; font-weight: bold; }
+    .btn-green:hover { background-color: #007a3f; }
+    .btn-ghost { background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.12); font-weight: 700; }
+    .btn-ghost:hover { background: rgba(255,255,255,0.14); }
+    .btn-danger { background-color: var(--heineken-red); color: white; font-weight: bold; }
+    .btn-danger:hover { background-color: #c6001f; }
+    .form-input.invalid { border-color: var(--heineken-red); box-shadow: 0 0 0 2px rgba(229, 0, 37, 0.5); }
 
-        /* ✅ Alto contraste (somente nas opções) */
-        .hc .mode-btn {
-            background: rgba(255,255,255,0.12);
-            border-color: rgba(255,255,255,0.25);
-        }
-        .hc .mode-btn:hover { background: rgba(255,255,255,0.18); }
-        .hc .mode-btn:focus { outline: 2px solid rgba(0, 144, 74, 0.65); outline-offset: 2px; }
+    #call-panel-overlay { position: fixed; inset: 0; background-color: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    #call-panel-content { padding: 3rem; border-radius: 1rem; text-align: center; color: #1a202c; animation: fadeIn 0.3s ease-out; }
 
-    </style>
+    @media print {
+      body * { visibility: hidden; }
+      #printable-area, #printable-area * { visibility: visible; }
+      #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
+      .print-main-container { border: 4px solid black !important; padding: 1rem; color: black !important; }
+      #app-container, #call-panel-overlay { display: none; }
+    }
+
+    /* Menu tiles (modo inicial) */
+    .mode-tile { min-height: 74px; }
+    .mode-tile .emoji { font-size: 26px; line-height: 1; }
+    .mode-tile .label { font-size: 0.98rem; }
+
+    /* Alto contraste (somente nas opções) */
+    .hc .mode-btn {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.25);
+    }
+    .hc .mode-btn:hover { background: rgba(255,255,255,0.18); }
+    .hc .mode-btn:focus { outline: 2px solid rgba(0, 144, 74, 0.65); outline-offset: 2px; }
+  </style>
 </head>
+
 <body class="antialiased">
-
-    <!-- Painel de Chamada -->
-    <div id="call-panel-overlay">
-        <div id="call-panel-content" class="w-full max-w-2xl">
-            <h2 id="call-panel-message" class="text-4xl md:text-6xl font-bold uppercase mb-6"></h2>
-            <button id="close-panel-btn" class="bg-white/80 hover:bg-white text-gray-800 font-bold py-3 px-8 rounded-lg transition-all">Fechar</button>
-        </div>
+  <!-- Painel de Chamada -->
+  <div id="call-panel-overlay">
+    <div id="call-panel-content" class="w-full max-w-2xl">
+      <h2 id="call-panel-message" class="text-4xl md:text-6xl font-bold uppercase mb-6"></h2>
+      <button id="close-panel-btn" class="bg-white/80 hover:bg-white text-gray-800 font-bold py-3 px-8 rounded-lg transition-all">Fechar</button>
     </div>
+  </div>
 
-    <div id="app-container" class="min-h-screen flex flex-col items-center justify-center p-4">
-        <div class="w-full max-w-md card shadow-2xl rounded-2xl p-8 space-y-6">
-            <div class="text-center">
-                <svg class="w-20 h-20 mx-auto mb-2" viewBox="0 0 24 24" fill="#E50025" xmlns="http://www.w3.org/2000/svg"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z"/></svg>
-                <h1 class="font-title text-5xl font-bold text-white uppercase tracking-wider">HEILOG</h1>
-                <p class="text-gray-400 mt-1">Seu assistente de logística.</p>
-            </div>
+  <div id="app-container" class="min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-md card shadow-2xl rounded-2xl p-8 space-y-6">
+      <div class="text-center">
+        <svg class="w-20 h-20 mx-auto mb-2" viewBox="0 0 24 24" fill="#E50025" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z"/>
+        </svg>
+        <h1 class="font-title text-5xl font-bold text-white uppercase tracking-wider">HEILOG</h1>
+        <p class="text-gray-400 mt-1">Seu assistente de logística.</p>
+      </div>
 
-            <!-- ✅ NOVO: passo inicial (o que você quer fazer?) -->
-            <div id="action-area" class="space-y-4"></div>
+      <div id="action-area" class="space-y-4"></div>
+      <div id="results-area" class="pt-2 min-h-[5rem]"></div>
 
-            <div id="results-area" class="pt-2 min-h-[5rem]"></div>
-
-            <div class="text-center pt-4 border-t border-gray-700/50">
-                <p id="file-status" class="text-yellow-400 text-xs h-4"></p>
-            </div>
-        </div>
+      <div class="text-center pt-4 border-t border-gray-700/50">
+        <p id="file-status" class="text-yellow-400 text-xs h-4"></p>
+      </div>
     </div>
+  </div>
 
-    <div id="printable-area"></div>
+  <div id="printable-area"></div>
 
-    <script type="module">
-        // Importar as funções necessárias do SDK do Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Variáveis Globais e Constantes ---
-        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHLJspPB5rUhpKWTUFGrtMeksd24eu1-I_l5S2qkhgFsie6cn1hITIUmr3k-ZuL4stm1x8MT0mC30s/pub?output=csv';
+    // --- Constantes ---
+    const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHLJspPB5rUhpKWTUFGrtMeksd24eu1-I_l5S2qkhgFsie6cn1hITIUmr3k-ZuL4stm1x8MT0mC30s/pub?output=csv';
+    const CORS_PROXY_URL = 'https://api.allorigins.win/raw?url=';
+    const EXTRA_PROXY_BUILDERS = [
+      (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      (url) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`,
+    ];
+    const FETCH_TIMEOUT_MS = 15000;
+    const REFRESH_INTERVAL = 300000; // 5 min
 
-        // Proxy principal + fallbacks (se um cair, tenta o próximo)
-        const CORS_PROXY_URL = 'https://api.allorigins.win/raw?url=';
-        const EXTRA_PROXY_BUILDERS = [
-            // corsproxy.io
-            (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-            // codetabs
-            (url) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`,
+    // --- DOM ---
+    const fileStatus = document.getElementById('file-status');
+    const resultsArea = document.getElementById('results-area');
+    const actionArea = document.getElementById('action-area');
+    const callPanelOverlay = document.getElementById('call-panel-overlay');
+    const callPanelContent = document.getElementById('call-panel-content');
+    const callPanelMessage = document.getElementById('call-panel-message');
+    const closePanelBtn = document.getElementById('close-panel-btn');
+
+    // --- Estado ---
+    let db, auth, appId;
+    let isAuthReady = false;
+    let database = [];
+    let headers = [];
+    let headerMap = {};
+    let panelTimeout;
+    let cpfMask, phoneMask;
+
+    // Fluxos
+    let currentMode = null;                 // LOAD | UNLOAD | BOTH | LATA_INSUMO | RITMO | INTEGRACAO
+    let isSheetReady = false;
+    let pendingUnloadDt = '';
+    let requireUnloadDtInForm = false;
+    let manualPresetType = '';
+    let manualDtIdOverride = '';
+    let hideManualExtras = false;
+    let showUnloadInputs = true;
+
+    // --- Integração (Teste a cada 3 meses) ---
+    const INTEGRATION_MIN_SCORE = 8;
+    const INTEGRATION_VALID_DAYS = 90;  // ~3 meses
+    const INTEGRATION_WARN_DAYS = 7;    // aviso 1 semana antes
+    const integrationQuestions = [
+      {
+        q: "Quais EPIs são obrigatórios para circular na área operacional?",
+        options: [
+          "Nenhum",
+          "Capacete, óculos, colete refletivo e calçado de segurança",
+          "Somente luvas"
+        ],
+        correctIndex: 1
+      },
+      {
+        q: "Sobre adornos (anel, relógio, corrente) na área operacional:",
+        options: [
+          "É permitido se estiver coberto pela roupa",
+          "É proibido",
+          "É permitido somente relógio"
+        ],
+        correctIndex: 1
+      },
+      {
+        q: "Qual é a regra de distância mínima entre pessoas e empilhadeiras?",
+        options: [
+          "1 metro",
+          "3 metros",
+          "5 metros"
+        ],
+        correctIndex: 2
+      },
+      {
+        q: "Uso de celular na área operacional:",
+        options: [
+          "Permitido somente para ligações rápidas",
+          "Proibido durante circulação e operação",
+          "Permitido se estiver parado"
+        ],
+        correctIndex: 1
+      },
+      {
+        q: "Onde o motorista deve circular dentro do armazém?",
+        options: [
+          "Por qualquer lugar, com atenção",
+          "Somente nas faixas de pedestres e áreas sinalizadas",
+          "Apenas perto das docas"
+        ],
+        correctIndex: 1
+      },
+      {
+        q: "Em caso de dúvida ou risco, o motorista deve:",
+        options: [
+          "Continuar e depois perguntar",
+          "Parar e solicitar orientação ao responsável/segurança",
+          "Acelerar para sair da área"
+        ],
+        correctIndex: 1
+      },
+      {
+        q: "Antes de entrar na área operacional, o motorista deve:",
+        options: [
+          "Colocar os EPIs e seguir as sinalizações",
+          "Somente apresentar a CNH",
+          "Somente informar a placa do veículo"
+        ],
+        correctIndex: 0
+      },
+      {
+        q: "É permitido fumar dentro do armazém?",
+        options: [
+          "Sim, em qualquer área",
+          "Não, somente em local permitido/sinalizado (quando existir)",
+          "Sim, se estiver longe das docas"
+        ],
+        correctIndex: 1
+      },
+      {
+        q: "Se houver empilhadeira em movimentação, o pedestre deve:",
+        options: [
+          "Passar na frente rapidamente",
+          "Manter distância e aguardar em local seguro",
+          "Acenar para o operador e seguir"
+        ],
+        correctIndex: 1
+      },
+      {
+        q: "Se ocorrer um acidente ou quase-acidente, o correto é:",
+        options: [
+          "Não comunicar para evitar atrasos",
+          "Comunicar imediatamente ao responsável/segurança",
+          "Somente comunicar se houver dano"
+        ],
+        correctIndex: 1
+      }
+    ];
+
+    // --- Helpers ---
+    function normalizeDigits(v) { return String(v || '').replace(/\D/g, ''); }
+    function normalizeDtId(dt) { return normalizeDigits(dt); }
+
+    function generateInternalId(prefix) {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const id = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      return `${prefix}_${id}`;
+    }
+
+    function addDays(date, days) {
+      const d = new Date(date.getTime());
+      d.setDate(d.getDate() + days);
+      return d;
+    }
+
+    function toDateMaybe(v) {
+      if (!v) return null;
+      // Firestore Timestamp
+      if (typeof v === 'object' && typeof v.toDate === 'function') return v.toDate();
+      if (v instanceof Date) return v;
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    // --- Audio Unlock ---
+    let audioUnlocked = false;
+    async function unlockAudio() {
+      if (audioUnlocked) return true;
+      try { await Tone.start(); audioUnlocked = true; return true; }
+      catch (e) { console.warn("Não foi possível destravar áudio:", e); return false; }
+    }
+    document.addEventListener('pointerdown', () => unlockAudio(), { once: true });
+
+    async function fetchWithTimeout(url, timeoutMs = FETCH_TIMEOUT_MS) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, { cache: 'no-store', credentials: 'omit', signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    // --- Firebase Config ---
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+      apiKey: "AIzaSyB9B2-xYb6gr92cQDbajriQiinfQurrOwI",
+      authDomain: "heilog-logistica.firebaseapp.com",
+      projectId: "heilog-logistica",
+      storageBucket: "heilog-logistica.appspot.com",
+      messagingSenderId: "790492229739",
+      appId: "1:790492229739:web:de49887de535a839e8412e"
+    };
+    const ARTIFACT_APP_ID = "heilog-logistica";
+
+    // --- Auth ---
+    async function authenticate() {
+      return new Promise(async (resolve, reject) => {
+        onAuthStateChanged(auth, (user) => {
+          if (user && !isAuthReady) {
+            console.log("Firebase Auth pronta. UID:", user.uid);
+            isAuthReady = true;
+            resolve(user);
+          }
+        });
+
+        try {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else if (!auth.currentUser) {
+            await signInAnonymously(auth);
+          } else {
+            isAuthReady = true;
+            resolve(auth.currentUser);
+          }
+        } catch (error) {
+          console.error("Falha na autenticação com o Firebase:", error);
+          displayError("Falha na autenticação. A aplicação pode não funcionar corretamente.");
+          reject(error);
+        }
+      });
+    }
+
+    async function initializeAppLogic() {
+      fileStatus.textContent = 'Inicializando...';
+      renderActionSelector();
+
+      try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        appId = ARTIFACT_APP_ID;
+        setLogLevel('error');
+      } catch (e) {
+        console.error("Erro ao inicializar o Firebase:", e);
+        fileStatus.textContent = "Erro crítico na inicialização.";
+        fileStatus.className = 'text-red-400 text-xs h-4';
+        return;
+      }
+
+      try {
+        fileStatus.textContent = 'Autenticando...';
+        await authenticate();
+        fileStatus.textContent = 'Autenticado com sucesso. AppID: ' + appId;
+      } catch (e) {
+        fileStatus.textContent = "Erro na autenticação.";
+        fileStatus.className = 'text-red-400 text-xs h-4';
+        return;
+      }
+
+      await loadDataFromSheet(false);
+
+      setInterval(() => {
+        if (!document.getElementById('generate-sheet-btn')) {
+          loadDataFromSheet(true);
+        }
+      }, REFRESH_INTERVAL);
+    }
+
+    // --- Sheet ---
+    async function loadDataFromSheet(isSilent = false) {
+      if (!isSilent) fileStatus.textContent = 'Conectando à planilha...';
+      try {
+        const baseUrl = `${GOOGLE_SHEET_CSV_URL}${GOOGLE_SHEET_CSV_URL.includes('?') ? '&' : '?'}t=${Date.now()}`;
+        const candidates = [
+          `${CORS_PROXY_URL}${encodeURIComponent(baseUrl)}`,
+          ...EXTRA_PROXY_BUILDERS.map(fn => fn(baseUrl)),
+          baseUrl,
         ];
 
-        const FETCH_TIMEOUT_MS = 15000;
-        const REFRESH_INTERVAL = 300000; // 5 minutos
+        let csvText = '';
+        let lastErr = null;
 
-        // --- Elementos do DOM ---
-        const fileStatus = document.getElementById('file-status');
-        const resultsArea = document.getElementById('results-area');
-        const actionArea = document.getElementById('action-area');
-        const callPanelOverlay = document.getElementById('call-panel-overlay');
-        const callPanelContent = document.getElementById('call-panel-content');
-        const callPanelMessage = document.getElementById('call-panel-message');
-        const closePanelBtn = document.getElementById('close-panel-btn');
-
-        // --- Variáveis de Estado da Aplicação ---
-        let db, auth, appId;
-        let isAuthReady = false;
-        let database = [];
-        let headers = [];
-        let headerMap = {};
-        let panelTimeout;
-        let cpfMask, phoneMask;
-
-        // ✅ NOVO: estado do fluxo (layout novo)
-        let currentMode = null;                 // LOAD | UNLOAD | BOTH | LATA_INSUMO | RITMO
-        let isSheetReady = false;               // base do Sheets carregou?
-        let pendingUnloadDt = '';               // DT de descarga para preencher no form
-        let requireUnloadDtInForm = false;      // valida DT descarga no form?
-        let manualPresetType = '';              // "Latas" | "Insumo" | "Descarga" | "Ritmo"...
-        let manualDtIdOverride = '';            // quando não tem DT, gera um ID
-        let hideManualExtras = false;           // deixa manual mais "enxuto" (oculta cliente/plt)
-        let showUnloadInputs = true;            // mostra bloco Nota Fiscal / DT Descarga no form?
-
-        // --- Helpers ---
-        function normalizeDtId(dt) {
-            // Firestore docId não pode ter "/". Então, por segurança, mantemos só números.
-            const onlyDigits = String(dt || '').replace(/\D/g, '');
-            return onlyDigits;
+        for (const url of candidates) {
+          try {
+            const response = await fetchWithTimeout(url);
+            if (!response.ok) throw new Error(`Falha na rede (${response.status}): ${response.statusText}`);
+            csvText = await response.text();
+            if (csvText && csvText.trim().length > 0) break;
+          } catch (e) { lastErr = e; }
         }
 
-        function generateInternalId(prefix) {
-            const now = new Date();
-            const pad = (n) => String(n).padStart(2, '0');
-            const id = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-            return `${prefix}_${id}`;
-        }
+        if (!csvText) throw lastErr || new Error('Falha ao buscar CSV.');
+        parseCSV(csvText);
 
-        // --- Audio Unlock (evita erro do AudioContext / autoplay) ---
-        let audioUnlocked = false;
-        async function unlockAudio() {
-            if (audioUnlocked) return true;
-            try {
-                await Tone.start();
-                audioUnlocked = true;
-                return true;
-            } catch (e) {
-                console.warn("Não foi possível destravar áudio:", e);
-                return false;
-            }
-        }
-        document.addEventListener('pointerdown', () => unlockAudio(), { once: true });
+        const lastUpdatedTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        fileStatus.textContent = `Planilha atualizada às ${lastUpdatedTime}.`;
+        fileStatus.className = 'text-green-400 text-xs h-4';
 
-        async function fetchWithTimeout(url, timeoutMs = FETCH_TIMEOUT_MS) {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), timeoutMs);
-            try {
-                return await fetch(url, { cache: 'no-store', credentials: 'omit', signal: controller.signal });
-            } finally {
-                clearTimeout(timer);
-            }
-        }
+        isSheetReady = database.length > 0;
+        updateModeAvailability();
+      } catch (error) {
+        const lastErrorTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        fileStatus.textContent = `Erro ao atualizar às ${lastErrorTime}.`;
+        fileStatus.className = 'text-red-400 text-xs h-4';
+        console.error("Erro ao buscar dados da planilha:", error);
 
-        // --- CONFIGURAÇÃO DO FIREBASE ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyB9B2-xYb6gr92cQDbajriQiinfQurrOwI",
-            authDomain: "heilog-logistica.firebaseapp.com",
-            projectId: "heilog-logistica",
-            storageBucket: "heilog-logistica.appspot.com",
-            messagingSenderId: "790492229739",
-            appId: "1:790492229739:web:de49887de535a839e8412e"
+        isSheetReady = database.length > 0;
+        updateModeAvailability();
+
+        if (database.length > 0) {
+          if (!isSilent) displayError('Não foi possível atualizar agora, mas vou usar a última base carregada.', 5000);
+        } else {
+          if (!isSilent) displayError('Não foi possível conectar à planilha. Fluxos com DT ficarão indisponíveis.', 6000);
+        }
+      }
+    }
+
+    function parseCSV(csvText) {
+      const cleaned = csvText.replace(/^\uFEFF/, '');
+      const lines = cleaned.trim().split(/\r?\n/);
+      if (lines.length < 2) return;
+
+      const parseLine = (line) => {
+        const values = [];
+        const regex = /("([^"]|"")*"|[^,]*)(,|$)/g;
+        line.replace(regex, (match, p1) => {
+          let value = p1;
+          if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1).replace(/""/g, '"');
+          values.push(value.trim());
+        });
+        return values;
+      };
+
+      headers = parseLine(lines[0]).map(h => h.toUpperCase().replace(/"/g, ''));
+
+      headerMap = {
+        dts: headers[0],
+        canal: headers[1],
+        cliente: headers[2],
+        produto: headers[3],
+        descricao: headers[4],
+        plt: headers[5],
+        deposito: headers[6],
+        transportadora: headers[7],
+        data: headers[8],
+        descarga: headers[9],
+        xtAdicional: headers[10],
+        agenda: headers[11],
+        cpf: headers.find(h => h.includes('CPF')),
+        motorista: headers.find(h => h.includes('MOTORISTA')),
+      };
+
+      database = lines.slice(1).map(line => {
+        if (line.trim() === '') return null;
+        const values = parseLine(line);
+        const entry = {};
+        headers.forEach((header, j) => { entry[header] = values[j] || ''; });
+        return entry;
+      }).filter(Boolean);
+    }
+
+    // --- PRIORIDADE ---
+    function getPriorityInfo(sheetRow) {
+      let isPriority = false, isOtif = false, isTop18 = false, isAntecipacao = false, isGradeQueimada = false, isAtrasado = false;
+      if (!sheetRow) return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
+
+      const segmento = (sheetRow[headerMap.xtAdicional] || '').toString().toUpperCase();
+      isTop18 = segmento.includes('TOP18') || segmento.includes('TOP 18');
+
+      const canal = (sheetRow[headerMap.canal] || '').toString().trim().toUpperCase();
+      const dateStr = (sheetRow[headerMap.data] || '').toString().trim();
+      const timeStr = (sheetRow[headerMap.agenda] || '').toString().trim();
+
+      const parseScheduledDateTime = (dStr, tStr) => {
+        if (!dStr || !/^\d{2}\/\d{2}\/\d{4}$/.test(dStr)) return null;
+        if (!tStr) return null;
+        const t = tStr.split(':');
+        if (t.length < 2) return null;
+
+        const [day, month, year] = dStr.split('/').map(v => parseInt(v, 10));
+        const hours = parseInt(t[0], 10);
+        const minutes = parseInt(t[1], 10);
+        const seconds = t.length >= 3 ? parseInt(t[2], 10) : 0;
+
+        if ([day, month, year, hours, minutes, seconds].some(n => Number.isNaN(n))) return null;
+        return new Date(year, month - 1, day, hours, minutes, seconds);
+      };
+
+      const scheduledDateTime = parseScheduledDateTime(dateStr, timeStr);
+
+      const OTIF_CANAIS = new Set(['Y001','Y002','Y055']);
+      isOtif = OTIF_CANAIS.has(canal);
+
+      if (!scheduledDateTime) {
+        isPriority = isTop18 || isOtif;
+        return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
+      }
+
+      const now = new Date();
+      const today = new Date(now); today.setHours(0, 0, 0, 0);
+      const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
+
+      if (today < scheduledDay) isAntecipacao = true;
+      else if (today > scheduledDay) isGradeQueimada = true;
+      else {
+        const plannedHour = scheduledDateTime.getHours();
+        if (plannedHour >= 20 && plannedHour <= 23) isAntecipacao = true;
+        else {
+          const plannedPlus1h = scheduledDateTime.getTime() + (60 * 60 * 1000);
+          if (now.getTime() > plannedPlus1h) isAtrasado = true;
+        }
+      }
+
+      isPriority = isOtif || isTop18 || isAntecipacao;
+      return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
+    }
+
+    // --- Firestore save (motorista + patio) ---
+    async function saveDriverData(driverData, originalSheetData, priorityInfo) {
+      if (!isAuthReady || !db || !appId) {
+        console.error("Firestore não está pronto! Auth:", isAuthReady, "DB:", !!db, "AppID:", !!appId);
+        displayError("Erro: Conexão com o banco de dados indisponível. Tente novamente.", 5000);
+        return false;
+      }
+
+      const unmaskedCpf = normalizeDigits(driverData.cpf);
+      const dtId = normalizeDtId(driverData.dts);
+      if (!dtId) {
+        displayError('ID inválido: não foi possível salvar no pátio.', 5000);
+        return false;
+      }
+
+      // drivers
+      try {
+        const driverDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', unmaskedCpf);
+        const pInfoForDriver = priorityInfo || getPriorityInfo(originalSheetData || {});
+        const persistentDriverData = {
+          name: driverData.name,
+          cpf: unmaskedCpf,
+          phone: normalizeDigits(driverData.phone),
+          cnh: driverData.cnh,
+          cnhExpiry: driverData.cnhExpiry,
+          truckPlate: driverData.truckPlate,
+          trailerPlate: driverData.trailerPlate,
+          axles: driverData.axles,
+          renavam: driverData.renavam,
+          transportadora: driverData.transportadora,
+          lastDts: driverData.dts || "",
+          lastPriority: {
+            isPriority: !!pInfoForDriver.isPriority,
+            isOtif: !!pInfoForDriver.isOtif,
+            isTop18: !!pInfoForDriver.isTop18,
+            isAntecipacao: !!pInfoForDriver.isAntecipacao,
+            isGradeQueimada: !!pInfoForDriver.isGradeQueimada,
+            isAtrasado: !!pInfoForDriver.isAtrasado,
+          },
+          lastUpdate: new Date().toISOString()
         };
-        const ARTIFACT_APP_ID = "heilog-logistica";
-        // ------------------------------------
+        await setDoc(driverDocRef, persistentDriverData, { merge: true });
+        localStorage.setItem(`heilo-driver-${unmaskedCpf}`, JSON.stringify(persistentDriverData));
+      } catch (error) {
+        console.error("Erro ao salvar dados do motorista no Firestore:", error);
+        displayError(`Erro ao salvar dados do motorista: ${error.message}`, 5000);
+        return false;
+      }
 
-        // --- FUNÇÕES DE INICIALIZAÇÃO E AUTENTICAÇÃO ---
-        async function authenticate() {
-            return new Promise(async (resolve, reject) => {
-                onAuthStateChanged(auth, (user) => {
-                    if (user && !isAuthReady) {
-                        console.log("Firebase Auth pronta. UID:", user.uid);
-                        isAuthReady = true;
-                        resolve(user);
-                    }
-                });
+      // patio
+      try {
+        const patioDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'patio', dtId);
+        const pInfo = priorityInfo || getPriorityInfo(originalSheetData || {});
 
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else if (!auth.currentUser) {
-                        await signInAnonymously(auth);
-                    } else {
-                        isAuthReady = true;
-                        resolve(auth.currentUser);
-                    }
-                } catch (error) {
-                    console.error("Falha na autenticação com o Firebase:", error);
-                    displayError("Falha na autenticação. A aplicação pode não funcionar corretamente.");
-                    reject(error);
-                }
-            });
+        const reasons = [];
+        if (pInfo.isTop18) reasons.push("TOP 18");
+        if (pInfo.isOtif) reasons.push("OTIF");
+        if (pInfo.isAntecipacao) reasons.push("Antecipação");
+
+        const label =
+          pInfo.isGradeQueimada ? "GRADE QUEIMADA" :
+          pInfo.isAtrasado ? "ATRASADO" :
+          pInfo.isPriority ? "PRIORIDADE" : "NORMAL";
+
+        const level =
+          pInfo.isGradeQueimada ? 3 :
+          pInfo.isAtrasado ? 2 :
+          pInfo.isPriority ? 1 : 0;
+
+        const canalValue = (originalSheetData?.[headerMap.canal] || '').toString().trim().toUpperCase();
+        const segmentoValue = (originalSheetData?.[headerMap.xtAdicional] || '').toString();
+
+        const patioDataToSave = {
+          dt: dtId,
+          motorista: driverData.name,
+          transportadora: driverData.transportadora,
+          cpf: unmaskedCpf,
+          placa: driverData.truckPlate,
+          telefone: normalizeDigits(driverData.phone),
+          registrationTime: driverData.registrationTime,
+          status: 'Em Pátio',
+          agenda: originalSheetData?.[headerMap.agenda] || '',
+          xtAdicional: originalSheetData?.[headerMap.xtAdicional] || '',
+          data: originalSheetData?.[headerMap.data] || '',
+          origem: 'JACAREÍ/SP',
+          destino: originalSheetData?.[headerMap.deposito] || 'N/A',
+          canal: canalValue,
+          segmento: segmentoValue,
+          prioridade: {
+            label,
+            level,
+            reasons,
+            isPriority: !!pInfo.isPriority,
+            isOtif: !!pInfo.isOtif,
+            isTop18: !!pInfo.isTop18,
+            isAntecipacao: !!pInfo.isAntecipacao,
+            isGradeQueimada: !!pInfo.isGradeQueimada,
+            isAtrasado: !!pInfo.isAtrasado,
+            updatedAt: new Date().toISOString(),
+          }
+        };
+
+        await setDoc(patioDocRef, patioDataToSave, { merge: true });
+        return true;
+      } catch (error) {
+        console.error("Erro ao salvar operação no pátio:", error);
+        displayError(`Ocorreu um erro ao salvar a operação no painel: Verifique suas permissões.`, 5000);
+        return false;
+      }
+    }
+
+    async function findAndFillDriverData(event) {
+      const cpfInput = event.target;
+      const unmaskedCpf = normalizeDigits(cpfInput.value);
+      if (unmaskedCpf.length !== 11) return;
+      if (!isAuthReady) return;
+
+      const driverRef = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', unmaskedCpf);
+      try {
+        const docSnap = await getDoc(driverRef);
+        if (docSnap.exists()) {
+          fillFormFields(docSnap.data());
+        } else {
+          const localData = localStorage.getItem(`heilo-driver-${unmaskedCpf}`);
+          if (localData) fillFormFields(JSON.parse(localData));
         }
+      } catch (error) {
+        console.error("Erro ao buscar motorista no Firebase:", error);
+        displayError("Erro ao consultar o banco de dados de motoristas.", 4000);
+      }
+    }
 
-        async function initializeAppLogic() {
-            fileStatus.textContent = 'Inicializando...';
+    // =======================
+    // UI - MENU
+    // =======================
+    function renderActionSelector() {
+      currentMode = null;
+      pendingUnloadDt = '';
+      requireUnloadDtInForm = false;
+      manualPresetType = '';
+      manualDtIdOverride = '';
+      hideManualExtras = false;
+      showUnloadInputs = true;
 
-            // ✅ Layout novo: já desenha o menu inicial
-            renderActionSelector();
+      actionArea.innerHTML = `
+        <div id="mode-root" class="space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <p class="font-semibold text-white">O que você quer fazer?</p>
 
-            // 1. Inicializar Firebase
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                appId = ARTIFACT_APP_ID;
-                console.log("[HEILOG] appId usado:", appId);
-                console.log('[HEILOG] Firestore APPID em uso:', appId);
-                setLogLevel('error');
-            } catch (e) {
-                console.error("Erro ao inicializar o Firebase:", e);
-                fileStatus.textContent = "Erro crítico na inicialização.";
-                fileStatus.className = 'text-red-400 text-xs h-4';
-                return;
-            }
+            <button id="contrast-toggle"
+              class="btn-ghost px-3 py-2 rounded-lg text-xs"
+              type="button"
+              title="Melhora a visibilidade das opções">
+              Alto contraste
+            </button>
+          </div>
 
-            // 2. Aguardar autenticação
-            try {
-                fileStatus.textContent = 'Autenticando...';
-                await authenticate();
-                fileStatus.textContent = 'Autenticado com sucesso. AppID: ' + appId;
-            } catch (e) {
-                fileStatus.textContent = "Erro na autenticação.";
-                fileStatus.className = 'text-red-400 text-xs h-4';
-                return;
-            }
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button data-mode="LOAD" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center" title="Carregamento usando DT (consulta na planilha)">
+              <div class="emoji">🚚</div>
+              <div class="label font-bold">Carregar</div>
+            </button>
 
-            // 3. Carregar dados da planilha (só necessário para fluxos com DT)
-            await loadDataFromSheet(false);
+            <button data-mode="UNLOAD" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center" title="Descarregamento com DT de descarga (sem planilha)">
+              <div class="emoji">📥</div>
+              <div class="label font-bold">Descarregar</div>
+            </button>
 
-            // 4. Configurar atualizações periódicas
-            setInterval(() => {
-                // Se estiver no formulário de motorista, evita recarregar no meio da digitação
-                if (!document.getElementById('generate-sheet-btn')) {
-                    loadDataFromSheet(true);
-                }
-            }, REFRESH_INTERVAL);
+            <button data-mode="BOTH" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center sm:col-span-2" title="Carga + Descarga (DT de carga + DT de descarga)">
+              <div class="emoji">🔁</div>
+              <div class="label font-bold">Carga + Descarga</div>
+            </button>
+
+            <button data-mode="LATA_INSUMO" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center" title="Sem DT: vai direto para dados do motorista">
+              <div class="emoji">🥫</div>
+              <div class="label font-bold">Lata / Insumo</div>
+            </button>
+
+            <button data-mode="RITMO" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center" title="Ritmo: DT opcional (se vazio, gera ID interno)">
+              <div class="emoji">⚡</div>
+              <div class="label font-bold">Ritmo</div>
+            </button>
+
+            <button data-mode="INTEGRACAO" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center sm:col-span-2" title="Teste de Integração (válido por 3 meses)">
+              <div class="emoji">📝</div>
+              <div class="label font-bold">Integração (Teste)</div>
+            </button>
+          </div>
+
+          <p class="text-xs text-gray-400">
+            Dica: se a planilha estiver fora do ar, use os fluxos sem DT.
+          </p>
+        </div>
+      `;
+
+      // Alto contraste
+      const hcKey = "heilog-hc";
+      const applyHc = (on) => {
+        actionArea.classList.toggle("hc", !!on);
+        try { localStorage.setItem(hcKey, on ? "1" : "0"); } catch {}
+      };
+      const hcSaved = (() => {
+        try { return localStorage.getItem(hcKey) === "1"; } catch { return false; }
+      })();
+      applyHc(hcSaved);
+
+      document.getElementById("contrast-toggle")?.addEventListener("click", () => {
+        const next = !actionArea.classList.contains("hc");
+        applyHc(next);
+      });
+
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          await unlockAudio();
+          currentMode = btn.dataset.mode;
+          renderModeForm(currentMode);
+        });
+      });
+
+      updateModeAvailability();
+    }
+
+    function updateModeAvailability() {
+      const needsSheet = new Set(['LOAD', 'BOTH']);
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        const mode = btn.dataset.mode;
+        if (!mode) return;
+        if (needsSheet.has(mode)) {
+          const disabled = !isSheetReady;
+          btn.disabled = disabled;
+          btn.classList.toggle('opacity-50', disabled);
+          btn.classList.toggle('cursor-not-allowed', disabled);
+          btn.title = disabled ? 'Planilha não carregou ainda.' : '';
         }
+      });
+    }
 
-        // --- FUNÇÕES DE DADOS E LÓGICA DE NEGÓCIO ---
-        async function loadDataFromSheet(isSilent = false) {
-            if (!isSilent) fileStatus.textContent = 'Conectando à planilha...';
+    function renderModeForm(mode) {
+      resultsArea.innerHTML = '';
+      pendingUnloadDt = '';
+      requireUnloadDtInForm = false;
+      manualPresetType = '';
+      manualDtIdOverride = '';
+      hideManualExtras = false;
+      showUnloadInputs = true;
 
-            try {
-                const baseUrl = `${GOOGLE_SHEET_CSV_URL}${GOOGLE_SHEET_CSV_URL.includes('?') ? '&' : '?'}t=${Date.now()}`;
+      const backBtn = `<button id="back-to-modes" class="btn-ghost w-full py-2 rounded-lg">⬅ Voltar</button>`;
+      let html = '';
 
-                const candidates = [
-                    `${CORS_PROXY_URL}${encodeURIComponent(baseUrl)}`,
-                    ...EXTRA_PROXY_BUILDERS.map(fn => fn(baseUrl)),
-                    baseUrl,
-                ];
+      if (mode === 'LOAD') {
+        html = `
+          <div class="space-y-3">
+            <p class="font-semibold text-white">Carregamento</p>
+            <input type="text" id="mode-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT (carregar)">
+            <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Buscar DT</button>
+            ${backBtn}
+          </div>
+        `;
+      }
 
-                let csvText = '';
-                let lastErr = null;
+      if (mode === 'UNLOAD') {
+        html = `
+          <div class="space-y-3">
+            <p class="font-semibold text-white">Descarregamento</p>
+            <input type="text" id="mode-unload-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT de descarga">
+            <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Continuar</button>
+            ${backBtn}
+          </div>
+        `;
+      }
 
-                for (const url of candidates) {
-                    try {
-                        const response = await fetchWithTimeout(url);
-                        if (!response.ok) throw new Error(`Falha na rede (${response.status}): ${response.statusText}`);
-                        csvText = await response.text();
-                        if (csvText && csvText.trim().length > 0) break;
-                    } catch (e) {
-                        lastErr = e;
-                    }
-                }
+      if (mode === 'BOTH') {
+        html = `
+          <div class="space-y-3">
+            <p class="font-semibold text-white">Carga + Descarga</p>
+            <input type="text" id="mode-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT (carga)">
+            <input type="text" id="mode-unload-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT de descarga">
+            <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Buscar DT</button>
+            ${backBtn}
+          </div>
+        `;
+      }
 
-                if (!csvText) throw lastErr || new Error('Falha ao buscar CSV.');
+      if (mode === 'LATA_INSUMO') {
+        html = `
+          <div class="space-y-3">
+            <p class="font-semibold text-white">Lata / Insumo</p>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="pick-lata" class="btn-green py-3 rounded-lg">🥫 Latas</button>
+              <button id="pick-insumo" class="btn-green py-3 rounded-lg">🧪 Insumo</button>
+            </div>
+            <p class="text-xs text-gray-400">Você vai direto pro formulário do motorista (sem DT).</p>
+            ${backBtn}
+          </div>
+        `;
+      }
 
-                parseCSV(csvText);
+      if (mode === 'RITMO') {
+        html = `
+          <div class="space-y-3">
+            <p class="font-semibold text-white">Ritmo</p>
+            <input type="text" id="mode-dt-optional" class="form-input w-full rounded-lg p-3" placeholder="DT (opcional)">
+            <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Continuar</button>
+            ${backBtn}
+          </div>
+        `;
+      }
 
-                const lastUpdatedTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                fileStatus.textContent = `Planilha atualizada às ${lastUpdatedTime}.`;
-                fileStatus.className = 'text-green-400 text-xs h-4';
+      if (mode === 'INTEGRACAO') {
+        html = `
+          <div class="space-y-3">
+            <p class="font-semibold text-white">Integração de Motoristas (Teste)</p>
+            <p class="text-xs text-gray-300">
+              Regras: precisa acertar no mínimo <strong>${INTEGRATION_MIN_SCORE}</strong> de ${integrationQuestions.length}.
+              Se reprovado, pode tentar quantas vezes quiser. Se aprovado, fica válido por <strong>3 meses</strong>.
+            </p>
 
-                isSheetReady = database.length > 0;
-                updateModeAvailability();
+            <input type="text" id="int-cpf" class="form-input w-full rounded-lg p-3" placeholder="CPF do motorista">
+            <button id="int-check" class="btn-green w-full py-3 rounded-lg">Verificar / Iniciar</button>
 
-            } catch (error) {
-                const lastErrorTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                fileStatus.textContent = `Erro ao atualizar às ${lastErrorTime}.`;
-                fileStatus.className = 'text-red-400 text-xs h-4';
-                console.error("Erro ao buscar dados da planilha:", error);
+            <div id="int-status" class="pt-2"></div>
+            ${backBtn}
+          </div>
+        `;
+      }
 
-                isSheetReady = database.length > 0;
-                updateModeAvailability();
+      actionArea.innerHTML = html;
 
-                if (database.length > 0) {
-                    if (!isSilent) displayError('Não foi possível atualizar agora, mas vou usar a última base carregada.', 5000);
-                } else {
-                    if (!isSilent) displayError('Não foi possível conectar à planilha. Fluxos com DT ficarão indisponíveis.', 6000);
-                }
-            }
+      document.getElementById('back-to-modes')?.addEventListener('click', () => {
+        renderActionSelector();
+        resultsArea.innerHTML = '';
+      });
+
+      // Handlers
+      if (mode === 'LOAD' || mode === 'BOTH') {
+        const dtEl = document.getElementById('mode-dt');
+        const unloadEl = document.getElementById('mode-unload-dt');
+        document.getElementById('mode-go')?.addEventListener('click', async () => {
+          await unlockAudio();
+          const dt = dtEl?.value?.trim() || '';
+          if (!dt) return displayError('Digite a DT.', 4000);
+          if (!isSheetReady || database.length === 0) return displayError('Planilha ainda não carregou. Tente novamente.', 4000);
+
+          pendingUnloadDt = (unloadEl?.value || '').trim();
+          requireUnloadDtInForm = (mode === 'BOTH');
+          showUnloadInputs = (mode === 'BOTH');
+
+          performSearchByDt(dt);
+        });
+        dtEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
+        unloadEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
+        dtEl?.focus();
+      }
+
+      if (mode === 'UNLOAD') {
+        const unloadEl = document.getElementById('mode-unload-dt');
+        document.getElementById('mode-go')?.addEventListener('click', async () => {
+          await unlockAudio();
+          const unloadDt = unloadEl?.value?.trim() || '';
+          if (!unloadDt) return displayError('Digite a DT de descarga.', 4000);
+
+          manualPresetType = 'Descarga';
+          hideManualExtras = true;
+          showUnloadInputs = true;
+          requireUnloadDtInForm = true;
+          pendingUnloadDt = unloadDt;
+
+          const dtId = normalizeDtId(unloadDt) || generateInternalId('DESC');
+          manualDtIdOverride = dtId;
+
+          showDriverForm([{ [headerMap.dts]: dtId }], { modeLabel: 'Descarregamento', isManualOverride: true });
+        });
+        unloadEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
+        unloadEl?.focus();
+      }
+
+      if (mode === 'LATA_INSUMO') {
+        document.getElementById('pick-lata')?.addEventListener('click', async () => {
+          await unlockAudio();
+          manualPresetType = 'Latas';
+          hideManualExtras = true;
+          showUnloadInputs = false;
+          requireUnloadDtInForm = false;
+          pendingUnloadDt = '';
+          manualDtIdOverride = generateInternalId('SEM_DT');
+          showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Latas / sem DT', isManualOverride: true });
+        });
+
+        document.getElementById('pick-insumo')?.addEventListener('click', async () => {
+          await unlockAudio();
+          manualPresetType = 'Insumo';
+          hideManualExtras = true;
+          showUnloadInputs = false;
+          requireUnloadDtInForm = false;
+          pendingUnloadDt = '';
+          manualDtIdOverride = generateInternalId('SEM_DT');
+          showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Insumo / sem DT', isManualOverride: true });
+        });
+      }
+
+      if (mode === 'RITMO') {
+        const optEl = document.getElementById('mode-dt-optional');
+        document.getElementById('mode-go')?.addEventListener('click', async () => {
+          await unlockAudio();
+          manualPresetType = 'Ritmo';
+          hideManualExtras = true;
+          showUnloadInputs = false;
+          requireUnloadDtInForm = false;
+          pendingUnloadDt = '';
+
+          const typed = optEl?.value?.trim() || '';
+          const dtId = normalizeDtId(typed) || generateInternalId('RITMO');
+          manualDtIdOverride = dtId;
+
+          showDriverForm([{ [headerMap.dts]: dtId }], { modeLabel: 'Ritmo', isManualOverride: true });
+        });
+        optEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
+        optEl?.focus();
+      }
+
+      if (mode === 'INTEGRACAO') {
+        const cpfEl = document.getElementById('int-cpf');
+        if (cpfEl) IMask(cpfEl, { mask: '000.000.000-00' });
+
+        document.getElementById('int-check')?.addEventListener('click', async () => {
+          await unlockAudio();
+          const cpfMasked = cpfEl?.value || '';
+          const cpf = normalizeDigits(cpfMasked);
+          if (cpf.length !== 11) return displayError("CPF inválido.", 4000);
+          if (!isAuthReady || !db) return displayError("Banco de dados ainda não está pronto. Tente novamente.", 4000);
+
+          await renderIntegrationStatus(cpf);
+        });
+      }
+    }
+
+    // =======================
+    // Integração: status e teste
+    // =======================
+    async function loadIntegrationDoc(cpf) {
+      const cacheKey = `heilog-integration-${cpf}`;
+      const ref = doc(db, 'artifacts', appId, 'public', 'data', 'integrations', cpf);
+      try {
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch {}
+          return data;
         }
+      } catch (e) {
+        console.warn("Falha ao ler integration doc:", e);
+      }
 
-        function parseCSV(csvText) {
-            const cleaned = csvText.replace(/^\uFEFF/, '');
-            const lines = cleaned.trim().split(/\r?\n/);
-            if (lines.length < 2) return;
+      // fallback cache
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) return JSON.parse(cached);
+      } catch {}
+      return null;
+    }
 
-            const parseLine = (line) => {
-                const values = [];
-                const regex = /("([^"]|"")*"|[^,]*)(,|$)/g;
-                line.replace(regex, (match, p1) => {
-                    let value = p1;
-                    if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1).replace(/""/g, '"');
-                    values.push(value.trim());
-                });
-                return values;
-            };
+    async function saveIntegrationDoc(cpf, patch) {
+      const ref = doc(db, 'artifacts', appId, 'public', 'data', 'integrations', cpf);
+      await setDoc(ref, patch, { merge: true });
+      try {
+        const current = await loadIntegrationDoc(cpf) || {};
+        const merged = { ...current, ...patch };
+        localStorage.setItem(`heilog-integration-${cpf}`, JSON.stringify(merged));
+      } catch {}
+    }
 
-            headers = parseLine(lines[0]).map(h => h.toUpperCase().replace(/"/g, ''));
+    function computeIntegrationStatus(docData) {
+      const now = new Date();
+      if (!docData || !docData.nextDueAt) {
+        return { state: 'NEW', now };
+      }
+      const due = toDateMaybe(docData.nextDueAt);
+      if (!due) return { state: 'NEW', now };
 
-            // ⚠️ Mantive seu mapeamento por ordem para não quebrar seu CSV atual.
-            // Se quiser, depois eu troco para mapeamento por NOME da coluna (mais robusto).
-            headerMap = {
-                dts: headers[0],
-                canal: headers[1],
-                cliente: headers[2],
-                produto: headers[3],
-                descricao: headers[4],
-                plt: headers[5],
-                deposito: headers[6],
-                transportadora: headers[7],
-                data: headers[8],
-                descarga: headers[9],
-                xtAdicional: headers[10],
-                agenda: headers[11],
-                cpf: headers.find(h => h.includes('CPF')),
-                motorista: headers.find(h => h.includes('MOTORISTA')),
-            };
+      const warn = addDays(now, INTEGRATION_WARN_DAYS);
+      if (now > due) return { state: 'EXPIRED', now, due };
+      if (warn >= due) return { state: 'EXPIRING', now, due };
+      return { state: 'VALID', now, due };
+    }
 
-            database = lines.slice(1).map(line => {
-                if (line.trim() === '') return null;
-                const values = parseLine(line);
-                const entry = {};
-                headers.forEach((header, j) => { entry[header] = values[j] || ''; });
-                return entry;
-            }).filter(Boolean);
-        }
 
-        // ✅ ALTERAÇÃO: agora o pátio também grava PRIORIDADE no Firestore (para o Painel conseguir ler sem "adivinhar")
-        async function saveDriverData(driverData, originalSheetData, priorityInfo) {
-            if (!isAuthReady || !db || !appId) {
-                console.error("Firestore não está pronto! Auth:", isAuthReady, "DB:", !!db, "AppID:", !!appId);
-                displayError("Erro: Conexão com o banco de dados indisponível. Tente novamente.", 5000);
-                return false;
-            }
+    // ✅ Guard: Integração obrigatória para imprimir/seguir fluxo
+    function isIntegrationAccepted(state) {
+      return state === 'VALID' || state === 'EXPIRING';
+    }
 
-            const unmaskedCpf = driverData.cpf.replace(/\D/g, '');
+    async function getIntegrationStateForCpf(cpfDigits) {
+      const cpf = normalizeDigits(cpfDigits);
+      if (cpf.length !== 11) return { ok: false, state: 'INVALID' };
 
-            // Normaliza DT (Firestore docId seguro)
-            const dtId = normalizeDtId(driverData.dts);
-            if (!dtId) {
-                displayError('ID inválido: não foi possível salvar no pátio.', 5000);
-                return false;
-            }
+      const data = await loadIntegrationDoc(cpf);
+      const status = computeIntegrationStatus(data);
+      const due = status.due || null;
 
-            // 1. Salvar/Atualizar dados persistentes do motorista
-            try {
-                const driverDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', unmaskedCpf);
-                const pInfoForDriver = priorityInfo || getPriorityInfo(originalSheetData || {});
-                const persistentDriverData = {
-                    name: driverData.name,
-                    cpf: unmaskedCpf,
-                    phone: driverData.phone.replace(/\D/g, ''),
-                    cnh: driverData.cnh,
-                    cnhExpiry: driverData.cnhExpiry,
-                    truckPlate: driverData.truckPlate,
-                    trailerPlate: driverData.trailerPlate,
-                    axles: driverData.axles,
-                    renavam: driverData.renavam,
-                    transportadora: driverData.transportadora,
-                    lastDts: driverData.dts || "",
-                    lastPriority: {
-                        label: pInfoForDriver.label || "",
-                        isPriority: !!pInfoForDriver.isPriority,
-                        isOtif: !!pInfoForDriver.isOtif,
-                        isTop18: !!pInfoForDriver.isTop18,
-                        isAntecipacao: !!pInfoForDriver.isAntecipacao,
-                        isGradeQueimada: !!pInfoForDriver.isGradeQueimada,
-                        isAtrasado: !!pInfoForDriver.isAtrasado,
-                        reasons: pInfoForDriver.reasons || []
-                    },
-                    lastUpdate: new Date().toISOString()
-                };
-                await setDoc(driverDocRef, persistentDriverData, { merge: true });
-                localStorage.setItem(`heilo-driver-${unmaskedCpf}`, JSON.stringify(persistentDriverData));
-            } catch (error) {
-                console.error("Erro ao salvar dados do motorista no Firestore:", error);
-                displayError(`Erro ao salvar dados do motorista: ${error.message}`, 5000);
-                return false;
-            }
+      const ok = isIntegrationAccepted(status.state);
+      return { ok, state: status.state, due, data };
+    }
 
-            // 2. Salvar dados da operação no pátio
-            try {
-                const patioDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'patio', dtId);
-                console.log('[HEILOG] Gravando em:', `artifacts/${appId}/public/data/patio/${dtId}`);
+    function formatDateBR(d) {
+      try { return d ? d.toLocaleDateString('pt-BR') : ''; } catch { return ''; }
+    }
+    async function renderIntegrationStatus(cpf) {
+      const host = document.getElementById('int-status');
+      if (!host) return;
 
-                const pInfo = priorityInfo || getPriorityInfo(originalSheetData || {});
-                const reasons = [];
-                if (pInfo.isTop18) reasons.push("TOP 18");
-                if (pInfo.isOtif) reasons.push("OTIF");
-                if (pInfo.isAntecipacao) reasons.push("Antecipação");
+      host.innerHTML = `<div class="text-xs text-gray-300">Consultando status...</div>`;
 
-                const label =
-                    pInfo.isGradeQueimada ? "GRADE QUEIMADA" :
-                    pInfo.isAtrasado ? "ATRASADO" :
-                    pInfo.isPriority ? "PRIORIDADE" : "NORMAL";
+      const data = await loadIntegrationDoc(cpf);
+      const status = computeIntegrationStatus(data);
 
-                const level =
-                    pInfo.isGradeQueimada ? 3 :
-                    pInfo.isAtrasado ? 2 :
-                    pInfo.isPriority ? 1 : 0;
+      // tenta puxar nome do motorista para exibir
+      let driverName = '';
+      try {
+        const driverRef = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', cpf);
+        const snap = await getDoc(driverRef);
+        if (snap.exists()) driverName = (snap.data().name || '');
+      } catch {}
 
-                const canalValue = (originalSheetData?.[headerMap.canal] || '').toString().trim().toUpperCase();
-                const segmentoValue = (originalSheetData?.[headerMap.xtAdicional] || '').toString();
+      const fmt = (d) => d ? d.toLocaleDateString('pt-BR') : '—';
+      const dueTxt = status.due ? fmt(status.due) : '—';
 
-                const patioDataToSave = {
-                    dt: dtId,
-                    motorista: driverData.name,
-                    transportadora: driverData.transportadora,
-                    cpf: unmaskedCpf,
-                    placa: driverData.truckPlate,
-                    telefone: driverData.phone.replace(/\D/g, ''),
-                    registrationTime: driverData.registrationTime,
-                    status: 'Em Pátio',
-                    agenda: originalSheetData?.[headerMap.agenda] || '',
-                    xtAdicional: originalSheetData?.[headerMap.xtAdicional] || '',
-                    data: originalSheetData?.[headerMap.data] || '',
-                    origem: 'JACAREÍ/SP',
-                    destino: originalSheetData?.[headerMap.deposito] || 'N/A',
+      let badge = '';
+      let msg = '';
+      if (status.state === 'NEW') {
+        badge = `<span class="px-2 py-1 rounded bg-blue-600/70 text-white text-xs font-bold">NÃO REALIZADO</span>`;
+        msg = `Precisa realizar o teste.`;
+      } else if (status.state === 'EXPIRED') {
+        badge = `<span class="px-2 py-1 rounded bg-red-600/70 text-white text-xs font-bold">VENCIDO</span>`;
+        msg = `Integração venceu em <strong>${dueTxt}</strong>. Precisa refazer.`;
+      } else if (status.state === 'EXPIRING') {
+        badge = `<span class="px-2 py-1 rounded bg-yellow-500/70 text-black text-xs font-bold">VAI VENCER</span>`;
+        msg = `Integração vence em <strong>${dueTxt}</strong> (faltam poucos dias).`;
+      } else {
+        badge = `<span class="px-2 py-1 rounded bg-green-600/70 text-white text-xs font-bold">VÁLIDO</span>`;
+        msg = `Integração válida até <strong>${dueTxt}</strong>.`;
+      }
 
-                    // ✅ Campos para Painel do Analista
-                    canal: canalValue,
-                    segmento: segmentoValue,
-                    prioridade: {
-                        label,
-                        level,
-                        reasons,
-                        isPriority: !!pInfo.isPriority,
-                        isOtif: !!pInfo.isOtif,
-                        isTop18: !!pInfo.isTop18,
-                        isAntecipacao: !!pInfo.isAntecipacao,
-                        isGradeQueimada: !!pInfo.isGradeQueimada,
-                        isAtrasado: !!pInfo.isAtrasado,
-                        updatedAt: new Date().toISOString(),
-                    }
-                };
+      const lastScore = data?.lastScore ?? '—';
+      const lastApprovedAt = toDateMaybe(data?.lastApprovedAt);
+      const lastApprovedTxt = lastApprovedAt ? fmt(lastApprovedAt) : '—';
 
-                await setDoc(patioDocRef, patioDataToSave, { merge: true });
-                console.log(`Operação ${dtId} salva no pátio (com prioridade).`);
-                return true;
-            } catch (error) {
-                console.error("Erro ao salvar operação no pátio:", error);
-                displayError(`Ocorreu um erro ao salvar a operação no painel: Verifique suas permissões.`, 5000);
-                return false;
-            }
-        }
+      host.innerHTML = `
+        <div class="bg-black/25 border border-white/10 rounded-xl p-4 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-sm font-bold text-white">CPF: ${cpf}</div>
+            ${badge}
+          </div>
+          ${driverName ? `<div class="text-xs text-gray-200">Motorista: <strong>${driverName}</strong></div>` : ''}
+          <div class="text-sm text-gray-200">${msg}</div>
 
-        async function findAndFillDriverData(event) {
-            const cpfInput = event.target;
-            const unmaskedCpf = cpfInput.value.replace(/\D/g, '');
+          <div class="grid grid-cols-2 gap-2 text-xs text-gray-200 pt-2">
+            <div class="bg-white/5 rounded-lg p-2"><div class="text-gray-400">Última aprovação</div><div class="font-bold">${lastApprovedTxt}</div></div>
+            <div class="bg-white/5 rounded-lg p-2"><div class="text-gray-400">Última nota</div><div class="font-bold">${lastScore}</div></div>
+          </div>
 
-            if (unmaskedCpf.length !== 11) return;
-            if (!isAuthReady) return;
+          <div class="flex gap-2 pt-2">
+            <button id="int-start" class="btn-green flex-1 py-2 rounded-lg">${status.state === 'VALID' ? 'Refazer (opcional)' : 'Fazer teste'}</button>
+            <button id="int-history" class="btn-ghost flex-1 py-2 rounded-lg">Histórico</button>
+          </div>
 
-            const driverRef = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', unmaskedCpf);
+          <div id="int-subview" class="pt-2"></div>
+        </div>
+      `;
 
-            try {
-                const docSnap = await getDoc(driverRef);
-                if (docSnap.exists()) {
-                    fillFormFields(docSnap.data());
-                    console.log("Motorista encontrado no Firebase.");
-                } else {
-                    const localData = localStorage.getItem(`heilo-driver-${unmaskedCpf}`);
-                    if (localData) {
-                        fillFormFields(JSON.parse(localData));
-                        console.log("Motorista encontrado no LocalStorage.");
-                    }
-                }
-            } catch (error) {
-                console.error("Erro ao buscar motorista no Firebase:", error);
-                displayError("Erro ao consultar o banco de dados de motoristas.", 4000);
-            }
-        }
+      document.getElementById('int-start')?.addEventListener('click', async () => {
+        await unlockAudio();
+        renderIntegrationTest(cpf);
+      });
 
-        // =======================
-        // ✅ NOVO LAYOUT / FLUXOS
-        // =======================
-        function renderActionSelector() {
-            currentMode = null;
-            pendingUnloadDt = '';
-            requireUnloadDtInForm = false;
-            manualPresetType = '';
-            manualDtIdOverride = '';
-            hideManualExtras = false;
-            showUnloadInputs = true;
+      document.getElementById('int-history')?.addEventListener('click', async () => {
+        await unlockAudio();
+        renderIntegrationHistory(cpf);
+      });
+    }
 
-            actionArea.innerHTML = `
-                <div id="mode-root" class="space-y-3">
-                    <div class="flex items-center justify-between gap-3">
-                        <p class="font-semibold text-white">O que você quer fazer?</p>
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
 
-                        <button id="contrast-toggle"
-                                class="btn-ghost px-3 py-2 rounded-lg text-xs"
-                                type="button"
-                                title="Melhora a visibilidade das opções">
-                            Alto contraste
-                        </button>
-                    </div>
+    function renderIntegrationTest(cpf) {
+      const sub = document.getElementById('int-subview');
+      if (!sub) return;
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <button data-mode="LOAD"
-                                class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center"
-                                title="Carregamento usando DT (consulta na planilha)">
-                            <div class="emoji">🚚</div>
-                            <div class="label font-bold">Carregar</div>
-</button>
+      // embaralha perguntas (mantém gabarito por índice original)
+      const qOrder = shuffle(integrationQuestions.map((q, idx) => ({ ...q, _id: idx })));
 
-                        <button data-mode="UNLOAD"
-                                class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center"
-                                title="Descarregamento com DT de descarga (sem planilha)">
-                            <div class="emoji">📥</div>
-                            <div class="label font-bold">Descarregar</div>
-</button>
+      sub.innerHTML = `
+        <div class="bg-blue-900/30 border border-blue-700 rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="text-white font-bold">Teste de Integração</div>
+            <button id="int-cancel" class="btn-ghost px-3 py-1 rounded-lg text-xs">Fechar</button>
+          </div>
 
-                        <button data-mode="BOTH"
-                                class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center sm:col-span-2"
-                                title="Carga + Descarga (DT de carga + DT de descarga)">
-                            <div class="emoji">🔁</div>
-                            <div class="label font-bold">Carga + Descarga</div>
-</button>
-
-                        <button data-mode="LATA_INSUMO"
-                                class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center"
-                                title="Sem DT: vai direto para dados do motorista">
-                            <div class="emoji">🥫</div>
-                            <div class="label font-bold">Lata / Insumo</div>
-</button>
-
-                        <button data-mode="RITMO"
-                                class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center"
-                                title="Ritmo: DT opcional (se vazio, gera ID interno)">
-                            <div class="emoji">⚡</div>
-                            <div class="label font-bold">Ritmo</div>
-</button>
-                    </div>
-
-                    <p class="text-xs text-gray-400">
-                        Dica: se a planilha estiver fora do ar, use os fluxos sem DT.
-                    </p>
+          <form id="int-form" class="space-y-3">
+            ${qOrder.map((q, i) => `
+              <div class="bg-black/20 border border-white/10 rounded-xl p-3">
+                <div class="text-sm font-semibold text-white mb-2">${i+1}. ${q.q}</div>
+                <div class="space-y-2 text-sm text-gray-200">
+                  ${q.options.map((opt, oi) => `
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="radio" name="q_${i}" value="${oi}" class="mt-1">
+                      <span>${opt}</span>
+                    </label>
+                  `).join('')}
                 </div>
-`;
+              </div>
+            `).join('')}
 
-            // ✅ Alto contraste (somente nas opções) - persiste no localStorage
-            const hcKey = "heilog-hc";
-            const applyHc = (on) => {
-                actionArea.classList.toggle("hc", !!on);
-                try { localStorage.setItem(hcKey, on ? "1" : "0"); } catch {}
-            };
-            const hcSaved = (() => {
-                try { return localStorage.getItem(hcKey) === "1"; } catch { return false; }
-            })();
-            applyHc(hcSaved);
+            <button type="submit" class="btn-green w-full py-3 rounded-lg">Finalizar</button>
+          </form>
 
-            const hcBtn = document.getElementById("contrast-toggle");
-            if (hcBtn) {
-                hcBtn.addEventListener("click", () => {
-                    const next = !actionArea.classList.contains("hc");
-                    applyHc(next);
-                });
-            }
+          <div id="int-result" class="pt-2"></div>
+        </div>
+      `;
 
+      document.getElementById('int-cancel')?.addEventListener('click', () => {
+        sub.innerHTML = '';
+      });
 
-            document.querySelectorAll('.mode-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    unlockAudio();
-                currentMode = btn.dataset.mode;
-                    renderModeForm(currentMode);
-                });
-            });
+      document.getElementById('int-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-            updateModeAvailability();
+        const form = e.target;
+        const answers = [];
+        for (let i = 0; i < qOrder.length; i++) {
+          const picked = form.querySelector(`input[name="q_${i}"]:checked`);
+          if (!picked) {
+            displayError("Responda todas as perguntas antes de finalizar.", 4000);
+            return;
+          }
+          answers.push(parseInt(picked.value, 10));
         }
 
-        function updateModeAvailability() {
-            const needsSheet = new Set(['LOAD', 'BOTH']);
-            document.querySelectorAll('.mode-btn').forEach(btn => {
-                const mode = btn.dataset.mode;
-                if (!mode) return;
-                if (needsSheet.has(mode)) {
-                    const disabled = !isSheetReady;
-                    btn.disabled = disabled;
-                    btn.classList.toggle('opacity-50', disabled);
-                    btn.classList.toggle('cursor-not-allowed', disabled);
-                    btn.title = disabled ? 'Planilha não carregou ainda.' : '';
-                }
-            });
+        let score = 0;
+        for (let i = 0; i < qOrder.length; i++) {
+          if (answers[i] === qOrder[i].correctIndex) score++;
         }
 
-        function renderModeForm(mode) {
-            resultsArea.innerHTML = '';
-            pendingUnloadDt = '';
-            requireUnloadDtInForm = false;
-            manualPresetType = '';
-            manualDtIdOverride = '';
-            hideManualExtras = false;
-            showUnloadInputs = true;
+        const passed = score >= INTEGRATION_MIN_SCORE;
+        const now = new Date();
+        const nextDue = addDays(now, INTEGRATION_VALID_DAYS);
 
-            const backBtn = `
-                <button id="back-to-modes" class="btn-ghost w-full py-2 rounded-lg">⬅ Voltar</button>
-            `;
+        const attempt = {
+          id: generateInternalId('ATT'),
+          at: now.toISOString(),
+          score,
+          total: qOrder.length,
+          passed,
+        };
 
-            let html = '';
+        try {
+          const current = await loadIntegrationDoc(cpf) || {};
+          const prevAttempts = Array.isArray(current.attempts) ? current.attempts : [];
+          const attempts = [attempt, ...prevAttempts].slice(0, 30); // limita
+          const patch = {
+            cpf,
+            lastAttemptAt: now.toISOString(),
+            lastScore: score,
+            attempts,
+          };
+          if (passed) {
+            patch.lastApprovedAt = now.toISOString();
+            patch.nextDueAt = nextDue.toISOString();
+            patch.lastPassed = true;
+          } else {
+            // se reprovou, mantém vencimento atual (se existir)
+            patch.lastPassed = false;
+          }
 
-            if (mode === 'LOAD') {
-                html = `
-                    <div class="space-y-3">
-                        <p class="font-semibold text-white">Carregamento</p>
-                        <input type="text" id="mode-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT (carregar)">
-                        <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Buscar DT</button>
-                        ${backBtn}
-                    </div>
-                `;
-            }
+          await saveIntegrationDoc(cpf, patch);
 
-            if (mode === 'UNLOAD') {
-                html = `
-                    <div class="space-y-3">
-                        <p class="font-semibold text-white">Descarregamento</p>
-                        <input type="text" id="mode-unload-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT de descarga">
-                        <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Continuar</button>
-                        ${backBtn}
-                    </div>
-                `;
-            }
+          const resultEl = document.getElementById('int-result');
+          if (resultEl) {
+            resultEl.innerHTML = passed
+              ? `<div class="bg-green-600/20 border border-green-500 text-green-100 p-3 rounded-lg">
+                   <div class="font-bold">APROVADO ✅</div>
+                   <div>Sua nota: <strong>${score}/${qOrder.length}</strong>. Válido até <strong>${nextDue.toLocaleDateString('pt-BR')}</strong>.</div>
+                 </div>`
+              : `<div class="bg-red-600/20 border border-red-500 text-red-100 p-3 rounded-lg">
+                   <div class="font-bold">REPROVADO ❌</div>
+                   <div>Sua nota: <strong>${score}/${qOrder.length}</strong>. Você pode tentar novamente.</div>
+                 </div>`;
+          }
 
-            if (mode === 'BOTH') {
-                html = `
-                    <div class="space-y-3">
-                        <p class="font-semibold text-white">Carga + Descarga</p>
-                        <input type="text" id="mode-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT (carga)">
-                        <input type="text" id="mode-unload-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT de descarga">
-                        <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Buscar DT</button>
-                        ${backBtn}
-                    </div>
-                `;
-            }
-
-            if (mode === 'LATA_INSUMO') {
-                html = `
-                    <div class="space-y-3">
-                        <p class="font-semibold text-white">Lata / Insumo</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button id="pick-lata" class="btn-green py-3 rounded-lg">🥫 Latas</button>
-                            <button id="pick-insumo" class="btn-green py-3 rounded-lg">🧪 Insumo</button>
-                        </div>
-                        <p class="text-xs text-gray-400">Você vai direto pro formulário do motorista (sem DT).</p>
-                        ${backBtn}
-                    </div>
-                `;
-            }
-
-            if (mode === 'RITMO') {
-                html = `
-                    <div class="space-y-3">
-                        <p class="font-semibold text-white">Ritmo</p>
-                        <input type="text" id="mode-dt-optional" class="form-input w-full rounded-lg p-3" placeholder="DT (opcional)">
-                        <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Continuar</button>
-                        ${backBtn}
-                    </div>
-                `;
-            }
-
-            actionArea.innerHTML = html;
-
-            document.getElementById('back-to-modes')?.addEventListener('click', () => {
-                renderActionSelector();
-            });
-
-            // Handlers
-            if (mode === 'LOAD' || mode === 'BOTH') {
-                const dtEl = document.getElementById('mode-dt');
-                const unloadEl = document.getElementById('mode-unload-dt');
-                document.getElementById('mode-go')?.addEventListener('click', async () => {
-                    unlockAudio();
-                const dt = dtEl?.value?.trim() || '';
-                    if (!dt) return displayError('Digite a DT.', 4000);
-                    if (!isSheetReady || database.length === 0) return displayError('Planilha ainda não carregou. Tente novamente.', 4000);
-
-                    pendingUnloadDt = (unloadEl?.value || '').trim();
-                    requireUnloadDtInForm = (mode === 'BOTH');
-                    showUnloadInputs = (mode === 'BOTH'); // só mostra DT Descarga no form quando for "2 DTs"
-
-                    performSearchByDt(dt);
-                });
-
-                dtEl?.addEventListener('keydown', async (e) => {
-                    if (e.key === 'Enter') {
-                        unlockAudio();
-                document.getElementById('mode-go')?.click();
-                    }
-                });
-                unloadEl?.addEventListener('keydown', async (e) => {
-                    if (e.key === 'Enter') {
-                        unlockAudio();
-                document.getElementById('mode-go')?.click();
-                    }
-                });
-                dtEl?.focus();
-            }
-
-            if (mode === 'UNLOAD') {
-                const unloadEl = document.getElementById('mode-unload-dt');
-                document.getElementById('mode-go')?.addEventListener('click', async () => {
-                    unlockAudio();
-                const unloadDt = unloadEl?.value?.trim() || '';
-                    if (!unloadDt) return displayError('Digite a DT de descarga.', 4000);
-
-                    // Para descarregar: sem planilha -> vai direto pro formulário (manual), com DT Descarga obrigatória
-                    manualPresetType = 'Descarga';
-                    hideManualExtras = true;      // deixa manual mais enxuto
-                    showUnloadInputs = true;      // mostra DT Descarga no form
-                    requireUnloadDtInForm = true; // obriga preencher (vamos pré-preencher com o que digitou)
-                    pendingUnloadDt = unloadDt;
-
-                    // usa a própria DT de descarga como "ID" (pátio/print)
-                    const dtId = normalizeDtId(unloadDt) || generateInternalId('DESC');
-                    manualDtIdOverride = dtId;
-
-                    showDriverForm([{ [headerMap.dts]: dtId }], {
-                        modeLabel: 'Descarregamento',
-                        isManualOverride: true
-                    });
-                });
-
-                unloadEl?.addEventListener('keydown', async (e) => {
-                    if (e.key === 'Enter') {
-                        unlockAudio();
-                document.getElementById('mode-go')?.click();
-                    }
-                });
-                unloadEl?.focus();
-            }
-
-            if (mode === 'LATA_INSUMO') {
-                document.getElementById('pick-lata')?.addEventListener('click', async () => {
-                    unlockAudio();
-                manualPresetType = 'Latas';
-                    hideManualExtras = true;
-                    showUnloadInputs = false;         // não precisa Nota/DT Descarga
-                    requireUnloadDtInForm = false;
-                    pendingUnloadDt = '';
-
-                    manualDtIdOverride = generateInternalId('SEM_DT');
-                    showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Latas / sem DT', isManualOverride: true });
-                });
-
-                document.getElementById('pick-insumo')?.addEventListener('click', async () => {
-                    unlockAudio();
-                manualPresetType = 'Insumo';
-                    hideManualExtras = true;
-                    showUnloadInputs = false;
-                    requireUnloadDtInForm = false;
-                    pendingUnloadDt = '';
-
-                    manualDtIdOverride = generateInternalId('SEM_DT');
-                    showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Insumo / sem DT', isManualOverride: true });
-                });
-            }
-
-            if (mode === 'RITMO') {
-                const optEl = document.getElementById('mode-dt-optional');
-                document.getElementById('mode-go')?.addEventListener('click', async () => {
-                    unlockAudio();
-                manualPresetType = 'Ritmo';
-                    hideManualExtras = true;
-                    showUnloadInputs = false;
-                    requireUnloadDtInForm = false;
-                    pendingUnloadDt = '';
-
-                    const typed = optEl?.value?.trim() || '';
-                    const dtId = normalizeDtId(typed) || generateInternalId('RITMO');
-                    manualDtIdOverride = dtId;
-
-                    showDriverForm([{ [headerMap.dts]: dtId }], { modeLabel: 'Ritmo', isManualOverride: true });
-                });
-
-                optEl?.addEventListener('keydown', async (e) => {
-                    if (e.key === 'Enter') {
-                        unlockAudio();
-                document.getElementById('mode-go')?.click();
-                    }
-                });
-                optEl?.focus();
-            }
+          // atualiza o status em cima
+          await renderIntegrationStatus(cpf);
+          // reabre resultado rápido (status já mostra)
+        } catch (err) {
+          console.error("Falha ao salvar tentativa:", err);
+          displayError("Não consegui salvar a tentativa no Firestore. Verifique permissões/regras.", 6000);
         }
+      });
+    }
 
-        function performSearchByDt(query) {
-            const q = query.trim();
-            if (!q) { displayError("Digite um número de DT para buscar."); return; }
-            if (database.length === 0) { displayError("Os dados da planilha ainda não foram carregados."); return; }
+    async function renderIntegrationHistory(cpf) {
+      const sub = document.getElementById('int-subview');
+      if (!sub) return;
 
-            const results = database.filter(row => (row[headerMap.dts] || '').toString().trim().toLowerCase() === q.toLowerCase());
-            if (results.length > 0) {
-                const deposito = results[0][headerMap.deposito] || '';
-                const normalizedDeposito = deposito.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                if (normalizedDeposito.includes('FABRICA')) {
-                    // Fluxo fábrica -> formulário motorista
-                    showDriverForm(results, {
-                        modeLabel: currentMode === 'BOTH' ? 'Carga + Descarga' : 'Carregamento',
-                        isManualOverride: false
-                    });
-                } else {
-                    // Outros destinos -> só mostra detalhes
-                    displayStandardResults(results);
-                }
-            } else {
-                displayNotFound(q);
-            }
-        }
+      const data = await loadIntegrationDoc(cpf);
+      const attempts = Array.isArray(data?.attempts) ? data.attempts : [];
 
-        // --- FUNÇÕES DE UI E MANIPULAÇÃO DO DOM ---
-        function displayStandardResults(dataArray) {
-            const firstResult = dataArray[0];
-            const dt = firstResult[headerMap.dts] || 'N/A';
-            const productListHtml = dataArray.map(item => `
-                <div class="border-t border-gray-700/50 pt-2 mt-2">
-                    <p class="text-sm text-gray-400">Descrição do Produto</p>
-                    <p class="text-lg">${item[headerMap.descricao] || 'N/A'}</p>
-                    <p class="text-sm text-gray-400 mt-2">Quantidade</p>
-                    <p class="text-lg">${item[headerMap.plt] || 'N/A'}</p>
+      if (attempts.length === 0) {
+        sub.innerHTML = `<div class="text-xs text-gray-200">Sem histórico ainda.</div>`;
+        return;
+      }
+
+      sub.innerHTML = `
+        <div class="bg-black/20 border border-white/10 rounded-xl p-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="text-white font-bold text-sm">Histórico (últimas ${Math.min(30, attempts.length)})</div>
+            <button id="int-history-close" class="btn-ghost px-3 py-1 rounded-lg text-xs">Fechar</button>
+          </div>
+
+          <div class="space-y-2">
+            ${attempts.slice(0, 10).map(a => {
+              const at = toDateMaybe(a.at);
+              const atTxt = at ? at.toLocaleString('pt-BR') : (a.at || '—');
+              return `
+                <div class="bg-white/5 rounded-lg p-2 text-xs text-gray-200 flex items-center justify-between">
+                  <div>
+                    <div class="font-bold">${a.passed ? '✅ Aprovado' : '❌ Reprovado'} - ${a.score}/${a.total}</div>
+                    <div class="text-gray-400">${atTxt}</div>
+                  </div>
+                  <div class="text-gray-400">ID: ${a.id || ''}</div>
                 </div>
-            `).join('');
+              `;
+            }).join('')}
+          </div>
 
-            let resultsHtml = `
-                <div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700">
-                    <h3 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Detalhes para o DTS: ${dt}</h3>
-                    <div class="space-y-2 text-gray-300">
-                        <div>
-                            <p class="text-sm text-gray-400">Destino</p>
-                            <p class="text-lg">${firstResult[headerMap.deposito] || 'N/A'}</p>
-                        </div>
-            `;
+          <div class="text-[11px] text-gray-400">Mostrando apenas 10 mais recentes.</div>
+        </div>
+      `;
 
-            if ((firstResult[headerMap.deposito] || '').toUpperCase() === 'HEILO') {
-                resultsHtml += `
-                    <div class="pt-4 border-t border-gray-700/50">
-                        <p class="text-sm text-gray-400">Endereço de Entrega</p>
-                        <p class="text-lg font-semibold">Rua Vereador Geraldo Nogueira da Silva, 5111, Caçapava, SP, 12280-001</p>
-                    </div>
-                `;
-            }
+      document.getElementById('int-history-close')?.addEventListener('click', () => {
+        sub.innerHTML = '';
+      });
+    }
 
-            resultsHtml += `
-                        <h4 class="text-md font-semibold text-white pt-3">Itens da Carga:</h4>
-                        ${productListHtml}
-                    </div>
-                </div>
-            `;
-            resultsArea.innerHTML = resultsHtml;
+    // =======================
+    // Busca DT + Form motorista
+    // =======================
+    function performSearchByDt(query) {
+      const q = query.trim();
+      if (!q) { displayError("Digite um número de DT para buscar."); return; }
+      if (database.length === 0) { displayError("Os dados da planilha ainda não foram carregados."); return; }
+
+      const results = database.filter(row => (row[headerMap.dts] || '').toString().trim().toLowerCase() === q.toLowerCase());
+      if (results.length > 0) {
+        const deposito = results[0][headerMap.deposito] || '';
+        const normalizedDeposito = deposito.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (normalizedDeposito.includes('FABRICA')) {
+          showDriverForm(results, { modeLabel: currentMode === 'BOTH' ? 'Carga + Descarga' : 'Carregamento', isManualOverride: false });
+        } else {
+          displayStandardResults(results);
         }
+      } else {
+        displayNotFound(q);
+      }
+    }
 
-        function showDriverForm(dataArray, options = {}) {
-            const firstResult = dataArray[0] || {};
-            const isManual = options.isManualOverride === true ? true : !firstResult[headerMap.cliente];
+    function displayStandardResults(dataArray) {
+      const firstResult = dataArray[0];
+      const dt = firstResult[headerMap.dts] || 'N/A';
 
-            const modeLabel = options.modeLabel || 'Operação';
+      const productListHtml = dataArray.map(item => `
+        <div class="border-t border-gray-700/50 pt-2 mt-2">
+          <p class="text-sm text-gray-400">Descrição do Produto</p>
+          <p class="text-lg">${item[headerMap.descricao] || 'N/A'}</p>
+          <p class="text-sm text-gray-400 mt-2">Quantidade</p>
+          <p class="text-lg">${item[headerMap.plt] || 'N/A'}</p>
+        </div>
+      `).join('');
 
-            resultsArea.innerHTML = `
-                <div class="bg-blue-900/40 p-6 rounded-xl border border-blue-700">
-                    <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <h3 class="text-xl font-bold text-white mb-1">${modeLabel}</h3>
-                            <p class="text-blue-200 mb-4 text-sm">${isManual ? 'Preencha os dados do motorista (e opcionalmente os dados da operação).' : 'Preencha os dados do motorista.'}</p>
-                        </div>
-                        <button id="back-from-form" class="btn-ghost px-3 py-2 rounded-lg text-sm">⬅ Voltar</button>
-                    </div>
+      let resultsHtml = `
+        <div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700">
+          <h3 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Detalhes para o DTS: ${dt}</h3>
+          <div class="space-y-2 text-gray-300">
+            <div>
+              <p class="text-sm text-gray-400">Destino</p>
+              <p class="text-lg">${firstResult[headerMap.deposito] || 'N/A'}</p>
+            </div>
+      `;
 
-                    <div class="space-y-4">
-                        ${isManual ? `
-                            <div class="bg-black/20 p-3 rounded-lg border border-white/10">
-                                <p class="text-xs text-gray-200 mb-2 font-semibold">Dados da Operação (opcional)</p>
+      if ((firstResult[headerMap.deposito] || '').toUpperCase() === 'HEILO') {
+        resultsHtml += `
+          <div class="pt-4 border-t border-gray-700/50">
+            <p class="text-sm text-gray-400">Endereço de Entrega</p>
+            <p class="text-lg font-semibold">Rua Vereador Geraldo Nogueira da Silva, 5111, Caçapava, SP, 12280-001</p>
+          </div>
+        `;
+      }
 
-                                <div ${hideManualExtras ? 'hidden' : ''}>
-                                    <input type="text" id="manual-client" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Cliente (opcional)">
-                                </div>
+      resultsHtml += `
+            <h4 class="text-md font-semibold text-white pt-3">Itens da Carga:</h4>
+            ${productListHtml}
+          </div>
+        </div>
+      `;
 
-                                <select id="manual-type" class="form-select w-full rounded-lg p-3 mb-2">
-                                    <option value="">Tipo de Carga</option>
-                                    <option value="Bulk">Bulk</option>
-                                    <option value="Embalagem">Embalagem</option>
-                                    <option value="Latas">Latas</option>
-                                    <option value="Produto Acabado">Produto Acabado</option>
-                                    <option value="Insumo">Insumo</option>
-                                    <option value="Ritmo">Ritmo</option>
-                                    <option value="Descarga">Descarga</option>
-                                </select>
+      resultsArea.innerHTML = resultsHtml;
+    }
 
-                                <div ${hideManualExtras ? 'hidden' : ''}>
-                                    <input type="text" id="manual-plt" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Quantidade (PLT) (opcional)">
-                                </div>
+    function showDriverForm(dataArray, options = {}) {
+      const firstResult = dataArray[0] || {};
+      const isManual = options.isManualOverride === true ? true : !firstResult[headerMap.cliente];
+      const modeLabel = options.modeLabel || 'Operação';
 
-                                <input type="text" id="manual-transportadora" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Transportadora (opcional)">
+      resultsArea.innerHTML = `
+        <div class="bg-blue-900/40 p-6 rounded-xl border border-blue-700">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <h3 class="text-xl font-bold text-white mb-1">${modeLabel}</h3>
+              <p class="text-blue-200 mb-4 text-sm">${isManual ? 'Preencha os dados do motorista (e opcionalmente os dados da operação).' : 'Preencha os dados do motorista.'}</p>
+            </div>
+            <button id="back-from-form" class="btn-ghost px-3 py-2 rounded-lg text-sm">⬅ Voltar</button>
+          </div>
 
-                                <select id="manual-canal" class="form-select w-full rounded-lg p-3">
-                                    <option value="">Canal (opcional)</option>
-                                    <option value="Y001">Y001</option>
-                                    <option value="Y002">Y002</option>
-                                    <option value="Y004">Y004</option>
-                                    <option value="Y006">Y006</option>
-                                    <option value="Y055">Y055</option>
-                                </select>
+          <div class="space-y-4">
+            ${isManual ? `
+              <div class="bg-black/20 p-3 rounded-lg border border-white/10">
+                <p class="text-xs text-gray-200 mb-2 font-semibold">Dados da Operação (opcional)</p>
 
-                                <div class="text-xs text-gray-300 mt-2">
-                                    <span class="font-semibold">ID:</span> ${String(firstResult[headerMap.dts] || '').trim()}
-                                </div>
+                <div ${hideManualExtras ? 'hidden' : ''}>
+                  <input type="text" id="manual-client" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Cliente (opcional)">
+                </div>
+
+                <select id="manual-type" class="form-select w-full rounded-lg p-3 mb-2">
+                  <option value="">Tipo de Carga</option>
+                  <option value="Bulk">Bulk</option>
+                  <option value="Embalagem">Embalagem</option>
+                  <option value="Latas">Latas</option>
+                  <option value="Produto Acabado">Produto Acabado</option>
+                  <option value="Insumo">Insumo</option>
+                  <option value="Ritmo">Ritmo</option>
+                  <option value="Descarga">Descarga</option>
+                </select>
+
+                <div ${hideManualExtras ? 'hidden' : ''}>
+                  <input type="text" id="manual-plt" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Quantidade (PLT) (opcional)">
+                </div>
+
+                <input type="text" id="manual-transportadora" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Transportadora (opcional)">
+
+                <select id="manual-canal" class="form-select w-full rounded-lg p-3">
+                  <option value="">Canal (opcional)</option>
+                  <option value="Y001">Y001</option>
+                  <option value="Y002">Y002</option>
+                  <option value="Y004">Y004</option>
+                  <option value="Y006">Y006</option>
+                  <option value="Y055">Y055</option>
+                </select>
+
+                <div class="text-xs text-gray-300 mt-2">
+                  <span class="font-semibold">ID:</span> ${String(firstResult[headerMap.dts] || '').trim()}
+                </div>
+              </div>
+            ` : ''}
+
+            <input type="text" id="driver-cpf" class="form-input w-full rounded-lg p-3" placeholder="Digite o CPF para buscar motorista">
+                        <div id="driver-int-box" class="mt-2 bg-black/20 border border-white/10 rounded-lg p-3">
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-xs font-semibold text-gray-200">Integração (obrigatória)</p>
+                                <span id="driver-int-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-gray-200">—</span>
                             </div>
-                        ` : ''}
-
-                        <input type="text" id="driver-cpf" class="form-input w-full rounded-lg p-3" placeholder="Digite o CPF para buscar motorista">
-                        <input type="text" id="driver-name" class="form-input w-full rounded-lg p-3" placeholder="Nome Completo do Motorista">
-                        <input type="text" id="driver-phone" class="form-input w-full rounded-lg p-3" placeholder="Telefone com DDD">
-
-                        <div class="flex gap-4">
-                            <input type="text" id="driver-cnh" class="form-input w-full rounded-lg p-3" placeholder="Nº CNH">
-                            <input type="text" id="cnh-expiry" class="form-input w-full rounded-lg p-3" placeholder="Vencimento CNH (DD/MM/AAAA)">
+                            <p id="driver-int-status" class="text-xs text-gray-300 mt-1">Digite o CPF para verificar.</p>
+                            <button id="driver-int-open" type="button" class="btn-ghost mt-2 px-3 py-2 rounded-lg text-xs hidden">Fazer Integração agora</button>
                         </div>
 
-                        <div class="grid grid-cols-3 gap-4">
-                            <input type="text" id="truck-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Cavalo">
-                            <input type="text" id="trailer-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Carreta">
-                            <select id="truck-axles" class="form-select col-span-1 rounded-lg p-3">
-                                <option value="">Eixos</option>
-                                <option value="2">2 Eixos</option>
-                                <option value="3">3 Eixos</option>
-                                <option value="4">4 Eixos</option>
-                                <option value="5">5 Eixos</option>
-                                <option value="6">6 Eixos</option>
-                                <option value="7">7 Eixos</option>
-                                <option value="9">9 Eixos</option>
-                            </select>
-                        </div>
+            <input type="text" id="driver-name" class="form-input w-full rounded-lg p-3" placeholder="Nome Completo do Motorista">
+            <input type="text" id="driver-phone" class="form-input w-full rounded-lg p-3" placeholder="Telefone com DDD">
 
-                        <input type="text" id="driver-renavam" class="form-input w-full rounded-lg p-3" placeholder="RENAVAM">
+            <div class="flex gap-4">
+              <input type="text" id="driver-cnh" class="form-input w-full rounded-lg p-3" placeholder="Nº CNH">
+              <input type="text" id="cnh-expiry" class="form-input w-full rounded-lg p-3" placeholder="Vencimento CNH (DD/MM/AAAA)">
+            </div>
 
-                        ${showUnloadInputs ? `
-                            <div class="flex gap-4">
-                                <input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal (opcional)">
-                                <input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga ${requireUnloadDtInForm ? '(obrigatório)' : '(opcional)'}">
-                            </div>
-                        ` : `
-                            <input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal (opcional)" hidden>
-                            <input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga" hidden>
-                        `}
+            <div class="grid grid-cols-3 gap-4">
+              <input type="text" id="truck-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Cavalo">
+              <input type="text" id="trailer-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Carreta">
+              <select id="truck-axles" class="form-select col-span-1 rounded-lg p-3">
+                <option value="">Eixos</option>
+                <option value="2">2 Eixos</option>
+                <option value="3">3 Eixos</option>
+                <option value="4">4 Eixos</option>
+                <option value="5">5 Eixos</option>
+                <option value="6">6 Eixos</option>
+                <option value="7">7 Eixos</option>
+                <option value="9">9 Eixos</option>
+              </select>
+            </div>
 
-                        <button id="generate-sheet-btn" class="btn-green w-full py-3 rounded-lg">Imprimir e Chamar</button>
-                    </div>
-                </div>
-            `;
+            <input type="text" id="driver-renavam" class="form-input w-full rounded-lg p-3" placeholder="RENAVAM">
 
-            document.getElementById('back-from-form')?.addEventListener('click', () => {
-                // volta para o menu do modo atual (ou menu principal)
-                if (currentMode) renderModeForm(currentMode);
-                else renderActionSelector();
-                resultsArea.innerHTML = '';
-            });
+            ${showUnloadInputs ? `
+              <div class="flex gap-4">
+                <input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal (opcional)">
+                <input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga ${requireUnloadDtInForm ? '(obrigatório)' : '(opcional)'}">
+              </div>
+            ` : `
+              <input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal (opcional)" hidden>
+              <input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga" hidden>
+            `}
 
-            applyFormMasksAndValidations();
+            <button id="generate-sheet-btn" class="btn-green w-full py-3 rounded-lg">Imprimir e Chamar</button>
+          </div>
+        </div>
+      `;
 
-            // Prefills para modos (Lata/Insumo/Descarga/Ritmo)
-            if (isManual) {
-                const manualTypeEl = document.getElementById('manual-type');
-                const manualClientEl = document.getElementById('manual-client');
-                const manualPltEl = document.getElementById('manual-plt');
-                const manualTranspEl = document.getElementById('manual-transportadora');
+      document.getElementById('back-from-form')?.addEventListener('click', () => {
+        if (currentMode) renderModeForm(currentMode);
+        else renderActionSelector();
+        resultsArea.innerHTML = '';
+      });
 
-                if (manualTypeEl && manualPresetType) manualTypeEl.value = manualPresetType;
-                if (manualClientEl && hideManualExtras && !manualClientEl.value) manualClientEl.value = 'N/A';
-                if (manualPltEl && hideManualExtras && !manualPltEl.value) manualPltEl.value = '';
-                if (manualTranspEl && firstResult[headerMap.transportadora]) manualTranspEl.value = firstResult[headerMap.transportadora];
-            }
+      applyFormMasksAndValidations();
 
-            // Prefill DT descarga
-            const unloadEl = document.getElementById('unload-dt');
-            if (unloadEl && pendingUnloadDt) unloadEl.value = pendingUnloadDt;
+      // Prefills
+      if (isManual) {
+        const manualTypeEl = document.getElementById('manual-type');
+        const manualClientEl = document.getElementById('manual-client');
+        const manualPltEl = document.getElementById('manual-plt');
+        const manualTranspEl = document.getElementById('manual-transportadora');
 
-            document.getElementById('driver-cpf').addEventListener('input', findAndFillDriverData);
-            document.getElementById('generate-sheet-btn').addEventListener('click', () => {
-                unlockAudio(); // não bloqueia o print
-                generateAndPrintSheet(dataArray, { isManual });
-            });
+        if (manualTypeEl && manualPresetType) manualTypeEl.value = manualPresetType;
+        if (manualClientEl && hideManualExtras && !manualClientEl.value) manualClientEl.value = 'N/A';
+        if (manualPltEl && hideManualExtras && !manualPltEl.value) manualPltEl.value = '';
+        if (manualTranspEl && firstResult[headerMap.transportadora]) manualTranspEl.value = firstResult[headerMap.transportadora];
+      }
+
+      const unloadEl = document.getElementById('unload-dt');
+      if (unloadEl && pendingUnloadDt) unloadEl.value = pendingUnloadDt;
+
+      document.getElementById('driver-cpf')?.addEventListener('input', findAndFillDriverData);
+
+      // ✅ Bloqueio por Integração (motorista só imprime se estiver com integração válida)
+      const _intCpfEl = document.getElementById('driver-cpf');
+      const _intStatusEl = document.getElementById('driver-int-status');
+      const _intBadgeEl = document.getElementById('driver-int-badge');
+      const _intOpenBtn = document.getElementById('driver-int-open');
+      const _printBtn = document.getElementById('generate-sheet-btn');
+
+      const setPrintEnabled = (enabled) => {
+        if (!_printBtn) return;
+        _printBtn.disabled = !enabled;
+        _printBtn.classList.toggle('opacity-50', !enabled);
+        _printBtn.classList.toggle('cursor-not-allowed', !enabled);
+        if (!enabled) _printBtn.title = 'Integração obrigatória';
+        else _printBtn.title = '';
+      };
+
+      let _intTimer = null;
+      const refreshIntegrationUI = async () => {
+        if (!_intCpfEl || !_intStatusEl || !_intBadgeEl) return;
+        const cpfDigits = normalizeDigits(_intCpfEl.value);
+        if (cpfDigits.length !== 11) {
+          _intBadgeEl.textContent = '—';
+          _intStatusEl.textContent = 'Digite o CPF para verificar.';
+          if (_intOpenBtn) _intOpenBtn.classList.add('hidden');
+          // não trava aqui (a validação do CPF já trava no imprimir)
+          return;
         }
 
-        function applyFormMasksAndValidations() {
-            const cpfEl = document.getElementById('driver-cpf');
-            if (cpfEl) cpfMask = IMask(cpfEl, { mask: '000.000.000-00' });
+        _intBadgeEl.textContent = '...';
+        _intStatusEl.textContent = 'Verificando status no sistema...';
 
-            const phoneEl = document.getElementById('driver-phone');
-            if (phoneEl) phoneMask = IMask(phoneEl, { mask: '(00) 00000-0000' });
+        try {
+          const st = await getIntegrationStateForCpf(cpfDigits);
 
-            const plateEl = document.getElementById('truck-plate');
-            if (plateEl) plateEl.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
+          if (st.state === 'INVALID') {
+            _intBadgeEl.textContent = 'CPF';
+            _intStatusEl.textContent = 'CPF inválido.';
+            if (_intOpenBtn) _intOpenBtn.classList.add('hidden');
+            setPrintEnabled(false);
+            return;
+          }
+
+          if (st.ok) {
+            const dueTxt = st.due ? formatDateBR(st.due) : '';
+            _intBadgeEl.textContent = (st.state === 'EXPIRING') ? 'ALERTA' : 'OK';
+            _intStatusEl.textContent = st.state === 'EXPIRING'
+              ? `Integração válida, mas vence em ${dueTxt}.`
+              : `Integração OK. Próximo teste até ${dueTxt}.`;
+            if (_intOpenBtn) _intOpenBtn.classList.add('hidden');
+            setPrintEnabled(true);
+          } else {
+            const dueTxt = st.due ? formatDateBR(st.due) : '';
+            _intBadgeEl.textContent = 'BLOQUEADO';
+            _intStatusEl.textContent = st.state === 'EXPIRED'
+              ? `Integração vencida em ${dueTxt}. Faça o teste novamente para liberar.`
+              : 'Integração não encontrada. Faça o teste para liberar.';
+            if (_intOpenBtn) _intOpenBtn.classList.remove('hidden');
+            setPrintEnabled(false);
+          }
+        } catch (e) {
+          console.warn('Falha ao verificar integração:', e);
+          _intBadgeEl.textContent = 'ERRO';
+          _intStatusEl.textContent = 'Não consegui verificar agora. Tente novamente (ou faça o teste).';
+          if (_intOpenBtn) _intOpenBtn.classList.remove('hidden');
+          setPrintEnabled(false);
         }
+      };
 
-        function fillFormFields(data) {
-            document.getElementById('driver-name').value = data.name || '';
-            document.getElementById('driver-cnh').value = data.cnh || '';
-            document.getElementById('cnh-expiry').value = data.cnhExpiry || '';
-            document.getElementById('truck-plate').value = data.truckPlate || '';
-            document.getElementById('trailer-plate').value = data.trailerPlate || '';
-            document.getElementById('truck-axles').value = data.axles || '';
-            document.getElementById('driver-renavam').value = data.renavam || '';
+      if (_intCpfEl) {
+        _intCpfEl.addEventListener('input', () => {
+          if (_intTimer) clearTimeout(_intTimer);
+          _intTimer = setTimeout(refreshIntegrationUI, 350);
+        });
+        _intCpfEl.addEventListener('blur', refreshIntegrationUI);
+      }
 
-            const manualTransp = document.getElementById('manual-transportadora');
-            if (manualTransp && data.transportadora) {
-                manualTransp.value = data.transportadora;
-            }
+      if (_intOpenBtn) {
+        _intOpenBtn.addEventListener('click', async () => {
+          await unlockAudio();
+          const cpfMasked = _intCpfEl?.value || '';
+          currentMode = 'INTEGRACAO';
+          renderModeForm('INTEGRACAO');
+          // preenche CPF na integração e já consulta
+          setTimeout(() => {
+            const intCpf = document.getElementById('int-cpf');
+            if (intCpf) intCpf.value = cpfMasked;
+            document.getElementById('int-check')?.click();
+          }, 0);
+        });
+      }
 
-            if (phoneMask && data.phone) phoneMask.unmaskedValue = String(data.phone).replace(/\D/g,'');
-            else if (document.getElementById('driver-phone') && data.phone) document.getElementById('driver-phone').value = data.phone;
+      // tenta atualizar imediatamente se CPF já veio preenchido via Firebase/localStorage
+      setTimeout(refreshIntegrationUI, 0);
+      document.getElementById('generate-sheet-btn')?.addEventListener('click', () => {
+        unlockAudio();
+        generateAndPrintSheet(dataArray, { isManual });
+      });
+    }
+
+    function applyFormMasksAndValidations() {
+      const cpfEl = document.getElementById('driver-cpf');
+      if (cpfEl) cpfMask = IMask(cpfEl, { mask: '000.000.000-00' });
+
+      const phoneEl = document.getElementById('driver-phone');
+      if (phoneEl) phoneMask = IMask(phoneEl, { mask: '(00) 00000-0000' });
+
+      const plateEl = document.getElementById('truck-plate');
+      if (plateEl) plateEl.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
+    }
+
+    function fillFormFields(data) {
+      document.getElementById('driver-name').value = data.name || '';
+      document.getElementById('driver-cnh').value = data.cnh || '';
+      document.getElementById('cnh-expiry').value = data.cnhExpiry || '';
+      document.getElementById('truck-plate').value = data.truckPlate || '';
+      document.getElementById('trailer-plate').value = data.trailerPlate || '';
+      document.getElementById('truck-axles').value = data.axles || '';
+      document.getElementById('driver-renavam').value = data.renavam || '';
+
+      const manualTransp = document.getElementById('manual-transportadora');
+      if (manualTransp && data.transportadora) manualTransp.value = data.transportadora;
+
+      if (phoneMask && data.phone) phoneMask.unmaskedValue = normalizeDigits(data.phone);
+      else if (document.getElementById('driver-phone') && data.phone) document.getElementById('driver-phone').value = data.phone;
+    }
+
+    function validateField(element, errorMessage, condition = () => element.value.trim() !== '') {
+      if (!condition()) {
+        element.classList.add('invalid');
+        displayError(errorMessage, 4000);
+        element.focus();
+        return false;
+      }
+      element.classList.remove('invalid');
+      return true;
+    }
+        async function generateAndPrintSheet(originalDataArray, { isManual }) {
+      const nameEl = document.getElementById('driver-name');
+      const cpfEl = document.getElementById('driver-cpf');
+      const phoneEl = document.getElementById('driver-phone');
+      const plateEl = document.getElementById('truck-plate');
+
+      if (!validateField(nameEl, "Nome do motorista é obrigatório.")) return;
+      if (!validateField(cpfEl, "CPF é obrigatório.", () => cpfMask?.unmaskedValue?.length === 11)) return;
+
+      // ✅ Integração obrigatória
+      try {
+        const cpfDigits = normalizeDigits(cpfEl.value);
+        const st = await getIntegrationStateForCpf(cpfDigits);
+        if (!st.ok) {
+          displayError("Integração obrigatória: faça o teste antes de imprimir.", 6000);
+          // sugere caminho rápido
+          document.getElementById('driver-int-open')?.classList.remove('hidden');
+          return;
         }
+      } catch (e) {
+        console.warn('Erro ao validar integração antes do print:', e);
+        displayError("Não consegui validar a integração agora. Tente novamente.", 6000);
+        return;
+      }
+      if (!validateField(phoneEl, "Telefone é obrigatório.", () => (phoneMask?.unmaskedValue?.length || 0) >= 10)) return;
+      if (!validateField(plateEl, "Placa do cavalo é obrigatória.")) return;
 
-        function generateAndPrintSheet(originalDataArray, { isManual }) {
-            // validações principais
-            const nameEl = document.getElementById('driver-name');
-            const cpfEl = document.getElementById('driver-cpf');
-            const phoneEl = document.getElementById('driver-phone');
-            const plateEl = document.getElementById('truck-plate');
+      const unloadDtEl = document.getElementById('unload-dt');
+      if (requireUnloadDtInForm && unloadDtEl) {
+        if (!validateField(unloadDtEl, "DT de descarga é obrigatória.", () => unloadDtEl.value.trim().length > 0)) return;
+      }
 
-            if (!validateField(nameEl, "Nome do motorista é obrigatório.")) return;
-            if (!validateField(cpfEl, "CPF é obrigatório.", () => cpfMask.unmaskedValue.length === 11)) return;
-            if (!validateField(phoneEl, "Telefone é obrigatório.", () => phoneMask.unmaskedValue.length >= 10)) return;
-            if (!validateField(plateEl, "Placa do cavalo é obrigatória.")) return;
+      const firstOriginal = originalDataArray[0] || {};
+      const baseDt = String(firstOriginal[headerMap.dts] || '').trim();
+      const dtFromOverride = String(manualDtIdOverride || '').trim();
+      const dtToUse = dtFromOverride || baseDt || generateInternalId('SEM_DT');
 
-            // ✅ valida DT descarga quando o modo exigir
-            const unloadDtEl = document.getElementById('unload-dt');
-            if (requireUnloadDtInForm && unloadDtEl) {
-                if (!validateField(unloadDtEl, "DT de descarga é obrigatória.", () => unloadDtEl.value.trim().length > 0)) return;
-            }
+      const driverData = {
+        name: nameEl.value,
+        cpf: cpfEl.value,
+        phone: phoneEl.value,
+        cnh: document.getElementById('driver-cnh').value,
+        cnhExpiry: document.getElementById('cnh-expiry').value,
+        truckPlate: plateEl.value,
+        trailerPlate: document.getElementById('trailer-plate').value,
+        axles: document.getElementById('truck-axles').value,
+        renavam: document.getElementById('driver-renavam').value,
+        invoice: (document.getElementById('invoice-number')?.value || ''),
+        unloadDt: (document.getElementById('unload-dt')?.value || ''),
+        registrationTime: Date.now(),
+        dts: dtToUse,
+        transportadora: isManual ? (document.getElementById('manual-transportadora')?.value || '') : (firstOriginal[headerMap.transportadora] || '')
+      };
 
-            const firstOriginal = originalDataArray[0] || {};
+      const sheetData = isManual ? [{
+        ...firstOriginal,
+        [headerMap.dts]: dtToUse,
+        [headerMap.cliente]: (document.getElementById('manual-client')?.value || ''),
+        [headerMap.produto]: (document.getElementById('manual-type')?.value || ''),
+        [headerMap.plt]: (document.getElementById('manual-plt')?.value || ''),
+        [headerMap.transportadora]: (document.getElementById('manual-transportadora')?.value || ''),
+        [headerMap.canal]: (document.getElementById('manual-canal')?.value || ''),
+        [headerMap.deposito]: 'FÁBRICA'
+      }] : originalDataArray;
 
-            // Decide DT/ID para salvar no pátio
-            const baseDt = String(firstOriginal[headerMap.dts] || '').trim();
-            const dtFromOverride = String(manualDtIdOverride || '').trim();
-            const dtToUse = dtFromOverride || baseDt || generateInternalId('SEM_DT');
+      const firstRowForPriority = sheetData[0] || {};
+      const priorityInfo = getPriorityInfo(firstRowForPriority);
 
-            const driverData = {
-                name: nameEl.value,
-                cpf: cpfEl.value,
-                phone: phoneEl.value,
-                cnh: document.getElementById('driver-cnh').value,
-                cnhExpiry: document.getElementById('cnh-expiry').value,
-                truckPlate: plateEl.value,
-                trailerPlate: document.getElementById('trailer-plate').value,
-                axles: document.getElementById('truck-axles').value,
-                renavam: document.getElementById('driver-renavam').value,
-                invoice: (document.getElementById('invoice-number')?.value || ''),
-                unloadDt: (document.getElementById('unload-dt')?.value || ''),
-                registrationTime: Date.now(),
-                dts: dtToUse,
-                transportadora: isManual ? (document.getElementById('manual-transportadora')?.value || '') : (firstOriginal[headerMap.transportadora] || '')
-            };
+      buildPrintableSheet(
+        driverData,
+        sheetData,
+        priorityInfo.isPriority,
+        priorityInfo.isOtif,
+        priorityInfo.isTop18,
+        priorityInfo.isAntecipacao,
+        priorityInfo.isGradeQueimada,
+        priorityInfo.isAtrasado,
+        isManual
+      );
 
-            // monta sheetData ANTES (manual também)
-            const sheetData = isManual ? [{
-                ...firstOriginal,
-                [headerMap.dts]: dtToUse,
-                [headerMap.cliente]: (document.getElementById('manual-client')?.value || ''),
-                [headerMap.produto]: (document.getElementById('manual-type')?.value || ''),
-                [headerMap.plt]: (document.getElementById('manual-plt')?.value || ''),
-                [headerMap.transportadora]: (document.getElementById('manual-transportadora')?.value || ''),
-                [headerMap.canal]: (document.getElementById('manual-canal')?.value || ''),
-                [headerMap.deposito]: 'FÁBRICA'
-            }] : originalDataArray;
+      let afterPrintFired = false;
+      const afterPrint = async () => {
+        if (afterPrintFired) return;
+        afterPrintFired = true;
 
-            const firstRowForPriority = sheetData[0] || {};
-            const priorityInfo = getPriorityInfo(firstRowForPriority);
-buildPrintableSheet(
-                driverData,
-                sheetData,
-                priorityInfo.isPriority,
-                priorityInfo.isOtif,
-                priorityInfo.isTop18,
-                priorityInfo.isAntecipacao,
-                priorityInfo.isGradeQueimada,
-                priorityInfo.isAtrasado,
-                isManual
-            );
+        const isSaved = await saveDriverData(driverData, firstRowForPriority, priorityInfo);
+        if (!isSaved) displayError('Não consegui salvar no painel agora, mas a folha foi impressa.', 7000);
+        showCallPanel(driverData.name, priorityInfo.isPriority || priorityInfo.isGradeQueimada || priorityInfo.isAtrasado);
+        window.onafterprint = null;
+      };
 
-            
-            // ✅ PRINT (robusto): imprime no gesto do clique + força reflow + pós-print com fallback
-            let afterPrintFired = false;
-            const afterPrint = async () => {
-                if (afterPrintFired) return;
-                afterPrintFired = true;
+      window.onafterprint = () => { afterPrint(); };
+      try { document.getElementById('printable-area').offsetHeight; } catch {}
 
-                const isSaved = await saveDriverData(driverData, firstRowForPriority, priorityInfo);
-                if (!isSaved) {
-                    displayError('Não consegui salvar no painel agora, mas a folha foi impressa.', 7000);
-                }
-                showCallPanel(driverData.name, priorityInfo.isPriority || priorityInfo.isGradeQueimada || priorityInfo.isAtrasado);
+      try { window.print(); }
+      catch (e) {
+        console.error('Falha ao abrir impressão:', e);
+        displayError('Não consegui abrir a impressão. Verifique se o navegador está bloqueando a janela de impressão.', 8000);
+      }
 
-                // limpa handler
-                window.onafterprint = null;
-            };
+      setTimeout(() => { if (!afterPrintFired) afterPrint(); }, 1500);
+    }
 
-            window.onafterprint = () => { afterPrint(); };
+    // ===== FOLHA DE IMPRESSÃO =====
+    function buildPrintableSheet(driverData, sheetDataArray, isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado, isManual) {
+      const now = new Date();
+      const printDate = now.toLocaleDateString('pt-BR');
+      const printTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-            // força o navegador a "ver" o DOM antes do print (sem setTimeout)
-            try { document.getElementById('printable-area').offsetHeight; } catch {}
+      const firstResult = sheetDataArray[0] || {};
 
-            try {
-                window.print();
-            } catch (e) {
-                console.error('Falha ao abrir impressão:', e);
-                displayError('Não consegui abrir a impressão. Verifique se o navegador está bloqueando a janela de impressão.', 8000);
-            }
+      const productRaw = (firstResult[headerMap.produto] || '').toString().toUpperCase();
+      let operationTag = '';
+      if (productRaw.includes('RITMO')) operationTag = 'RITMO';
+      else if (productRaw.includes('INSUMO')) operationTag = 'INSUMO';
+      else if (productRaw.includes('LATA')) operationTag = 'LATA';
 
-            // fallback: se o afterprint não disparar, executa depois de 1,5s
-            setTimeout(() => { if (!afterPrintFired) afterPrint(); }, 1500);
-}
+      const companyPrint = ((firstResult[headerMap.transportadora] || driverData.transportadora || '') + '').toString().trim();
+      const rawTransport = (firstResult[headerMap.dts] || '').toString().trim();
+      const transportNumberPrint = (/^\d+$/.test(rawTransport) ? rawTransport : '');
+      const unloadDtPrint = (driverData.unloadDt || '').toString().trim();
 
-        function validateField(element, errorMessage, condition = () => element.value.trim() !== '') {
-            if (!condition()) {
-                element.classList.add('invalid');
-                displayError(errorMessage, 4000);
-                element.focus();
-                return false;
-            }
-            element.classList.remove('invalid');
-            return true;
-        }
+      let priorityHtml = '';
+      if (isGradeQueimada) {
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FBBF24;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">GRADE QUEIMADA</h2></div>`;
+      } else if (isAtrasado) {
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FACC15;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ATRASADO</h2></div>`;
+      } else if (isPriority) {
+        let reasons = [];
+        if (isTop18) reasons.push("TOP 18");
+        if (isOtif) reasons.push("OTIF");
+        if (isAntecipacao) reasons.push("Antecipação");
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">PRIORIDADE</h2><p class="font-bold" style="font-size: 16px;">(${reasons.join(' / ')})</p></div>`;
+      } else {
+        priorityHtml = `<div class="border border-black text-center p-1"><h2 class="font-bold tracking-wider">STATUS</h2><p style="font-size: 14px;">(${operationTag || 'Normal'})</p></div>`;
+      }
 
-        function getPriorityInfo(sheetRow) {
-            let isPriority = false, isOtif = false, isTop18 = false, isAntecipacao = false, isGradeQueimada = false, isAtrasado = false;
-            if (!sheetRow) return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
+      const allCanais = ['Y001', 'Y002', 'Y004', 'Y006', 'Y055'];
+      const canalPrint = (firstResult[headerMap.canal] || '').toString().trim().toUpperCase();
+      const canaisHtml = allCanais.map(c => `${c === canalPrint ? '[X]' : '[&nbsp;&nbsp;]'} ${c}`).join(' ');
 
-            // --- TOP18 vem do SEGMENTO (coluna XT ADICIONAL / no CSV) ---
-            const segmento = (sheetRow[headerMap.xtAdicional] || '').toString().toUpperCase();
-            isTop18 = segmento.includes('TOP18') || segmento.includes('TOP 18');
+      const productHeader = isManual ? "Tipo de Carga" : "Produto";
+      const productTableHtml = `
+        <table class="w-full text-left text-sm border-collapse border border-black">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="border border-black p-1">${productHeader}</th>
+              <th class="border border-black p-1 text-center">Quantidade (PLT)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sheetDataArray.map(item => `
+              <tr>
+                <td class="border border-black p-1 font-bold">${item[headerMap.produto] || 'N/A'}</td>
+                <td class="border border-black p-1 text-center font-bold">${item[headerMap.plt] || 'N/A'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
 
-            const canal = (sheetRow[headerMap.canal] || '').toString().trim().toUpperCase();
-            const dateStr = (sheetRow[headerMap.data] || '').toString().trim();
-            const timeStr = (sheetRow[headerMap.agenda] || '').toString().trim();
+      document.getElementById('printable-area').innerHTML = `
+        <div class="p-2 bg-white text-black font-sans text-xs print-main-container">
+          <header class="flex justify-between items-start mb-4 border-b-2 border-black pb-2">
+            <div class="flex flex-col items-center">
+              <div class="flex items-center gap-1">
+                <span class="text-[9px] font-bold">EST.</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#E50025">
+                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                </svg>
+                <span class="text-[9px] font-bold">1873</span>
+              </div>
+              <h1 class="text-3xl font-bold font-title tracking-wider">HEINEKEN</h1>
+            </div>
+            <div class="w-1/3 pt-1">${priorityHtml}</div>
+          </header>
 
-            const parseScheduledDateTime = (dStr, tStr) => {
-                if (!dStr || !/^\d{2}\/\d{2}\/\d{4}$/.test(dStr)) return null;
-                if (!tStr) return null;
-                const t = tStr.split(':');
-                if (t.length < 2) return null;
+          ${operationTag ? `<div class="text-center mb-2 text-base font-extrabold tracking-widest">${operationTag}</div>` : ``}
 
-                const [day, month, year] = dStr.split('/').map(v => parseInt(v, 10));
-                const hours = parseInt(t[0], 10);
-                const minutes = parseInt(t[1], 10);
-                const seconds = t.length >= 3 ? parseInt(t[2], 10) : 0;
+          <div class="text-center mb-2 text-sm">
+            <p>CANAL: ${canaisHtml}</p>
+          </div>
 
-                if ([day, month, year, hours, minutes, seconds].some(n => Number.isNaN(n))) return null;
-                return new Date(year, month - 1, day, hours, minutes, seconds);
-            };
+          <div class="mb-2 border border-black p-2">
+            <table class="w-full text-left text-sm">
+              <tr>
+                <td class="w-1/2 pr-8 align-top">
+                  <p><strong>DATA/HORA:</strong> ${printDate} ${printTime}</p>
+                  <p><strong>MOTORISTA:</strong> ${driverData.name}</p>
+                  <p><strong>CPF:</strong> ${driverData.cpf}</p>
+                  <p><strong>PLACA:</strong> ${driverData.truckPlate}</p>
+                  <p><strong>CARRETA 1:</strong> ${driverData.trailerPlate}</p>
+                  <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
+                  <p><strong>CELULAR:</strong> ${driverData.phone}</p>
+                </td>
+                <td class="w-1/2 align-top">
+                  <p><strong>CLIENTE:</strong></p>
+                  <p class="font-bold">${firstResult[headerMap.cliente] || 'N/A'}</p>
+                </td>
+              </tr>
+            </table>
+          </div>
 
-            const scheduledDateTime = parseScheduledDateTime(dateStr, timeStr);
+          <div class="mb-2">${productTableHtml}</div>
 
-            const OTIF_CANAIS = new Set(['Y001','Y002','Y055']);
-            isOtif = OTIF_CANAIS.has(canal);
+          <table class="w-full border-collapse border-2 border-black mb-2">
+            <thead>
+              <tr class="bg-gray-200">
+                <th class="border border-black p-1">MOTORISTA</th>
+                <th class="border border-black p-1">Nº NOTA FISCAL</th>
+                <th class="border border-black p-1">Nº TRANSPORTE</th>
+                <th class="border border-black p-1">DT DESCARGA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="border border-black p-1">
+                  <p>[ ] Carregamento</p>
+                  <p>[ ] Descarregamento</p>
+                </td>
+                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${driverData.invoice || '---'}</td>
+                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${transportNumberPrint}</td>
+                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${unloadDtPrint || ''}</td>
+              </tr>
+              <tr>
+                <td colspan="4" class="border border-black p-1 text-xs">
+                  [X] Eu, motorista, estou ciente das regras de segurança vigentes no armazém da HEINEKEN de Jacareí
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-            if (!scheduledDateTime) {
-                isPriority = isTop18 || isOtif;
-                return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
-            }
+          <div class="border border-black p-2 mb-2">
+            <h3 class="text-center font-bold mb-1">RESPEITE AS REGRAS DE SEGURANÇA:</h3>
+            <ul class="text-[9px] space-y-0.5" style="list-style-position: inside;">
+              <li>Proibido o uso de adornos.</li>
+              <li>Obrigatório o uso de todos os EPIs: Capacetes c/ jugular, Botas de Segurança, Colete refletivo, Óculos de segurança, Luvas e Máscaras.</li>
+              <li>Obrigatório Uso das faixas de pedestres.</li>
+              <li>Obrigatória distância de 5m entre pessoas e empilhadeiras.</li>
+              <li>Respeitar procedimentos HEINEKEN, Colaboradores e Segurança Patrimonial.</li>
+            </ul>
+          </div>
 
-            const now = new Date();
+          <div class="border border-black p-2">
+            <div class="flex justify-between items-center mb-1">
+              <h2 class="text-base font-bold">★ HEINEKEN UNIDADE JACAREÍ</h2>
+            </div>
 
-            const today = new Date(now); today.setHours(0, 0, 0, 0);
-            const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
+            <div style="display:grid; grid-template-columns: 1fr 1fr; column-gap:24px; font-size:12px; line-height:1.25;">
+              <div style="display:flex; flex-direction:column; row-gap:2px;">
+                <p><strong>DATA:</strong> ${printDate}</p>
+                <p><strong>NOME:</strong> ${driverData.name}</p>
+                <p><strong>TELEFONE:</strong> ${driverData.phone}</p>
+                <p><strong>PLACA 1:</strong> ${driverData.truckPlate}</p>
+                <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
+                <p><strong>NOTA FISCAL:</strong> ${driverData.invoice || ''}</p>
+                <p><strong>SETOR:</strong></p>
+              </div>
 
-            if (today < scheduledDay) {
-                isAntecipacao = true;
-            } else if (today > scheduledDay) {
-                isGradeQueimada = true;
-            } else {
-                const plannedHour = scheduledDateTime.getHours();
-                if (plannedHour >= 20 && plannedHour <= 23) {
-                    isAntecipacao = true;
-                } else {
-                    const plannedPlus1h = scheduledDateTime.getTime() + (60 * 60 * 1000);
-                    if (now.getTime() > plannedPlus1h) {
-                        isAtrasado = true;
-                    }
-                }
-            }
+              <div style="display:flex; flex-direction:column; row-gap:2px;">
+                <p><strong>HORA CHEGADA:</strong> ${printTime}</p>
+                <p><strong>CNH:</strong> ${driverData.cnh || ''}</p>
+                <p><strong>CPF:</strong> ${driverData.cpf}</p>
+                <p><strong>EMPRESA:</strong> ${companyPrint}</p>
+                <p><strong>OPERAÇÃO:</strong> ${operationTag || ''}</p>
+                <p><strong>PLACA 2:</strong> ${driverData.trailerPlate || ''}</p>
+                <p><strong>RENAVAM:</strong> ${driverData.renavam || ''}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
-            isPriority = isOtif || isTop18 || isAntecipacao;
-            return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
-        }
+    // ===== Painel =====
+    function showCallPanel(driverName, isAlert) {
+      clearTimeout(panelTimeout);
+      callPanelMessage.innerHTML = `ATENÇÃO ${driverName},<br>Aguarde a ser chamado, iremos mandar mensagem no celular`;
 
-        // ===== FOLHA DE IMPRESSÃO COMPLETA (IGUAL AO ORIGINAL) =====
-        function buildPrintableSheet(driverData, sheetDataArray, isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado, isManual) {
-            const now = new Date();
-            const printDate = now.toLocaleDateString('pt-BR');
-            const printTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            
-            const firstResult = sheetDataArray[0];
+      if (isAlert) {
+        callPanelContent.style.backgroundColor = '#fecaca';
+        playSound(true);
+      } else {
+        callPanelContent.style.backgroundColor = '#e5e7eb';
+        playSound(false);
+      }
 
-            // ✅ NOVO: Tag de operação no topo da folha (RITMO / INSUMO / LATA)
-            const productRaw = (firstResult[headerMap.produto] || '').toString().toUpperCase();
-            let operationTag = '';
-            if (productRaw.includes('RITMO')) operationTag = 'RITMO';
-            else if (productRaw.includes('INSUMO')) operationTag = 'INSUMO';
-            else if (productRaw.includes('LATA')) operationTag = 'LATA';
+      callPanelOverlay.style.display = 'flex';
+      panelTimeout = setTimeout(resetApp, 7000);
+    }
 
-            
-            const companyPrint = ((firstResult[headerMap.transportadora] || driverData.transportadora || '') + '').toString().trim();
-// ✅ NOVO: quando não tiver DT real, imprime em branco (sem caracteres)
-            const rawTransport = (firstResult[headerMap.dts] || '').toString().trim();
-            const transportNumberPrint = (/^\d+$/.test(rawTransport) ? rawTransport : '');
+    function playSound(isPrioritySound) {
+      if (!audioUnlocked) return;
+      const synth = new Tone.Synth().toDestination();
+      if (isPrioritySound) {
+        synth.triggerAttackRelease("C5", "8n", Tone.now());
+        synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+      } else {
+        synth.triggerAttackRelease("C4", "8n", Tone.now());
+      }
+    }
 
-            
-            const unloadDtRaw = (driverData.unloadDt || '').toString().trim();
-            const unloadDtPrint = unloadDtRaw ? unloadDtRaw : '';
-let priorityHtml = '';
-            if (isGradeQueimada) {
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FBBF24;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">GRADE QUEIMADA</h2></div>`;
-            } else if (isAtrasado) {
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FACC15;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ATRASADO</h2></div>`;
-            } else if (isPriority) {
-                let reasons = [];
-                if (isTop18) reasons.push("TOP 18");
-                if (isOtif) reasons.push("OTIF");
-                if (isAntecipacao) reasons.push("Antecipação");
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">PRIORIDADE</h2><p class="font-bold" style="font-size: 16px;">(${reasons.join(' / ')})</p></div>`;
-            } else {
-                priorityHtml = `<div class="border border-black text-center p-1"><h2 class="font-bold tracking-wider">STATUS</h2><p style="font-size: 14px;">(${operationTag || 'Normal'})</p></div>`;
-            }
+    function resetApp() {
+      callPanelOverlay.style.display = 'none';
+      resultsArea.innerHTML = '';
+      renderActionSelector();
+      clearTimeout(panelTimeout);
+    }
 
-            const allCanais = ['Y001', 'Y002', 'Y004', 'Y006', 'Y055'];
-            const canalPrint = (firstResult[headerMap.canal] || '').toString().trim().toUpperCase();
-            const canaisHtml = allCanais.map(c => `${c === canalPrint ? '[X]' : '[&nbsp;&nbsp;]'} ${c}`).join(' ');
+    function displayError(message, duration = 0) {
+      document.getElementById('temp-alert')?.remove();
+      const alertDiv = document.createElement('div');
+      alertDiv.id = 'temp-alert';
+      alertDiv.className = 'bg-red-500 text-white p-3 rounded-lg mb-4 text-center';
+      alertDiv.textContent = message;
+      resultsArea.insertAdjacentElement('afterbegin', alertDiv);
+      if (duration > 0) setTimeout(() => alertDiv.remove(), duration);
+    }
 
-            const productHeader = isManual ? "Tipo de Carga" : "Produto";
-            const productTableHtml = `
-                <table class="w-full text-left text-sm border-collapse border border-black">
-                    <thead class="bg-gray-200">
-                        <tr>
-                            <th class="border border-black p-1">${productHeader}</th>
-                            <th class="border border-black p-1 text-center">Quantidade (PLT)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${sheetDataArray.map(item => `
-                            <tr>
-                                <td class="border border-black p-1 font-bold">${item[headerMap.produto] || 'N/A'}</td>
-                                <td class="border border-black p-1 text-center font-bold">${item[headerMap.plt] || 'N/A'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
+    function displayNotFound(query) {
+      resultsArea.innerHTML = `
+        <div class="bg-yellow-900/50 border border-yellow-700 text-yellow-300 p-4 rounded-xl text-center">
+          <p class="font-semibold">DT "${query}" não encontrado na planilha.</p>
+          <button id="manual-form-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
+            Criar Folha de Marcação Manual
+          </button>
+        </div>
+      `;
+      document.getElementById('manual-form-btn')?.addEventListener('click', async () => {
+        await unlockAudio();
+        manualPresetType = '';
+        hideManualExtras = false;
+        showUnloadInputs = true;
+        requireUnloadDtInForm = false;
+        pendingUnloadDt = '';
 
-            document.getElementById('printable-area').innerHTML = `
-                <div class="p-2 bg-white text-black font-sans text-xs print-main-container">
-                    <header class="flex justify-between items-start mb-4 border-b-2 border-black pb-2">
-                        <div class="flex flex-col items-center">
-                            <div class="flex items-center gap-1">
-                                <span class="text-[9px] font-bold">EST.</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#E50025">
-                                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                                </svg>
-                                <span class="text-[9px] font-bold">1873</span>
-                            </div>
-                            <h1 class="text-3xl font-bold font-title tracking-wider">HEINEKEN</h1>
-                        </div>
-                        <div class="w-1/3 pt-1">${priorityHtml}</div>
-                    </header>
+        manualDtIdOverride = normalizeDtId(query) || generateInternalId('MANUAL');
+        showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Marcação Manual', isManualOverride: true });
+      });
+    }
 
-
-                    ${operationTag ? `
-                    <div class="text-center mb-2 text-base font-extrabold tracking-widest">
-                        ${operationTag}
-                    </div>` : ``}
-
-                    <div class="text-center mb-2 text-sm">
-                        <p>CANAL: ${canaisHtml}</p>
-                    </div>
-
-                    <div class="mb-2 border border-black p-2">
-                        <table class="w-full text-left text-sm">
-                            <tr>
-                                <td class="w-1/2 pr-8 align-top">
-                                    <p><strong>DATA/HORA:</strong> ${printDate} ${printTime}</p>
-                                    <p><strong>MOTORISTA:</strong> ${driverData.name}</p>
-                                    <p><strong>CPF:</strong> ${driverData.cpf}</p>
-                                    <p><strong>PLACA:</strong> ${driverData.truckPlate}</p>
-                                    <p><strong>CARRETA 1:</strong> ${driverData.trailerPlate}</p>
-                                    <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
-                                    <p><strong>CELULAR:</strong> ${driverData.phone}</p>
-                                </td>
-                                <td class="w-1/2 align-top">
-                                    <p><strong>CLIENTE:</strong></p>
-                                    <p class="font-bold">${firstResult[headerMap.cliente] || 'N/A'}</p>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-
-                    <div class="mb-2">${productTableHtml}</div>
-
-                    <table class="w-full border-collapse border-2 border-black mb-2">
-                        <thead>
-                            <tr class="bg-gray-200">
-                                <th class="border border-black p-1">MOTORISTA</th>
-                                <th class="border border-black p-1">Nº NOTA FISCAL</th>
-                                <th class="border border-black p-1">Nº TRANSPORTE</th>
-                                <th class="border border-black p-1">DT DESCARGA</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="border border-black p-1">
-                                    <p>[ ] Carregamento</p>
-                                    <p>[ ] Descarregamento</p>
-                                </td>
-                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${driverData.invoice || '---'}</td>
-                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${transportNumberPrint}</td>
-                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${unloadDtPrint}</td>
-                            </tr>
-                            <tr>
-                                <td colspan="4" class="border border-black p-1 text-xs">
-                                    [X] Eu, motorista, estou ciente das regras de segurança vigentes no armazém da HEINEKEN de Jacareí
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <table class="w-full border-collapse border border-black mb-2 text-xs">
-                        <thead class="bg-gray-200 text-left">
-                            <tr>
-                                <th class="border border-black p-1">PROCESSO</th>
-                                <th class="border border-black p-1">RESPONSÁVEL</th>
-                                <th class="border border-black p-1">NOME</th>
-                                <th class="border border-black p-1 w-1/3">ASSINATURA</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="border border-black p-1 h-5">Confirmação</td>
-                                <td class="border border-black p-1 text-center">Motorista</td>
-                                <td class="border border-black p-1">${driverData.name}</td>
-                                <td class="border border-black p-1"></td>
-                            </tr>
-                            <tr>
-                                <td class="border border-black p-1 h-5">Recebimento</td>
-                                <td class="border border-black p-1 text-center">Conferente</td>
-                                <td class="border border-black p-1"></td>
-                                <td class="border border-black p-1"></td>
-                            </tr>
-                            <tr>
-                                <td class="border border-black p-1 h-5">Conferência</td>
-                                <td class="border border-black p-1 text-center">Conferente</td>
-                                <td class="border border-black p-1"></td>
-                                <td class="border border-black p-1"></td>
-                            </tr>
-<tr>
-                                <td class="border border-black p-1 h-5">Liberação</td>
-                                <td class="border border-black p-1 text-center">Faturista/Conferente</td>
-                                <td class="border border-black p-1"></td>
-                                <td class="border border-black p-1"></td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class="border border-black p-2 mb-2">
-                        <h3 class="text-center font-bold mb-1">RESPEITE AS REGRAS DE SEGURANÇA:</h3>
-                        <ul class="text-[9px] space-y-0.5" style="list-style-position: inside;">
-                            <li>Proibido o uso de adornos.</li>
-                            <li>Obrigatório o uso de todos os EPIs: Capacetes c/ jugular, Botas de Segurança, Colete refletivo, Óculos de segurança, Luvas e Máscaras.</li>
-                            <li>Obrigatório Uso das faixas de pedestres.</li>
-                            <li>Obrigatória distância de 5m entre pessoas e empilhadeiras.</li>
-                            <li>Respeitar procedimentos HEINEKEN, Colaboradores e Segurança Patrimonial.</li>
-                        </ul>
-                    </div>
-
-                                        <div class="border border-black p-2">
-                        <div class="flex justify-between items-center mb-1">
-                            <h2 class="text-base font-bold">★ HEINEKEN UNIDADE JACAREÍ</h2>
-                        </div>
-
-                                                <!-- ✅ Rodapé lado a lado (inline CSS para funcionar no print mesmo com HTML dinâmico) -->
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; column-gap:24px; font-size:12px; line-height:1.25;">
-                            <div style="display:flex; flex-direction:column; row-gap:2px;">
-                                <p><strong>DATA:</strong> ${printDate}</p>
-                                <p><strong>NOME:</strong> ${driverData.name}</p>
-                                <p><strong>TELEFONE:</strong> ${driverData.phone}</p>
-                                <p><strong>PLACA 1:</strong> ${driverData.truckPlate}</p>
-                                <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
-                                <p><strong>NOTA FISCAL:</strong> ${driverData.invoice || ''}</p>
-                                <p><strong>SETOR:</strong></p>
-                            </div>
-
-                            <div style="display:flex; flex-direction:column; row-gap:2px;">
-                                <p><strong>HORA CHEGADA:</strong> ${printTime}</p>
-                                <p><strong>CNH:</strong> ${driverData.cnh || ''}</p>
-                                <p><strong>CPF:</strong> ${driverData.cpf}</p>
-                                <p><strong>EMPRESA:</strong> ${companyPrint}</p>
-                                <p><strong>OPERAÇÃO:</strong> ${operationTag || ''}</p>
-                                <p><strong>PLACA 2:</strong> ${driverData.trailerPlate || ''}</p>
-                                <p><strong>RENAVAM:</strong> ${driverData.renavam || ''}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        // ===== /FOLHA COMPLETA =====
-
-        function showCallPanel(driverName, isAlert) {
-            clearTimeout(panelTimeout);
-            callPanelMessage.innerHTML = `ATENÇÃO ${driverName},<br>Aguarde a ser chamado, iremos mandar mensagem no celular`;
-
-            if (isAlert) {
-                callPanelContent.style.backgroundColor = '#fecaca';
-                playSound(true);
-            } else {
-                callPanelContent.style.backgroundColor = '#e5e7eb';
-                playSound(false);
-            }
-
-            callPanelOverlay.style.display = 'flex';
-            panelTimeout = setTimeout(resetApp, 7000);
-        }
-
-        function playSound(isPrioritySound) {
-            if (!audioUnlocked) return;
-            const synth = new Tone.Synth().toDestination();
-            if (isPrioritySound) {
-                synth.triggerAttackRelease("C5", "8n", Tone.now());
-                synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
-            } else {
-                synth.triggerAttackRelease("C4", "8n", Tone.now());
-            }
-        }
-
-        function resetApp() {
-            callPanelOverlay.style.display = 'none';
-            resultsArea.innerHTML = '';
-            renderActionSelector();
-            clearTimeout(panelTimeout);
-        }
-
-        function displayError(message, duration = 0) {
-            document.getElementById('temp-alert')?.remove();
-            const alertDiv = document.createElement('div');
-            alertDiv.id = 'temp-alert';
-            alertDiv.className = 'bg-red-500 text-white p-3 rounded-lg mb-4 text-center';
-            alertDiv.textContent = message;
-            resultsArea.insertAdjacentElement('afterbegin', alertDiv);
-            if (duration > 0) {
-                setTimeout(() => alertDiv.remove(), duration);
-            }
-        }
-
-        function displayNotFound(query) {
-            resultsArea.innerHTML = `
-                <div class="bg-yellow-900/50 border border-yellow-700 text-yellow-300 p-4 rounded-xl text-center">
-                    <p class="font-semibold">DT "${query}" não encontrado na planilha.</p>
-                    <button id="manual-form-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
-                        Criar Folha de Marcação Manual
-                    </button>
-                </div>
-            `;
-            document.getElementById('manual-form-btn').addEventListener('click', async () => {
-                unlockAudio();
-                // Manual com DT digitada como ID
-                manualPresetType = '';
-                hideManualExtras = false;
-                showUnloadInputs = true;
-                requireUnloadDtInForm = false;
-                pendingUnloadDt = '';
-
-                manualDtIdOverride = normalizeDtId(query) || generateInternalId('MANUAL');
-                showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Marcação Manual', isManualOverride: true });
-            });
-        }
-
-        // --- Event Listeners ---
-        closePanelBtn.addEventListener('click', resetApp);
-        callPanelOverlay.addEventListener('click', (e) => { if (e.target === callPanelOverlay) resetApp(); });
-
-        // --- Ponto de Entrada da Aplicação ---
-        window.addEventListener('load', initializeAppLogic);
-
-    </script>
+    // --- Event listeners ---
+    closePanelBtn.addEventListener('click', resetApp);
+    callPanelOverlay.addEventListener('click', (e) => { if (e.target === callPanelOverlay) resetApp(); });
+    window.addEventListener('load', initializeAppLogic);
+  </script>
 </body>
 </html>
