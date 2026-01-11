@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HEILOG - Assistente de Logística</title>
+  <title>HEILOG - Assistente de Logística (Simplificado)</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -43,10 +43,11 @@
     #call-panel-overlay { position: fixed; inset: 0; background-color: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     #call-panel-content { padding: 3rem; border-radius: 1rem; text-align: center; color: #1a202c; animation: fadeIn 0.3s ease-out; }
-        /* ✅ NÃO MOSTRAR A FOLHA NA TELA (só no print) */
-        #printable-area { position: fixed; left: -10000px; top: 0; width: 100%; }
 
-        @media print {
+    /* ✅ NÃO MOSTRAR A FOLHA NA TELA (só no print) */
+    #printable-area { position: fixed; left: -10000px; top: 0; width: 100%; }
+
+    @media print {
       body * { visibility: hidden; }
       #printable-area, #printable-area * { visibility: visible; }
       #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
@@ -54,7 +55,7 @@
       #app-container, #call-panel-overlay { display: none; }
     }
 
-    /* Menu tiles (modo inicial) */
+    /* Menu tiles (modo inicial) - mantido mas não usado no modo simplificado */
     .mode-tile { min-height: 74px; }
     .mode-tile .emoji { font-size: 26px; line-height: 1; }
     .mode-tile .label { font-size: 0.98rem; }
@@ -66,10 +67,79 @@
     }
     .hc .mode-btn:hover { background: rgba(255,255,255,0.18); }
     .hc .mode-btn:focus { outline: 2px solid rgba(0, 144, 74, 0.65); outline-offset: 2px; }
+
+    /* ===== UI SIMPLIFICADA (CAMINHONEIRO) ===== */
+    .simple-ui .card { border-radius: 22px; }
+    .simple-ui .big-title { font-size: 1.35rem; font-weight: 800; }
+    .simple-ui .help { color: rgba(243,244,246,0.85); font-size: 0.95rem; line-height: 1.25rem; }
+
+    .simple-ui .btn-xl {
+      width: 100%;
+      padding: 18px 16px;
+      border-radius: 18px;
+      font-weight: 900;
+      font-size: 1.15rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .simple-ui .btn-xl .left { display: flex; align-items: center; gap: 12px; }
+    .simple-ui .btn-xl .emoji { font-size: 28px; }
+    .simple-ui .btn-xl .desc { font-size: 0.85rem; font-weight: 600; opacity: .85; margin-top: 2px; }
+
+    .simple-ui .input-xl, .simple-ui .select-xl {
+      width: 100%;
+      padding: 16px 14px;
+      border-radius: 16px;
+      font-size: 1.05rem;
+    }
+
+    .simple-ui .section {
+      background: rgba(0,0,0,0.20);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .simple-ui details summary {
+      cursor: pointer;
+      user-select: none;
+      font-weight: 800;
+    }
+    .simple-ui details summary::marker { font-size: 1.1em; }
+
+    .simple-ui .sticky-actions {
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(to top, rgba(23,64,23,1), rgba(23,64,23,0.75));
+      padding-top: 12px;
+    }
+
+    .simple-ui .badge {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 900;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .simple-ui .step {
+      font-size: 0.9rem;
+      font-weight: 900;
+      opacity: .9;
+      margin-bottom: 8px;
+    }
+
+    .simple-ui .divider { height:1px; background: rgba(255,255,255,0.10); margin: 12px 0; }
   </style>
 </head>
 
-<body class="antialiased">
+<body class="antialiased simple-ui">
   <!-- Painel de Chamada -->
   <div id="call-panel-overlay">
     <div id="call-panel-content" class="w-full max-w-2xl">
@@ -141,102 +211,36 @@
     let manualDtIdOverride = '';
     let hideManualExtras = false;
     let showUnloadInputs = true;
+    let loadAlsoUnload = false; // Carregar: também vai descarregar?
+
+    // Sessão (CPF único por acesso)
+    let sessionCpf = '';
+    let sessionDriver = null;
+    let postIntegrationNavigate = null;
+
+    // Transportadora preset (para fluxos específicos)
+    let presetTransportadora = '';
+    let lockTransportadora = false;
+
+    // Baldeio: DTs opcionais
+    let baldeioDtCarga = '';
+    let baldeioDtDescarga = '';
 
     // --- Integração (Teste a cada 3 meses) ---
     const INTEGRATION_MIN_SCORE = 8;
     const INTEGRATION_VALID_DAYS = 90;  // ~3 meses
     const INTEGRATION_WARN_DAYS = 7;    // aviso 1 semana antes
     const integrationQuestions = [
-      {
-        q: "Quais EPIs são obrigatórios para circular na área operacional?",
-        options: [
-          "Nenhum",
-          "Capacete, óculos, colete refletivo e calçado de segurança",
-          "Somente luvas"
-        ],
-        correctIndex: 1
-      },
-      {
-        q: "Sobre adornos (anel, relógio, corrente) na área operacional:",
-        options: [
-          "É permitido se estiver coberto pela roupa",
-          "É proibido",
-          "É permitido somente relógio"
-        ],
-        correctIndex: 1
-      },
-      {
-        q: "Qual é a regra de distância mínima entre pessoas e empilhadeiras?",
-        options: [
-          "1 metro",
-          "3 metros",
-          "5 metros"
-        ],
-        correctIndex: 2
-      },
-      {
-        q: "Uso de celular na área operacional:",
-        options: [
-          "Permitido somente para ligações rápidas",
-          "Proibido durante circulação e operação",
-          "Permitido se estiver parado"
-        ],
-        correctIndex: 1
-      },
-      {
-        q: "Onde o motorista deve circular dentro do armazém?",
-        options: [
-          "Por qualquer lugar, com atenção",
-          "Somente nas faixas de pedestres e áreas sinalizadas",
-          "Apenas perto das docas"
-        ],
-        correctIndex: 1
-      },
-      {
-        q: "Em caso de dúvida ou risco, o motorista deve:",
-        options: [
-          "Continuar e depois perguntar",
-          "Parar e solicitar orientação ao responsável/segurança",
-          "Acelerar para sair da área"
-        ],
-        correctIndex: 1
-      },
-      {
-        q: "Antes de entrar na área operacional, o motorista deve:",
-        options: [
-          "Colocar os EPIs e seguir as sinalizações",
-          "Somente apresentar a CNH",
-          "Somente informar a placa do veículo"
-        ],
-        correctIndex: 0
-      },
-      {
-        q: "É permitido fumar dentro do armazém?",
-        options: [
-          "Sim, em qualquer área",
-          "Não, somente em local permitido/sinalizado (quando existir)",
-          "Sim, se estiver longe das docas"
-        ],
-        correctIndex: 1
-      },
-      {
-        q: "Se houver empilhadeira em movimentação, o pedestre deve:",
-        options: [
-          "Passar na frente rapidamente",
-          "Manter distância e aguardar em local seguro",
-          "Acenar para o operador e seguir"
-        ],
-        correctIndex: 1
-      },
-      {
-        q: "Se ocorrer um acidente ou quase-acidente, o correto é:",
-        options: [
-          "Não comunicar para evitar atrasos",
-          "Comunicar imediatamente ao responsável/segurança",
-          "Somente comunicar se houver dano"
-        ],
-        correctIndex: 1
-      }
+      { q: "Quais EPIs são obrigatórios para circular na área operacional?", options: ["Nenhum","Capacete, óculos, colete refletivo e calçado de segurança","Somente luvas"], correctIndex: 1 },
+      { q: "Sobre adornos (anel, relógio, corrente) na área operacional:", options: ["É permitido se estiver coberto pela roupa","É proibido","É permitido somente relógio"], correctIndex: 1 },
+      { q: "Qual é a regra de distância mínima entre pessoas e empilhadeiras?", options: ["1 metro","3 metros","5 metros"], correctIndex: 2 },
+      { q: "Uso de celular na área operacional:", options: ["Permitido somente para ligações rápidas","Proibido durante circulação e operação","Permitido se estiver parado"], correctIndex: 1 },
+      { q: "Onde o motorista deve circular dentro do armazém?", options: ["Por qualquer lugar, com atenção","Somente nas faixas de pedestres e áreas sinalizadas","Apenas perto das docas"], correctIndex: 1 },
+      { q: "Em caso de dúvida ou risco, o motorista deve:", options: ["Continuar e depois perguntar","Parar e solicitar orientação ao responsável/segurança","Acelerar para sair da área"], correctIndex: 1 },
+      { q: "Antes de entrar na área operacional, o motorista deve:", options: ["Colocar os EPIs e seguir as sinalizações","Somente apresentar a CNH","Somente informar a placa do veículo"], correctIndex: 0 },
+      { q: "É permitido fumar dentro do armazém?", options: ["Sim, em qualquer área","Não, somente em local permitido/sinalizado (quando existir)","Sim, se estiver longe das docas"], correctIndex: 1 },
+      { q: "Se houver empilhadeira em movimentação, o pedestre deve:", options: ["Passar na frente rapidamente","Manter distância e aguardar em local seguro","Acenar para o operador e seguir"], correctIndex: 1 },
+      { q: "Se ocorrer um acidente ou quase-acidente, o correto é:", options: ["Não comunicar para evitar atrasos","Comunicar imediatamente ao responsável/segurança","Somente comunicar se houver dano"], correctIndex: 1 }
     ];
 
     // --- Helpers ---
@@ -258,7 +262,6 @@
 
     function toDateMaybe(v) {
       if (!v) return null;
-      // Firestore Timestamp
       if (typeof v === 'object' && typeof v.toDate === 'function') return v.toDate();
       if (v instanceof Date) return v;
       const d = new Date(v);
@@ -325,7 +328,7 @@
 
     async function initializeAppLogic() {
       fileStatus.textContent = 'Inicializando...';
-      renderActionSelector();
+      renderCpfGate();
 
       try {
         const app = initializeApp(firebaseConfig);
@@ -426,22 +429,55 @@
 
       headers = parseLine(lines[0]).map(h => h.toUpperCase().replace(/"/g, ''));
 
+      // Helpers de mapeamento de colunas (robusto)
+      const findAll = (...keys) => headers.find(h => keys.every(k => h.includes(k)));
+      const findAny = (...keys) => headers.find(h => keys.some(k => h.includes(k)));
+
       headerMap = {
-        dts: headers[0],
-        canal: headers[1],
-        cliente: headers[2],
-        produto: headers[3],
-        descricao: headers[4],
-        plt: headers[5],
-        deposito: headers[6],
-        transportadora: headers[7],
-        data: headers[8],
-        descarga: headers[9],
-        xtAdicional: headers[10],
-        agenda: headers[11],
+        dts: headers.find(h => h === 'DTS' || h.includes('DTS') || (h.includes('DT') && !h.includes('DATA') && !h.includes('DESC') && !h.includes('AGEN'))) || headers[0],
+
+        canal: findAny('CANAL') || headers[1],
+        cliente: findAny('CLIENTE') || headers[2],
+
+        produto: findAny('PRODUTO', 'TIPO') || headers[3],
+        descricao: findAny('DESCR') || headers[4],
+        plt: findAny('PLT', 'QUANT', 'QTD') || headers[5],
+
+        deposito: findAny('DEPOS', 'DEST') || headers[6],
+        transportadora: findAny('TRANSPORT') || headers[7],
+
+        // Data do agendamento (prioriza colunas com AGEN/AGEND)
+        data:
+          findAll('DATA', 'AGEN') ||
+          findAll('DATA', 'AGEND') ||
+          findAll('DATA', 'PROGR') ||
+          findAll('DATA', 'SCHED') ||
+          findAny('DATA AGENDA', 'DATA AGENDAMENTO') ||
+          headers.find(h => h === 'DATA') ||
+          findAny('DATA') ||
+          headers[8],
+
+        // Hora/Agenda (prioriza colunas com HORA/HORÁRIO + AGEN/AGEND)
+        agenda:
+          findAll('HORA', 'AGEN') ||
+          findAll('HOR', 'AGEN') ||
+          findAll('HORARIO', 'AGEN') ||
+          findAll('HORÁRIO', 'AGEN') ||
+          headers.find(h => h.includes('AGENDA') && !h.includes('DATA')) ||
+          headers.find(h => (h.includes('HORA') || h.includes('HOR')) && !h.includes('DATA')) ||
+          headers[11],
+
+        // DT/ID de descarga
+        descarga: findAny('DESCARG') || headers[9],
+
+        // Segmentação / XT
+        xtAdicional: findAny('XT', 'SEGMENT', 'SEGMENTO') || headers[10],
+
         cpf: headers.find(h => h.includes('CPF')),
         motorista: headers.find(h => h.includes('MOTORISTA')),
       };
+
+      console.log('[HEILOG] headerMap selecionado:', headerMap);
 
       database = lines.slice(1).map(line => {
         if (line.trim() === '') return null;
@@ -454,58 +490,161 @@
 
     // --- PRIORIDADE ---
     function getPriorityInfo(sheetRow) {
-      let isPriority = false, isOtif = false, isTop18 = false, isAntecipacao = false, isGradeQueimada = false, isAtrasado = false;
-      if (!sheetRow) return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
+      // Regras (baseadas na planilha):
+      // - Sem dados de agenda/canal/segmento => NORMAL
+      // - Y001/Y002/Y055 (OTIF) e dentro da janela (antecipado / no horário / até 1h) => OTIF (ou OTIF/TOP 18)
+      // - Y004/Y006 e dentro da janela => ADERENTE
+      // - > 1h depois => PERDA DE AGENDA
+      // - 1+ dias depois => GRADE QUEIMADA
+      // - agenda 20/21/22/23 => ANTECIPAÇÃO
 
-      const segmento = (sheetRow[headerMap.xtAdicional] || '').toString().toUpperCase();
-      isTop18 = segmento.includes('TOP18') || segmento.includes('TOP 18');
+      let isPriority = false;
+      let isOtif = false;
+      let isTop18 = false;
+      let isAderente = false;
+      let isAntecipacao = false;
+      let isGradeQueimada = false;
+      let isAtrasado = false; // aqui representa "PERDA DE AGENDA"
+
+      // Se não houver info (DT fora da planilha), fica NORMAL.
+      if (!sheetRow) return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
 
       const canal = (sheetRow[headerMap.canal] || '').toString().trim().toUpperCase();
       const dateStr = (sheetRow[headerMap.data] || '').toString().trim();
       const timeStr = (sheetRow[headerMap.agenda] || '').toString().trim();
+      const segmento = (sheetRow[headerMap.xtAdicional] || '').toString().toUpperCase();
+      isTop18 = segmento.includes('TOP18') || segmento.includes('TOP 18');
 
-      const parseScheduledDateTime = (dStr, tStr) => {
-        if (!dStr || !/^\d{2}\/\d{2}\/\d{4}$/.test(dStr)) return null;
-        if (!tStr) return null;
-        const t = tStr.split(':');
-        if (t.length < 2) return null;
+      // Se faltar data/hora/canal, mantém NORMAL
+      // aceita formatos: dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd, yyyy/mm/dd e também "dd/mm/yyyy hh:mm"
+      const extractDateTime = (dStr, tStr) => {
+        let d = (dStr || '').toString().trim();
+        let t = (tStr || '').toString().trim();
 
-        const [day, month, year] = dStr.split('/').map(v => parseInt(v, 10));
-        const hours = parseInt(t[0], 10);
-        const minutes = parseInt(t[1], 10);
-        const seconds = t.length >= 3 ? parseInt(t[2], 10) : 0;
+        // se a data vier junto com hora
+        if (d.includes(' ') && !t) {
+          const parts = d.split(' ');
+          d = parts[0] || d;
+          t = parts[1] || '';
+        }
 
-        if ([day, month, year, hours, minutes, seconds].some(n => Number.isNaN(n))) return null;
-        return new Date(year, month - 1, day, hours, minutes, seconds);
+        // limpa segundos extras e espaços
+        t = t.replace(/\s+/g, '');
+        if (t.includes('h')) t = t.replace('h', ':');
+
+        const parseDate = (x) => {
+          if (!x) return null;
+          // dd/mm/yyyy
+          if (/^\d{2}\/\d{2}\/\d{4}$/.test(x)) {
+            const [dd, mm, yyyy] = x.split('/').map(v => parseInt(v, 10));
+            return new Date(yyyy, mm - 1, dd);
+          }
+          // dd-mm-yyyy
+          if (/^\d{2}-\d{2}-\d{4}$/.test(x)) {
+            const [dd, mm, yyyy] = x.split('-').map(v => parseInt(v, 10));
+            return new Date(yyyy, mm - 1, dd);
+          }
+          // yyyy-mm-dd
+          if (/^\d{4}-\d{2}-\d{2}$/.test(x)) {
+            const [yyyy, mm, dd] = x.split('-').map(v => parseInt(v, 10));
+            return new Date(yyyy, mm - 1, dd);
+          }
+          // yyyy/mm/dd
+          if (/^\d{4}\/\d{2}\/\d{2}$/.test(x)) {
+            const [yyyy, mm, dd] = x.split('/').map(v => parseInt(v, 10));
+            return new Date(yyyy, mm - 1, dd);
+          }
+          // tenta Date nativo
+          const dn = new Date(x);
+          return Number.isNaN(dn.getTime()) ? null : dn;
+        };
+
+        const baseDate = parseDate(d);
+        if (!baseDate) return null;
+
+        let hh = 0, mi = 0, ss = 0;
+        if (t && t.includes(':')) {
+          const parts = t.split(':');
+          hh = parseInt(parts[0], 10);
+          mi = parseInt(parts[1] || '0', 10);
+          ss = parseInt(parts[2] || '0', 10);
+          if ([hh, mi, ss].some(n => Number.isNaN(n))) { hh = 0; mi = 0; ss = 0; }
+        } else if (t && /^\d{1,2}$/.test(t)) {
+          hh = parseInt(t, 10);
+          if (Number.isNaN(hh)) hh = 0;
+        }
+
+        return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hh, mi, ss);
       };
 
-      const scheduledDateTime = parseScheduledDateTime(dateStr, timeStr);
+      const scheduledDateTime = extractDateTime(dateStr, timeStr);
+      if (!scheduledDateTime) {
+        return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      }
+      if (!scheduledDateTime) {
+        return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      }
 
       const OTIF_CANAIS = new Set(['Y001','Y002','Y055']);
-      isOtif = OTIF_CANAIS.has(canal);
+      const ADERENTE_CANAIS = new Set(['Y004','Y006']);
 
-      if (!scheduledDateTime) {
-        isPriority = isTop18 || isOtif;
-        return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
-      }
+      isOtif = OTIF_CANAIS.has(canal);
+      isAderente = ADERENTE_CANAIS.has(canal);
 
       const now = new Date();
       const today = new Date(now); today.setHours(0, 0, 0, 0);
       const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
 
-      if (today < scheduledDay) isAntecipacao = true;
-      else if (today > scheduledDay) isGradeQueimada = true;
-      else {
-        const plannedHour = scheduledDateTime.getHours();
-        if (plannedHour >= 20 && plannedHour <= 23) isAntecipacao = true;
-        else {
-          const plannedPlus1h = scheduledDateTime.getTime() + (60 * 60 * 1000);
-          if (now.getTime() > plannedPlus1h) isAtrasado = true;
-        }
+      // 1+ dias depois => Grade Queimada
+      if (today.getTime() > scheduledDay.getTime()) {
+        isGradeQueimada = true;
+        return { label: 'GRADE QUEIMADA', level: 3, isPriority: true, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
       }
 
-      isPriority = isOtif || isTop18 || isAntecipacao;
-      return { isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado };
+      // Dia ANTES do agendado (chegou antecipado) => entra na janela (classifica OTIF/ADERENTE)
+      if (today.getTime() < scheduledDay.getTime()) {
+        if (isOtif) {
+          isPriority = true;
+          if (isTop18) return { label: 'OTIF/TOP 18', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+          return { label: 'OTIF', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+        }
+        if (isAderente) {
+          isPriority = true;
+          return { label: 'ADERENTE', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+        }
+        return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      }
+
+      // Horários 20-23 => Antecipação
+      const plannedHour = scheduledDateTime.getHours();
+      if (plannedHour >= 20 && plannedHour <= 23) {
+        isAntecipacao = true;
+        isPriority = true;
+        return { label: 'ANTECIPAÇÃO', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      }
+
+      // Mesma data: calcula diferença
+      const diffMs = now.getTime() - scheduledDateTime.getTime();
+
+      // Depois de 1h => Perda de Agenda
+      if (diffMs > (60 * 60 * 1000)) {
+        isAtrasado = true;
+        return { label: 'PERDA DE AGENDA', level: 2, isPriority: true, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      }
+
+      // Dentro da janela (antecipado / no horário / até 1h)
+      if (isOtif) {
+        isPriority = true;
+        if (isTop18) return { label: 'OTIF/TOP 18', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+        return { label: 'OTIF', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      }
+
+      if (isAderente) {
+        isPriority = true;
+        return { label: 'ADERENTE', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      }
+
+      return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
     }
 
     // --- Firestore save (motorista + patio) ---
@@ -563,19 +702,15 @@
         const pInfo = priorityInfo || getPriorityInfo(originalSheetData || {});
 
         const reasons = [];
-        if (pInfo.isTop18) reasons.push("TOP 18");
-        if (pInfo.isOtif) reasons.push("OTIF");
-        if (pInfo.isAntecipacao) reasons.push("Antecipação");
+        if (pInfo.label === 'OTIF/TOP 18') reasons.push('OTIF', 'TOP 18');
+        else if (pInfo.label === 'OTIF') reasons.push('OTIF');
+        else if (pInfo.label === 'ADERENTE') reasons.push('ADERENTE');
+        else if (pInfo.label === 'ANTECIPAÇÃO') reasons.push('ANTECIPAÇÃO');
+        else if (pInfo.label === 'PERDA DE AGENDA') reasons.push('PERDA DE AGENDA');
+        else if (pInfo.label === 'GRADE QUEIMADA') reasons.push('GRADE QUEIMADA');
 
-        const label =
-          pInfo.isGradeQueimada ? "GRADE QUEIMADA" :
-          pInfo.isAtrasado ? "ATRASADO" :
-          pInfo.isPriority ? "PRIORIDADE" : "NORMAL";
-
-        const level =
-          pInfo.isGradeQueimada ? 3 :
-          pInfo.isAtrasado ? 2 :
-          pInfo.isPriority ? 1 : 0;
+        const label = pInfo.label || 'NORMAL';
+        const level = (typeof pInfo.level === 'number') ? pInfo.level : (label === 'NORMAL' ? 0 : 1);
 
         const canalValue = (originalSheetData?.[headerMap.canal] || '').toString().trim().toUpperCase();
         const segmentoValue = (originalSheetData?.[headerMap.xtAdicional] || '').toString();
@@ -603,6 +738,7 @@
             isPriority: !!pInfo.isPriority,
             isOtif: !!pInfo.isOtif,
             isTop18: !!pInfo.isTop18,
+            isAderente: !!pInfo.isAderente,
             isAntecipacao: !!pInfo.isAntecipacao,
             isGradeQueimada: !!pInfo.isGradeQueimada,
             isAtrasado: !!pInfo.isAtrasado,
@@ -640,9 +776,213 @@
       }
     }
 
+    
     // =======================
-    // UI - MENU
+    // CPF Gate (entrada única)
     // =======================
+    async function loadDriverByCpf(cpfDigits) {
+      const cpf = normalizeDigits(cpfDigits);
+      if (cpf.length !== 11 || !db) return null;
+
+      try {
+        const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', cpf);
+        const snap = await getDoc(ref);
+        if (snap.exists()) return snap.data();
+      } catch (e) {
+        console.warn("Falha ao buscar motorista no Firestore:", e);
+      }
+
+      try {
+        const cached = localStorage.getItem(`heilo-driver-${cpf}`);
+        if (cached) return JSON.parse(cached);
+      } catch {}
+      return null;
+    }
+
+    async function saveDriverOnly(driverData) {
+      if (!isAuthReady || !db || !appId) return false;
+      const unmaskedCpf = normalizeDigits(driverData.cpf);
+      if (unmaskedCpf.length !== 11) return false;
+
+      try {
+        const driverDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', unmaskedCpf);
+        const payload = {
+          name: driverData.name || '',
+          cpf: unmaskedCpf,
+          phone: normalizeDigits(driverData.phone || ''),
+          cnh: driverData.cnh || '',
+          cnhExpiry: driverData.cnhExpiry || '',
+          truckPlate: (driverData.truckPlate || '').toString().toUpperCase(),
+          trailerPlate: (driverData.trailerPlate || '').toString().toUpperCase(),
+          axles: driverData.axles || '',
+          renavam: driverData.renavam || '',
+          transportadora: driverData.transportadora || '',
+          lastUpdate: new Date().toISOString()
+        };
+        await setDoc(driverDocRef, payload, { merge: true });
+        try { localStorage.setItem(`heilo-driver-${unmaskedCpf}`, JSON.stringify(payload)); } catch {}
+        return true;
+      } catch (e) {
+        console.error("Erro ao salvar cadastro:", e);
+        return false;
+      }
+    }
+
+    async function startIntegrationFlow(cpfMasked, { autoStartTest = true } = {}) {
+      currentMode = 'INTEGRACAO';
+      renderModeForm('INTEGRACAO');
+
+      setTimeout(() => {
+        const intCpf = document.getElementById('int-cpf');
+        if (intCpf) intCpf.value = cpfMasked;
+        document.getElementById('int-check')?.click();
+
+        if (autoStartTest) {
+          setTimeout(() => {
+            const st = document.getElementById('int-start');
+            if (st) st.click();
+          }, 250);
+        }
+      }, 0);
+    }
+
+    function renderCpfGate() {
+      resultsArea.innerHTML = '';
+      actionArea.innerHTML = `
+        <div class="section space-y-3">
+          <div class="big-title text-white">Digite seu CPF</div>
+          <div class="help">Para continuar, precisamos validar cadastro e integração.</div>
+
+          <input type="text" id="gate-cpf" class="form-input input-xl rounded-lg" placeholder="CPF">
+          <button id="gate-go" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">Continuar ➡️</button>
+        </div>
+      `;
+
+      const cpfEl = document.getElementById('gate-cpf');
+      if (cpfEl) IMask(cpfEl, { mask: '000.000.000-00' });
+
+      try {
+        const last = localStorage.getItem('heilog-last-cpf') || '';
+        if (cpfEl && last) cpfEl.value = last;
+      } catch {}
+
+      const go = async () => {
+        await unlockAudio();
+        const cpfMasked = cpfEl?.value || '';
+        const cpf = normalizeDigits(cpfMasked);
+        if (cpf.length !== 11) return displayError('CPF inválido.', 4000);
+        if (!isAuthReady || !db) return displayError('Aguarde carregar o sistema...', 3000);
+
+        sessionCpf = cpf;
+        try { localStorage.setItem('heilog-last-cpf', cpfMasked); } catch {}
+
+        fileStatus.textContent = 'Verificando cadastro e integração...';
+
+        sessionDriver = await loadDriverByCpf(cpf);
+
+        const st = await getIntegrationStateForCpf(cpf);
+
+        if (sessionDriver && st.ok) {
+          fileStatus.textContent = 'Tudo certo. Bem-vindo!';
+          renderActionSelector();
+          return;
+        }
+
+        if (!sessionDriver) {
+          renderRegistrationForm(cpfMasked);
+          return;
+        }
+
+        fileStatus.textContent = 'Integração necessária.';
+        postIntegrationNavigate = () => { renderActionSelector(); };
+        await startIntegrationFlow(cpfMasked, { autoStartTest: true });
+      };
+
+      document.getElementById('gate-go')?.addEventListener('click', go);
+      cpfEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+      cpfEl?.focus();
+    }
+
+    function renderRegistrationForm(cpfMasked) {
+      resultsArea.innerHTML = '';
+      actionArea.innerHTML = `
+        <div class="section space-y-3">
+          <div class="big-title text-white">Cadastro do Motorista</div>
+          <div class="help">Preencha os dados e depois faremos a integração.</div>
+
+          <input type="text" id="reg-cpf" class="form-input input-xl rounded-lg" placeholder="CPF" value="${cpfMasked || ''}" readonly>
+          <input type="text" id="reg-name" class="form-input input-xl rounded-lg" placeholder="Nome completo">
+          <input type="text" id="reg-phone" class="form-input input-xl rounded-lg" placeholder="Telefone com DDD">
+          <input type="text" id="reg-transp" class="form-input input-xl rounded-lg" placeholder="Transportadora">
+          <input type="text" id="reg-cnh" class="form-input input-xl rounded-lg" placeholder="CNH">
+          <input type="text" id="reg-plate" class="form-input input-xl rounded-lg" placeholder="Placa Cavalo">
+          <input type="text" id="reg-trailer" class="form-input input-xl rounded-lg" placeholder="Placa Carreta (opcional)">
+          <select id="reg-axles" class="form-select select-xl rounded-lg">
+            <option value="">Eixos (opcional)</option>
+            <option value="2">2 Eixos</option><option value="3">3 Eixos</option><option value="4">4 Eixos</option>
+            <option value="5">5 Eixos</option><option value="6">6 Eixos</option><option value="7">7 Eixos</option><option value="9">9 Eixos</option>
+          </select>
+
+          <button id="reg-save" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">Salvar e Fazer Integração ➡️</button>
+          <button id="reg-back" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">⬅ Voltar</button>
+        </div>
+      `;
+
+      const phoneEl = document.getElementById('reg-phone');
+      if (phoneEl) IMask(phoneEl, { mask: '(00) 00000-0000' });
+
+      const plateEl = document.getElementById('reg-plate');
+      const trailerEl = document.getElementById('reg-trailer');
+      plateEl?.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
+      trailerEl?.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
+
+      document.getElementById('reg-back')?.addEventListener('click', () => {
+        renderCpfGate();
+      });
+
+      document.getElementById('reg-save')?.addEventListener('click', async () => {
+        await unlockAudio();
+        const cpf = normalizeDigits(cpfMasked);
+        const name = (document.getElementById('reg-name')?.value || '').trim();
+        const phone = (document.getElementById('reg-phone')?.value || '').trim();
+        const transp = (document.getElementById('reg-transp')?.value || '').trim();
+        const cnh = (document.getElementById('reg-cnh')?.value || '').trim();
+        const plate = (document.getElementById('reg-plate')?.value || '').trim().toUpperCase();
+
+        if (!name) return displayError('Nome é obrigatório.', 4000);
+        if (!phone) return displayError('Telefone é obrigatório.', 4000);
+        if (!cnh) return displayError('CNH é obrigatória.', 4000);
+        if (!plate) return displayError('Placa do cavalo é obrigatória.', 4000);
+
+        const payload = {
+          cpf,
+          name,
+          phone,
+          transportadora: transp,
+          cnh,
+          truckPlate: plate,
+          trailerPlate: (document.getElementById('reg-trailer')?.value || '').trim().toUpperCase(),
+          axles: (document.getElementById('reg-axles')?.value || ''),
+        };
+
+        fileStatus.textContent = 'Salvando cadastro...';
+        const ok = await saveDriverOnly(payload);
+        if (!ok) return displayError('Não consegui salvar o cadastro. Verifique a conexão.', 5000);
+
+        sessionCpf = cpf;
+        sessionDriver = payload;
+
+        fileStatus.textContent = 'Cadastro salvo. Iniciando integração...';
+        postIntegrationNavigate = () => { renderActionSelector(); };
+
+        await startIntegrationFlow(cpfMasked, { autoStartTest: true });
+      });
+    }
+
+// =======================
+    // UI - MENU (SIMPLIFICADO)
+    // =======================
+    
     function renderActionSelector() {
       currentMode = null;
       pendingUnloadDt = '';
@@ -651,55 +991,84 @@
       manualDtIdOverride = '';
       hideManualExtras = false;
       showUnloadInputs = true;
+      loadAlsoUnload = false;
+      presetTransportadora = '';
+      lockTransportadora = false;
+      baldeioDtCarga = '';
+      baldeioDtDescarga = '';
 
       actionArea.innerHTML = `
         <div id="mode-root" class="space-y-3">
-          <div class="flex items-center justify-between gap-3">
-            <p class="font-semibold text-white">O que você quer fazer?</p>
-
-            <button id="contrast-toggle"
-              class="btn-ghost px-3 py-2 rounded-lg text-xs"
-              type="button"
-              title="Melhora a visibilidade das opções">
-              Alto contraste
+          <div class="section">
+            <div class="big-title text-white">Escolha o que vai fazer</div>
+            <div class="help mt-1">Toque numa opção abaixo.</div>
+            <div class="divider"></div>
+            <button id="contrast-toggle" class="btn-ghost w-full py-3 rounded-xl text-sm font-bold" type="button">
+              👁️ Alto contraste
             </button>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button data-mode="LOAD" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center" title="Carregamento usando DT (consulta na planilha)">
-              <div class="emoji">🚚</div>
-              <div class="label font-bold">Carregar</div>
+          <div class="space-y-2">
+            <button data-mode="LOAD" class="mode-btn btn-ghost btn-xl" title="Carregamento usando DT (consulta na planilha)">
+              <div class="left">
+                <div class="emoji">🚚</div>
+                <div>
+                  <div>Carregar</div>
+                  <div class="desc">Usa DT da planilha</div>
+                </div>
+              </div>
+              <span class="mode-arrow">➡️</span>
             </button>
 
-            <button data-mode="UNLOAD" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center" title="Descarregamento com DT de descarga (sem planilha)">
-              <div class="emoji">📥</div>
-              <div class="label font-bold">Descarregar</div>
+            <button data-mode="UNLOAD" class="mode-btn btn-ghost btn-xl" title="Descarregamento com DT de descarga (sem planilha)">
+              <div class="left">
+                <div class="emoji">📥</div>
+                <div>
+                  <div>Descarregar</div>
+                  <div class="desc">Sem planilha</div>
+                </div>
+              </div>
+              <span class="mode-arrow">➡️</span>
+            </button>
+            <button data-mode="RITMO" class="mode-btn btn-ghost btn-xl" title="Baldeio: DT opcional (se vazio, gera ID interno)">
+              <div class="left">
+                <div class="emoji">⚡</div>
+                <div>
+                  <div>Baldeio</div>
+                  <div class="desc">DT opcional</div>
+                </div>
+              </div>
+              <span class="mode-arrow">➡️</span>
             </button>
 
-            <button data-mode="BOTH" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center sm:col-span-2" title="Carga + Descarga (DT de carga + DT de descarga)">
-              <div class="emoji">🔁</div>
-              <div class="label font-bold">Carga + Descarga</div>
+            
+            <button data-mode="HIDROMAN" class="mode-btn btn-ghost btn-xl" title="HIDROMAN: vai direto para o cadastro do motorista (sem planilha)">
+              <div class="left">
+                <div class="emoji">💧</div>
+                <div>
+                  <div>HIDROMAN</div>
+                  <div class="desc">Sem planilha</div>
+                </div>
+              </div>
+              <span class="mode-arrow">➡️</span>
             </button>
-
-            <button data-mode="LATA_INSUMO" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center" title="Sem DT: vai direto para dados do motorista">
-              <div class="emoji">🥫</div>
-              <div class="label font-bold">Lata / Insumo</div>
-            </button>
-
-            <button data-mode="RITMO" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center" title="Ritmo: DT opcional (se vazio, gera ID interno)">
-              <div class="emoji">⚡</div>
-              <div class="label font-bold">Ritmo</div>
-            </button>
-
-            <button data-mode="INTEGRACAO" class="mode-btn btn-ghost w-full py-4 rounded-xl mode-tile flex flex-col items-center justify-center gap-2 text-center sm:col-span-2" title="Teste de Integração (válido por 3 meses)">
-              <div class="emoji">📝</div>
-              <div class="label font-bold">Integração (Teste)</div>
+<button data-mode="INTEGRACAO" class="mode-btn btn-ghost btn-xl" title="Teste de Integração (válido por 3 meses)">
+              <div class="left">
+                <div class="emoji">📝</div>
+                <div>
+                  <div>Integração (Teste)</div>
+                  <div class="desc">Libera por 3 meses</div>
+                </div>
+              </div>
+              <span class="mode-arrow">➡️</span>
             </button>
           </div>
 
-          <p class="text-xs text-gray-400">
-            Dica: se a planilha estiver fora do ar, use os fluxos sem DT.
-          </p>
+          <div class="section">
+            <div class="help">
+              Dica: se a planilha estiver fora do ar, use <b>Descarregar</b> ou <b>Baldeio</b>.
+            </div>
+          </div>
         </div>
       `;
 
@@ -731,19 +1100,26 @@
     }
 
     function updateModeAvailability() {
-      const needsSheet = new Set(['LOAD', 'BOTH']);
+      const needsSheet = new Set(['LOAD']);
       document.querySelectorAll('.mode-btn').forEach(btn => {
+        if (!btn.dataset.title) btn.dataset.title = btn.title || '';
+
         const mode = btn.dataset.mode;
         if (!mode) return;
+
         if (needsSheet.has(mode)) {
           const disabled = !isSheetReady;
           btn.disabled = disabled;
           btn.classList.toggle('opacity-50', disabled);
           btn.classList.toggle('cursor-not-allowed', disabled);
-          btn.title = disabled ? 'Planilha não carregou ainda.' : '';
+          btn.title = disabled ? 'Planilha não carregou ainda.' : (btn.dataset.title || '');
+
+          const arrow = btn.querySelector('.mode-arrow');
+          if (arrow) arrow.textContent = disabled ? '🔒' : '➡️';
         }
       });
     }
+
 
     function renderModeForm(mode) {
       resultsArea.innerHTML = '';
@@ -753,80 +1129,136 @@
       manualDtIdOverride = '';
       hideManualExtras = false;
       showUnloadInputs = true;
+      loadAlsoUnload = false;
+      presetTransportadora = '';
+      lockTransportadora = false;
+      baldeioDtCarga = '';
+      baldeioDtDescarga = '';
+      baldeioDtCarga = '';
+      baldeioDtDescarga = '';
+      presetTransportadora = '';
+      lockTransportadora = false;
+      baldeioDtCarga = '';
+      baldeioDtDescarga = '';
 
-      const backBtn = `<button id="back-to-modes" class="btn-ghost w-full py-2 rounded-lg">⬅ Voltar</button>`;
+      const backBtn = `
+        <button id="back-to-modes" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">
+          ⬅ Voltar
+        </button>
+      `;
+
       let html = '';
 
+      
       if (mode === 'LOAD') {
+        // Primeiro pergunta se também vai descarregar
         html = `
-          <div class="space-y-3">
-            <p class="font-semibold text-white">Carregamento</p>
-            <input type="text" id="mode-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT (carregar)">
-            <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Buscar DT</button>
+          <div class="section space-y-3">
+            <div class="step">PASSO 1</div>
+            <div class="big-title text-white">Carregar</div>
+            <div class="help">Você também vai descarregar?</div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button id="load-no-unload" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                NÃO
+              </button>
+              <button id="load-yes-unload" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                SIM
+              </button>
+            </div>
+
             ${backBtn}
           </div>
         `;
       }
 
+
+      
       if (mode === 'UNLOAD') {
         html = `
-          <div class="space-y-3">
-            <p class="font-semibold text-white">Descarregamento</p>
-            <input type="text" id="mode-unload-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT de descarga">
-            <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Continuar</button>
-            ${backBtn}
-          </div>
-        `;
-      }
+          <div class="section space-y-3">
+            <div class="step">PASSO 1</div>
+            <div class="big-title text-white">Descarregar</div>
+            <div class="help">Escolha o tipo de operação:</div>
 
-      if (mode === 'BOTH') {
-        html = `
-          <div class="space-y-3">
-            <p class="font-semibold text-white">Carga + Descarga</p>
-            <input type="text" id="mode-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT (carga)">
-            <input type="text" id="mode-unload-dt" class="form-input w-full rounded-lg p-3" placeholder="Digite a DT de descarga">
-            <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Buscar DT</button>
-            ${backBtn}
-          </div>
-        `;
-      }
-
-      if (mode === 'LATA_INSUMO') {
-        html = `
-          <div class="space-y-3">
-            <p class="font-semibold text-white">Lata / Insumo</p>
-            <div class="grid grid-cols-2 gap-2">
-              <button id="pick-lata" class="btn-green py-3 rounded-lg">🥫 Latas</button>
-              <button id="pick-insumo" class="btn-green py-3 rounded-lg">🧪 Insumo</button>
+            <div class="space-y-2">
+              <button id="unload-opt-latas" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                🥫 Latas Vazias
+              </button>
+              <button id="unload-opt-bulk" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                🧱 Bulk
+              </button>
+              <button id="unload-opt-paletes" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                🟫 Paletes Vazio
+              </button>
+              <button id="unload-opt-pa" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                🍺 Produto Acabado
+              </button>
+              <button id="unload-opt-insumo" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                🧪 Insumo
+              </button>
             </div>
-            <p class="text-xs text-gray-400">Você vai direto pro formulário do motorista (sem DT).</p>
+
             ${backBtn}
           </div>
         `;
       }
 
+      if (mode === 'HIDROMAN') {
+        html = `
+          <div class="section space-y-3">
+            <div class="step">PASSO 1</div>
+            <div class="big-title text-white">HIDROMAN</div>
+            <div class="help">Operação sem planilha. Toque em <b>Continuar</b> para preencher os dados.</div>
+
+            <button id="hidroman-go" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+              Continuar ➡️
+            </button>
+
+            ${backBtn}
+          </div>
+        `;
+      }
+
+
+      
       if (mode === 'RITMO') {
         html = `
-          <div class="space-y-3">
-            <p class="font-semibold text-white">Ritmo</p>
-            <input type="text" id="mode-dt-optional" class="form-input w-full rounded-lg p-3" placeholder="DT (opcional)">
-            <button id="mode-go" class="btn-green w-full py-3 rounded-lg">Continuar</button>
+          <div class="section space-y-3">
+            <div class="step">PASSO 1</div>
+            <div class="big-title text-white">Baldeio</div>
+            <div class="help">Selecione a transportadora:</div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button id="baldeio-ritmo" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                RITMO
+              </button>
+              <button id="baldeio-jsl" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                JSL
+              </button>
+            </div>
+
             ${backBtn}
           </div>
         `;
       }
+
 
       if (mode === 'INTEGRACAO') {
         html = `
-          <div class="space-y-3">
-            <p class="font-semibold text-white">Integração de Motoristas (Teste)</p>
-            <p class="text-xs text-gray-300">
-              Regras: precisa acertar no mínimo <strong>${INTEGRATION_MIN_SCORE}</strong> de ${integrationQuestions.length}.
-              Se reprovado, pode tentar quantas vezes quiser. Se aprovado, fica válido por <strong>3 meses</strong>.
-            </p>
+          <div class="section space-y-3">
+            <div class="big-title text-white">Integração (Teste)</div>
+            <div class="help">
+              Precisa acertar <b>${INTEGRATION_MIN_SCORE}</b> de ${integrationQuestions.length}.<br>
+              Válido por <b>3 meses</b>.
+            </div>
 
-            <input type="text" id="int-cpf" class="form-input w-full rounded-lg p-3" placeholder="CPF do motorista">
-            <button id="int-check" class="btn-green w-full py-3 rounded-lg">Verificar / Iniciar</button>
+            <input type="text" id="int-cpf" inputmode="numeric" class="form-input input-xl rounded-lg"
+              placeholder="CPF do motorista">
+
+            <button id="int-check" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+              Verificar / Iniciar ➡️
+            </button>
 
             <div id="int-status" class="pt-2"></div>
             ${backBtn}
@@ -841,59 +1273,113 @@
         resultsArea.innerHTML = '';
       });
 
-      // Handlers
-      if (mode === 'LOAD' || mode === 'BOTH') {
-        const dtEl = document.getElementById('mode-dt');
-        const unloadEl = document.getElementById('mode-unload-dt');
-        document.getElementById('mode-go')?.addEventListener('click', async () => {
-          await unlockAudio();
-          const dt = dtEl?.value?.trim() || '';
-          if (!dt) return displayError('Digite a DT.', 4000);
-          if (!isSheetReady || database.length === 0) return displayError('Planilha ainda não carregou. Tente novamente.', 4000);
-
-          pendingUnloadDt = (unloadEl?.value || '').trim();
-          requireUnloadDtInForm = (mode === 'BOTH');
-          showUnloadInputs = (mode === 'BOTH');
-
-          performSearchByDt(dt);
-        });
-        dtEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
-        unloadEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
-        dtEl?.focus();
-      }
-
+      
+      
+      // Handlers (descarregar) - escolhe o tipo e vai direto para dados do motorista (sem planilha)
       if (mode === 'UNLOAD') {
-        const unloadEl = document.getElementById('mode-unload-dt');
-        document.getElementById('mode-go')?.addEventListener('click', async () => {
+        const goManualUnload = async (typeLabel, prefix) => {
           await unlockAudio();
-          const unloadDt = unloadEl?.value?.trim() || '';
-          if (!unloadDt) return displayError('Digite a DT de descarga.', 4000);
-
-          manualPresetType = 'Descarga';
+          manualPresetType = typeLabel;
           hideManualExtras = true;
-          showUnloadInputs = true;
-          requireUnloadDtInForm = true;
-          pendingUnloadDt = unloadDt;
+          showUnloadInputs = false;          // sem NF/DT descarga por padrão (mais simples)
+          requireUnloadDtInForm = false;
+          pendingUnloadDt = '';
 
-          const dtId = normalizeDtId(unloadDt) || generateInternalId('DESC');
-          manualDtIdOverride = dtId;
+          manualDtIdOverride = generateInternalId(prefix || 'SEM_DT');
+          
 
-          showDriverForm([{ [headerMap.dts]: dtId }], { modeLabel: 'Descarregamento', isManualOverride: true });
+          // Próxima tela: esconde o menu de opções e mostra apenas o formulário
+          actionArea.innerHTML = '';
+          resultsArea.innerHTML = '';
+          try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: typeLabel, isManualOverride: true });
+        };
+
+        document.getElementById('unload-opt-latas')?.addEventListener('click', () => goManualUnload('Latas Vazias', 'LATAS'));
+        document.getElementById('unload-opt-bulk')?.addEventListener('click', () => goManualUnload('Bulk', 'BULK'));
+        document.getElementById('unload-opt-paletes')?.addEventListener('click', () => goManualUnload('Paletes Vazio', 'PAL'));
+        document.getElementById('unload-opt-pa')?.addEventListener('click', () => goManualUnload('Produto Acabado', 'PA'));
+        document.getElementById('unload-opt-insumo')?.addEventListener('click', () => goManualUnload('Insumo', 'INS'));
+      }
+// Handlers (carregar) - pergunta se vai descarregar
+      if (mode === 'LOAD') {
+        const goToDtForm = (needsUnload) => {
+          // Renderiza o formulário da DT (e DT descarga se precisar)
+          const backBtn2 = `<button id="back-to-modes" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">⬅ Voltar</button>`;
+          actionArea.innerHTML = `
+            <div class="section space-y-3">
+              <div class="step">PASSO 2</div>
+              <div class="big-title text-white">Digite a DT</div>
+              <div class="help">${needsUnload ? 'DT da carga + DT de descarga' : 'DT da carga'}</div>
+
+              <input type="text" id="mode-dt" inputmode="numeric" pattern="[0-9]*"
+                class="form-input input-xl rounded-lg" placeholder="DT (carga)">
+
+              ${needsUnload ? `
+                <input type="text" id="mode-unload-dt" inputmode="numeric" pattern="[0-9]*"
+                  class="form-input input-xl rounded-lg" placeholder="DT (descarga)">
+              ` : ``}
+
+              <button id="mode-go" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                Buscar DT ➡️
+              </button>
+              ${backBtn2}
+            </div>
+          `;
+
+          document.getElementById('back-to-modes')?.addEventListener('click', () => {
+            renderActionSelector();
+            resultsArea.innerHTML = '';
+          });
+
+          const dtEl = document.getElementById('mode-dt');
+          const unloadEl = document.getElementById('mode-unload-dt');
+
+          // Se voltar de tela, mantém o que já foi digitado
+          if (unloadEl && pendingUnloadDt) unloadEl.value = pendingUnloadDt;
+
+
+          document.getElementById('mode-go')?.addEventListener('click', async () => {
+            await unlockAudio();
+            const dt = dtEl?.value?.trim() || '';
+            if (!dt) return displayError('Digite a DT.', 4000);
+            if (!isSheetReady || database.length === 0) return displayError('Planilha ainda não carregou. Tente novamente.', 4000);
+
+            pendingUnloadDt = needsUnload ? (unloadEl?.value || '').trim() : '';
+            requireUnloadDtInForm = false;
+            showUnloadInputs = !!needsUnload;
+performSearchByDt(dt);
+          });
+
+          dtEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
+          unloadEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
+
+          dtEl?.focus();
+        };
+
+        document.getElementById('load-no-unload')?.addEventListener('click', async () => {
+          await unlockAudio();
+          loadAlsoUnload = false;
+          goToDtForm(false);
         });
-        unloadEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
-        unloadEl?.focus();
+
+        document.getElementById('load-yes-unload')?.addEventListener('click', async () => {
+          await unlockAudio();
+          loadAlsoUnload = true;
+          goToDtForm(true);
+        });
       }
 
       if (mode === 'LATA_INSUMO') {
         document.getElementById('pick-lata')?.addEventListener('click', async () => {
           await unlockAudio();
-          manualPresetType = 'Latas';
+          manualPresetType = 'Latas Vazias';
           hideManualExtras = true;
           showUnloadInputs = false;
           requireUnloadDtInForm = false;
           pendingUnloadDt = '';
           manualDtIdOverride = generateInternalId('SEM_DT');
-          showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Latas / sem DT', isManualOverride: true });
+          showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Latas Vazias / sem DT', isManualOverride: true });
         });
 
         document.getElementById('pick-insumo')?.addEventListener('click', async () => {
@@ -912,7 +1398,7 @@
         const optEl = document.getElementById('mode-dt-optional');
         document.getElementById('mode-go')?.addEventListener('click', async () => {
           await unlockAudio();
-          manualPresetType = 'Ritmo';
+          manualPresetType = 'Baldeio';
           hideManualExtras = true;
           showUnloadInputs = false;
           requireUnloadDtInForm = false;
@@ -922,8 +1408,9 @@
           const dtId = normalizeDtId(typed) || generateInternalId('RITMO');
           manualDtIdOverride = dtId;
 
-          showDriverForm([{ [headerMap.dts]: dtId }], { modeLabel: 'Ritmo', isManualOverride: true });
+          showDriverForm([{ [headerMap.dts]: dtId }], { modeLabel: 'Baldeio', isManualOverride: true });
         });
+
         optEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
         optEl?.focus();
       }
@@ -940,8 +1427,104 @@
           if (!isAuthReady || !db) return displayError("Banco de dados ainda não está pronto. Tente novamente.", 4000);
 
           await renderIntegrationStatus(cpf);
+
+          // Se aprovado, pode seguir para o menu automaticamente
+          if (passed && typeof postIntegrationNavigate === 'function') {
+            const cb = postIntegrationNavigate;
+            postIntegrationNavigate = null;
+            setTimeout(() => { try { cb(); } catch {} }, 900);
+          }
+        });
+
+        cpfEl?.focus();
+      }
+      // Handlers (HIDROMAN) - vai direto para dados do motorista
+      if (mode === 'HIDROMAN') {
+        document.getElementById('hidroman-go')?.addEventListener('click', async () => {
+          await unlockAudio();
+          manualPresetType = 'HIDROMAN';
+          hideManualExtras = true;
+          showUnloadInputs = false;
+          requireUnloadDtInForm = false;
+          pendingUnloadDt = '';
+          // Transportadora fixa
+          presetTransportadora = 'HIDROMAN';
+          lockTransportadora = true;
+          manualDtIdOverride = generateInternalId('HID');
+
+          showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'HIDROMAN', isManualOverride: true });
         });
       }
+
+
+      
+      // Handlers (Baldeio) - escolhe Ritmo ou JSL e (opcionalmente) informa DTs
+      if (mode === 'RITMO') {
+        const goBaldeioStep2 = () => {
+          const backBtnB = `<button id="back-to-baldeio-transp" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">⬅ Voltar</button>`;
+          actionArea.innerHTML = `
+            <div class="section space-y-3">
+              <div class="step">PASSO 2</div>
+              <div class="big-title text-white">Baldeio</div>
+              <div class="help">Preencha as DTs se tiver. Se não souber, pode continuar em branco.</div>
+
+              <input type="text" id="baldeio-dt-carga" inputmode="numeric" pattern="[0-9]*"
+                class="form-input input-xl rounded-lg" placeholder="DT de Carga (opcional)">
+
+              <input type="text" id="baldeio-dt-desc" inputmode="numeric" pattern="[0-9]*"
+                class="form-input input-xl rounded-lg" placeholder="DT de Descarga (opcional)">
+
+              <button id="baldeio-continue" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                Continuar ➡️
+              </button>
+
+              ${backBtnB}
+            </div>
+          `;
+
+          document.getElementById('back-to-baldeio-transp')?.addEventListener('click', () => {
+            renderModeForm('RITMO');
+          });
+
+          const cargaEl = document.getElementById('baldeio-dt-carga');
+          const descEl = document.getElementById('baldeio-dt-desc');
+          if (cargaEl && baldeioDtCarga) cargaEl.value = baldeioDtCarga;
+          if (descEl && baldeioDtDescarga) descEl.value = baldeioDtDescarga;
+
+          document.getElementById('baldeio-continue')?.addEventListener('click', async () => {
+            await unlockAudio();
+            baldeioDtCarga = (cargaEl?.value || '').trim();
+            baldeioDtDescarga = (descEl?.value || '').trim();
+
+            const dtNorm = normalizeDtId(baldeioDtCarga);
+
+            manualPresetType = 'Baldeio';
+            hideManualExtras = true;
+            showUnloadInputs = false;
+            requireUnloadDtInForm = false;
+            pendingUnloadDt = '';
+
+            manualDtIdOverride = dtNorm || generateInternalId(presetTransportadora === 'JSL' ? 'BAL_JSL' : 'BAL_RITMO');
+
+            showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: `Baldeio (${presetTransportadora})`, isManualOverride: true });
+          });
+        };
+
+        const chooseTransp = async (transp) => {
+          await unlockAudio();
+          presetTransportadora = (transp || '').toString().trim().toUpperCase();
+          lockTransportadora = false;
+          baldeioDtCarga = '';
+          baldeioDtDescarga = '';
+          goBaldeioStep2();
+        };
+
+        document.getElementById('baldeio-ritmo')?.addEventListener('click', () => chooseTransp('RITMO'));
+        document.getElementById('baldeio-jsl')?.addEventListener('click', () => chooseTransp('JSL'));
+      }
+
+
+
     }
 
     // =======================
@@ -961,7 +1544,6 @@
         console.warn("Falha ao ler integration doc:", e);
       }
 
-      // fallback cache
       try {
         const cached = localStorage.getItem(cacheKey);
         if (cached) return JSON.parse(cached);
@@ -993,8 +1575,6 @@
       return { state: 'VALID', now, due };
     }
 
-
-    // ✅ Guard: Integração obrigatória para imprimir/seguir fluxo
     function isIntegrationAccepted(state) {
       return state === 'VALID' || state === 'EXPIRING';
     }
@@ -1014,6 +1594,7 @@
     function formatDateBR(d) {
       try { return d ? d.toLocaleDateString('pt-BR') : ''; } catch { return ''; }
     }
+
     async function renderIntegrationStatus(cpf) {
       const host = document.getElementById('int-status');
       if (!host) return;
@@ -1023,7 +1604,6 @@
       const data = await loadIntegrationDoc(cpf);
       const status = computeIntegrationStatus(data);
 
-      // tenta puxar nome do motorista para exibir
       let driverName = '';
       try {
         const driverRef = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', cpf);
@@ -1101,7 +1681,6 @@
       const sub = document.getElementById('int-subview');
       if (!sub) return;
 
-      // embaralha perguntas (mantém gabarito por índice original)
       const qOrder = shuffle(integrationQuestions.map((q, idx) => ({ ...q, _id: idx })));
 
       sub.innerHTML = `
@@ -1171,7 +1750,7 @@
         try {
           const current = await loadIntegrationDoc(cpf) || {};
           const prevAttempts = Array.isArray(current.attempts) ? current.attempts : [];
-          const attempts = [attempt, ...prevAttempts].slice(0, 30); // limita
+          const attempts = [attempt, ...prevAttempts].slice(0, 30);
           const patch = {
             cpf,
             lastAttemptAt: now.toISOString(),
@@ -1183,7 +1762,6 @@
             patch.nextDueAt = nextDue.toISOString();
             patch.lastPassed = true;
           } else {
-            // se reprovou, mantém vencimento atual (se existir)
             patch.lastPassed = false;
           }
 
@@ -1202,9 +1780,7 @@
                  </div>`;
           }
 
-          // atualiza o status em cima
           await renderIntegrationStatus(cpf);
-          // reabre resultado rápido (status já mostra)
         } catch (err) {
           console.error("Falha ao salvar tentativa:", err);
           displayError("Não consegui salvar a tentativa no Firestore. Verifique permissões/regras.", 6000);
@@ -1269,7 +1845,7 @@
         const deposito = results[0][headerMap.deposito] || '';
         const normalizedDeposito = deposito.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         if (normalizedDeposito.includes('FABRICA')) {
-          showDriverForm(results, { modeLabel: currentMode === 'BOTH' ? 'Carga + Descarga' : 'Carregamento', isManualOverride: false });
+          showDriverForm(results, { modeLabel: (requireUnloadDtInForm ? 'Carregamento + Descarga' : 'Carregamento'), isManualOverride: false });
         } else {
           displayStandardResults(results);
         }
@@ -1321,47 +1897,51 @@
     }
 
     function showDriverForm(dataArray, options = {}) {
-      const firstResult = dataArray[0] || {};
+            // Próxima tela: esconde o menu anterior e sobe para o topo
+      try { actionArea.innerHTML = ''; } catch {}
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { try { window.scrollTo(0,0); } catch {} }
+
+const firstResult = dataArray[0] || {};
       const isManual = options.isManualOverride === true ? true : !firstResult[headerMap.cliente];
       const modeLabel = options.modeLabel || 'Operação';
 
       resultsArea.innerHTML = `
-        <div class="bg-blue-900/40 p-6 rounded-xl border border-blue-700">
+        <div class="section space-y-3">
           <div class="flex items-start justify-between gap-2">
             <div>
-              <h3 class="text-xl font-bold text-white mb-1">${modeLabel}</h3>
-              <p class="text-blue-200 mb-4 text-sm">${isManual ? 'Preencha os dados do motorista (e opcionalmente os dados da operação).' : 'Preencha os dados do motorista.'}</p>
+              <div class="big-title text-white">${modeLabel}</div>
+              <div class="help">Preencha os dados abaixo e toque em <b>Imprimir</b>.</div>
             </div>
-            <button id="back-from-form" class="btn-ghost px-3 py-2 rounded-lg text-sm">⬅ Voltar</button>
+            <button id="back-from-form" class="btn-ghost px-4 py-3 rounded-xl text-sm font-bold">⬅ Voltar</button>
           </div>
 
-          <div class="space-y-4">
-            ${isManual ? `
-              <div class="bg-black/20 p-3 rounded-lg border border-white/10">
-                <p class="text-xs text-gray-200 mb-2 font-semibold">Dados da Operação (opcional)</p>
-
+          ${isManual ? `
+            <details class="section">
+              <summary>🧾 Dados da Operação (opcional)</summary>
+              <div class="mt-3 space-y-2">
                 <div ${hideManualExtras ? 'hidden' : ''}>
-                  <input type="text" id="manual-client" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Cliente (opcional)">
+                  <input type="text" id="manual-client" class="form-input input-xl" placeholder="Cliente (opcional)">
                 </div>
 
-                <select id="manual-type" class="form-select w-full rounded-lg p-3 mb-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 items-start">
+                  <select id="manual-type" class="form-select select-xl">
                   <option value="">Tipo de Carga</option>
                   <option value="Bulk">Bulk</option>
+                  <option value="Paletes Vazio">Paletes Vazio</option>
                   <option value="Embalagem">Embalagem</option>
-                  <option value="Latas">Latas</option>
+                  <option value="Latas Vazias">Latas Vazias</option>
                   <option value="Produto Acabado">Produto Acabado</option>
                   <option value="Insumo">Insumo</option>
-                  <option value="Ritmo">Ritmo</option>
+                  <option value="Baldeio">Baldeio</option>
                   <option value="Descarga">Descarga</option>
                 </select>
-
-                <div ${hideManualExtras ? 'hidden' : ''}>
-                  <input type="text" id="manual-plt" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Quantidade (PLT) (opcional)">
+                  <div id="manual-type-help" class="help sm:pt-2">Escolha o tipo. Se não souber, deixe em branco.</div>
                 </div>
 
-                <input type="text" id="manual-transportadora" class="form-input w-full rounded-lg p-3 mb-2" placeholder="Transportadora (opcional)">
-
-                <select id="manual-canal" class="form-select w-full rounded-lg p-3">
+                <div ${hideManualExtras ? 'hidden' : ''}>
+                  <input type="text" id="manual-plt" class="form-input input-xl" placeholder="Quantidade (PLT) (opcional)">
+                </div>
+<select id="manual-canal" class="form-select select-xl">
                   <option value="">Canal (opcional)</option>
                   <option value="Y001">Y001</option>
                   <option value="Y002">Y002</option>
@@ -1369,59 +1949,96 @@
                   <option value="Y006">Y006</option>
                   <option value="Y055">Y055</option>
                 </select>
+                <div class="help">Canal: se não souber, deixe vazio.</div>
 
-                <div class="text-xs text-gray-300 mt-2">
-                  <span class="font-semibold">ID:</span> ${String(firstResult[headerMap.dts] || '').trim()}
+                <div class="help">
+                  <span class="badge">ID: ${String(firstResult[headerMap.dts] || '').trim()}</span>
                 </div>
               </div>
-            ` : ''}
+            </details>
+          ` : ''}
 
-            <input type="text" id="driver-cpf" class="form-input w-full rounded-lg p-3" placeholder="Digite o CPF para buscar motorista">
-                        <div id="driver-int-box" class="mt-2 bg-black/20 border border-white/10 rounded-lg p-3">
-                            <div class="flex items-center justify-between gap-2">
-                                <p class="text-xs font-semibold text-gray-200">Integração (obrigatória)</p>
-                                <span id="driver-int-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-gray-200">—</span>
-                            </div>
-                            <p id="driver-int-status" class="text-xs text-gray-300 mt-1">Digite o CPF para verificar.</p>
-                            <button id="driver-int-open" type="button" class="btn-ghost mt-2 px-3 py-2 rounded-lg text-xs hidden">Fazer Integração agora</button>
-                        </div>
+          <div class="section space-y-2">
+            <div class="step">PASSO 1</div>
+            <div class="big-title text-white">CPF do motorista</div>
 
-            <input type="text" id="driver-name" class="form-input w-full rounded-lg p-3" placeholder="Nome Completo do Motorista">
-            <input type="text" id="driver-phone" class="form-input w-full rounded-lg p-3" placeholder="Telefone com DDD">
+            <input type="text" id="driver-cpf" inputmode="numeric" class="form-input input-xl" placeholder="CPF (vai buscar automático)">
 
-            <div class="flex gap-4">
-              <input type="text" id="driver-cnh" class="form-input w-full rounded-lg p-3" placeholder="Nº CNH">
-              <input type="text" id="cnh-expiry" class="form-input w-full rounded-lg p-3" placeholder="Vencimento CNH (DD/MM/AAAA)">
-            </div>
-
-            <div class="grid grid-cols-3 gap-4">
-              <input type="text" id="truck-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Cavalo">
-              <input type="text" id="trailer-plate" class="form-input col-span-1 rounded-lg p-3" placeholder="Placa Carreta">
-              <select id="truck-axles" class="form-select col-span-1 rounded-lg p-3">
-                <option value="">Eixos</option>
-                <option value="2">2 Eixos</option>
-                <option value="3">3 Eixos</option>
-                <option value="4">4 Eixos</option>
-                <option value="5">5 Eixos</option>
-                <option value="6">6 Eixos</option>
-                <option value="7">7 Eixos</option>
-                <option value="9">9 Eixos</option>
-              </select>
-            </div>
-
-            <input type="text" id="driver-renavam" class="form-input w-full rounded-lg p-3" placeholder="RENAVAM">
-
-            ${showUnloadInputs ? `
-              <div class="flex gap-4">
-                <input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal (opcional)">
-                <input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga ${requireUnloadDtInForm ? '(obrigatório)' : '(opcional)'}">
+            <div id="driver-int-box" class="mt-2 bg-black/20 border border-white/10 rounded-lg p-3">
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-sm font-extrabold text-white">Integração</p>
+                <span id="driver-int-badge" class="badge">—</span>
               </div>
-            ` : `
-              <input type="text" id="invoice-number" class="form-input w-full rounded-lg p-3" placeholder="Nota Fiscal (opcional)" hidden>
-              <input type="text" id="unload-dt" class="form-input w-full rounded-lg p-3" placeholder="DT de Descarga" hidden>
-            `}
+              <p id="driver-int-status" class="help mt-1">Digite o CPF para verificar.</p>
+              <button id="driver-int-open" type="button" class="btn-ghost mt-2 px-4 py-3 rounded-xl text-sm font-bold hidden">
+                Fazer Integração agora ➡️
+              </button>
+            </div>
+          </div>
 
-            <button id="generate-sheet-btn" class="btn-green w-full py-3 rounded-lg">Imprimir e Chamar</button>
+          <div class="section space-y-2">
+            <div class="step">PASSO 2</div>
+            <div class="big-title text-white">Contato</div>
+
+            <input type="text" id="driver-name" class="form-input input-xl" placeholder="Nome do motorista">
+            <input type="text" id="driver-phone" inputmode="tel" class="form-input input-xl" placeholder="Telefone com DDD">
+
+            <input type="text" id="driver-transportadora" class="form-input input-xl" placeholder="Transportadora">
+            <div class="help">Se souber, preencha a transportadora.</div>
+
+          </div>
+
+          <div class="section space-y-2">
+            <div class="step">PASSO 3</div>
+            <div class="big-title text-white">Veículo</div>
+
+            <input type="text" id="truck-plate" class="form-input input-xl" placeholder="Placa do cavalo">
+            <input type="text" id="trailer-plate" class="form-input input-xl" placeholder="Placa da carreta (opcional)">
+
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input type="text" id="driver-cnh" class="form-input input-xl" placeholder="CNH (número) *">
+              <input type="text" id="cnh-expiry" class="form-input input-xl" placeholder="Validade da CNH (DD/MM/AAAA)">
+            </div>
+            <div class="help">A CNH é importante. Se não souber a validade, pode deixar em branco.</div>
+<select id="truck-axles" class="form-select select-xl">
+              <option value="">Eixos (opcional)</option>
+              <option value="2">2 Eixos</option>
+              <option value="3">3 Eixos</option>
+              <option value="4">4 Eixos</option>
+              <option value="5">5 Eixos</option>
+              <option value="6">6 Eixos</option>
+              <option value="7">7 Eixos</option>
+              <option value="9">9 Eixos</option>
+            </select>
+          </div>
+
+          <details class="section">
+            <summary>➕ Mais dados (RENAVAM) (opcional)</summary>
+            <div class="mt-3 space-y-2">
+              <input type="text" id="driver-renavam" class="form-input input-xl" placeholder="RENAVAM (opcional)">
+            </div>
+          </details>
+
+          ${showUnloadInputs ? `
+            <details class="section" open>
+              <summary>📦 Nota Fiscal / Descarga</summary>
+              <div class="mt-3 space-y-2">
+                <input type="text" id="invoice-number" class="form-input input-xl" placeholder="Nota Fiscal (opcional)">
+                <input type="text" id="unload-dt" inputmode="numeric" pattern="[0-9]*"
+                  class="form-input input-xl" placeholder="DT de Descarga ${requireUnloadDtInForm ? '(obrigatório)' : '(opcional)'}">
+              </div>
+            </details>
+          ` : `
+            <input type="text" id="invoice-number" class="form-input" hidden>
+            <input type="text" id="unload-dt" class="form-input" hidden>
+          `}
+
+          <div class="sticky-actions">
+            <button id="generate-sheet-btn" class="btn-green w-full py-5 rounded-2xl text-xl font-extrabold">
+              🖨️ Imprimir e Chamar
+            </button>
+            <div class="help mt-2 text-center">Se o botão estiver travado, faça a Integração.</div>
           </div>
         </div>
       `;
@@ -1439,15 +2056,57 @@
         const manualTypeEl = document.getElementById('manual-type');
         const manualClientEl = document.getElementById('manual-client');
         const manualPltEl = document.getElementById('manual-plt');
-        const manualTranspEl = document.getElementById('manual-transportadora');
 
         if (manualTypeEl && manualPresetType) manualTypeEl.value = manualPresetType;
         if (manualClientEl && hideManualExtras && !manualClientEl.value) manualClientEl.value = 'N/A';
         if (manualPltEl && hideManualExtras && !manualPltEl.value) manualPltEl.value = '';
-        if (manualTranspEl && firstResult[headerMap.transportadora]) manualTranspEl.value = firstResult[headerMap.transportadora];
       }
 
-      const unloadEl = document.getElementById('unload-dt');
+      // Ajuda: explica o "Tipo de Carga" para facilitar a escolha
+      const manualTypeEl2 = document.getElementById('manual-type');
+      const manualTypeHelp = document.getElementById('manual-type-help');
+      const explainType = (val) => {
+        const v = (val || '').toString().toUpperCase().trim();
+        if (!v) return 'Dica: se não tiver certeza, deixe em branco.';
+        if (v.includes('BULK')) return 'Bulk: carga a granel (sem pallet).';
+        if (v.includes('EMBALAGEM')) return 'Embalagem: material de embalagem (ex.: caixas, tampas, etc.).';
+        if (v.includes('PALETES')) return 'Paletes Vazio: devolução/retorno de paletes vazios.';
+        if (v.includes('LATAS VAZIAS') || v === 'LATAS') return 'Latas Vazias: retorno/recebimento de latas vazias (sem DT).';
+        if (v.includes('PRODUTO ACABADO')) return 'Produto Acabado: cerveja pronta/paletizada.';
+        if (v.includes('INSUMO')) return 'Insumo: matéria-prima/insumo para produção.';
+        if (v.includes('BALDEIO') || v.includes('RITMO')) return 'Baldeio: transferência/ajuste de fluxo (DT opcional).';
+        if (v.includes('DESCARGA')) return 'Descarga: recebimento/descarregamento.';
+        if (v.includes('HIDROMAN')) return 'HIDROMAN: operação dedicada (sem planilha).';
+        return 'Tipo selecionado.';
+      };
+      if (manualTypeEl2 && manualTypeHelp) {
+        manualTypeHelp.textContent = explainType(manualTypeEl2.value);
+        manualTypeEl2.addEventListener('change', () => {
+          manualTypeHelp.textContent = explainType(manualTypeEl2.value);
+        });
+      }
+
+      // Transportadora (visível em todos os fluxos)
+      const driverTranspEl = document.getElementById('driver-transportadora');
+      if (driverTranspEl && !driverTranspEl.value) {
+        const fromSheet = (firstResult?.[headerMap.transportadora] || '').toString();
+        driverTranspEl.value = fromSheet;
+      }
+
+            // Aplica preset de transportadora (quando existir)
+      if (driverTranspEl && presetTransportadora) {
+        driverTranspEl.value = presetTransportadora;
+      }
+      if (driverTranspEl) {
+        driverTranspEl.readOnly = !!lockTransportadora;
+        if (lockTransportadora) {
+          driverTranspEl.classList.add('opacity-80');
+        } else {
+          driverTranspEl.classList.remove('opacity-80');
+        }
+      }
+
+const unloadEl = document.getElementById('unload-dt');
       if (unloadEl && pendingUnloadDt) unloadEl.value = pendingUnloadDt;
 
       document.getElementById('driver-cpf')?.addEventListener('input', findAndFillDriverData);
@@ -1472,16 +2131,18 @@
       const refreshIntegrationUI = async () => {
         if (!_intCpfEl || !_intStatusEl || !_intBadgeEl) return;
         const cpfDigits = normalizeDigits(_intCpfEl.value);
+
+        // ✅ FIX: trava até CPF completo
         if (cpfDigits.length !== 11) {
           _intBadgeEl.textContent = '—';
-          _intStatusEl.textContent = 'Digite o CPF para verificar.';
+          _intStatusEl.textContent = 'Digite o CPF completo para verificar.';
           if (_intOpenBtn) _intOpenBtn.classList.add('hidden');
-          // não trava aqui (a validação do CPF já trava no imprimir)
+          setPrintEnabled(false);
           return;
         }
 
         _intBadgeEl.textContent = '...';
-        _intStatusEl.textContent = 'Verificando status no sistema...';
+        _intStatusEl.textContent = 'Verificando integração...';
 
         try {
           const st = await getIntegrationStateForCpf(cpfDigits);
@@ -1498,23 +2159,23 @@
             const dueTxt = st.due ? formatDateBR(st.due) : '';
             _intBadgeEl.textContent = (st.state === 'EXPIRING') ? 'ALERTA' : 'OK';
             _intStatusEl.textContent = st.state === 'EXPIRING'
-              ? `Integração válida, mas vence em ${dueTxt}.`
-              : `Integração OK. Próximo teste até ${dueTxt}.`;
+              ? `Integração OK (vence em ${dueTxt}).`
+              : `Integração OK (até ${dueTxt}).`;
             if (_intOpenBtn) _intOpenBtn.classList.add('hidden');
             setPrintEnabled(true);
           } else {
             const dueTxt = st.due ? formatDateBR(st.due) : '';
             _intBadgeEl.textContent = 'BLOQUEADO';
             _intStatusEl.textContent = st.state === 'EXPIRED'
-              ? `Integração vencida em ${dueTxt}. Faça o teste novamente para liberar.`
-              : 'Integração não encontrada. Faça o teste para liberar.';
+              ? `Vencida em ${dueTxt}. Faça o teste para liberar.`
+              : 'Não encontrada. Faça o teste para liberar.';
             if (_intOpenBtn) _intOpenBtn.classList.remove('hidden');
             setPrintEnabled(false);
           }
         } catch (e) {
           console.warn('Falha ao verificar integração:', e);
           _intBadgeEl.textContent = 'ERRO';
-          _intStatusEl.textContent = 'Não consegui verificar agora. Tente novamente (ou faça o teste).';
+          _intStatusEl.textContent = 'Falha ao verificar. Tente novamente (ou faça o teste).';
           if (_intOpenBtn) _intOpenBtn.classList.remove('hidden');
           setPrintEnabled(false);
         }
@@ -1534,7 +2195,6 @@
           const cpfMasked = _intCpfEl?.value || '';
           currentMode = 'INTEGRACAO';
           renderModeForm('INTEGRACAO');
-          // preenche CPF na integração e já consulta
           setTimeout(() => {
             const intCpf = document.getElementById('int-cpf');
             if (intCpf) intCpf.value = cpfMasked;
@@ -1543,8 +2203,8 @@
         });
       }
 
-      // tenta atualizar imediatamente se CPF já veio preenchido via Firebase/localStorage
       setTimeout(refreshIntegrationUI, 0);
+
       document.getElementById('generate-sheet-btn')?.addEventListener('click', () => {
         unlockAudio();
         generateAndPrintSheet(dataArray, { isManual });
@@ -1571,8 +2231,8 @@
       document.getElementById('truck-axles').value = data.axles || '';
       document.getElementById('driver-renavam').value = data.renavam || '';
 
-      const manualTransp = document.getElementById('manual-transportadora');
-      if (manualTransp && data.transportadora) manualTransp.value = data.transportadora;
+      const transpEl = document.getElementById('driver-transportadora');
+      if (transpEl && data.transportadora) transpEl.value = data.transportadora;
 
       if (phoneMask && data.phone) phoneMask.unmaskedValue = normalizeDigits(data.phone);
       else if (document.getElementById('driver-phone') && data.phone) document.getElementById('driver-phone').value = data.phone;
@@ -1588,7 +2248,8 @@
       element.classList.remove('invalid');
       return true;
     }
-        async function generateAndPrintSheet(originalDataArray, { isManual }) {
+
+    async function generateAndPrintSheet(originalDataArray, { isManual }) {
       const nameEl = document.getElementById('driver-name');
       const cpfEl = document.getElementById('driver-cpf');
       const phoneEl = document.getElementById('driver-phone');
@@ -1603,7 +2264,6 @@
         const st = await getIntegrationStateForCpf(cpfDigits);
         if (!st.ok) {
           displayError("Integração obrigatória: faça o teste antes de imprimir.", 6000);
-          // sugere caminho rápido
           document.getElementById('driver-int-open')?.classList.remove('hidden');
           return;
         }
@@ -1612,8 +2272,11 @@
         displayError("Não consegui validar a integração agora. Tente novamente.", 6000);
         return;
       }
+
       if (!validateField(phoneEl, "Telefone é obrigatório.", () => (phoneMask?.unmaskedValue?.length || 0) >= 10)) return;
       if (!validateField(plateEl, "Placa do cavalo é obrigatória.")) return;
+      const cnhEl = document.getElementById('driver-cnh');
+      if (cnhEl && !validateField(cnhEl, "CNH é obrigatória.")) return;
 
       const unloadDtEl = document.getElementById('unload-dt');
       if (requireUnloadDtInForm && unloadDtEl) {
@@ -1629,26 +2292,35 @@
         name: nameEl.value,
         cpf: cpfEl.value,
         phone: phoneEl.value,
-        cnh: document.getElementById('driver-cnh').value,
-        cnhExpiry: document.getElementById('cnh-expiry').value,
+        cnh: document.getElementById('driver-cnh')?.value || '',
+        cnhExpiry: document.getElementById('cnh-expiry')?.value || '',
         truckPlate: plateEl.value,
-        trailerPlate: document.getElementById('trailer-plate').value,
-        axles: document.getElementById('truck-axles').value,
-        renavam: document.getElementById('driver-renavam').value,
+        trailerPlate: document.getElementById('trailer-plate')?.value || '',
+        axles: document.getElementById('truck-axles')?.value || '',
+        renavam: document.getElementById('driver-renavam')?.value || '',
         invoice: (document.getElementById('invoice-number')?.value || ''),
-        unloadDt: (document.getElementById('unload-dt')?.value || ''),
+        unloadDt: (document.getElementById('unload-dt')?.value || pendingUnloadDt || baldeioDtDescarga || ''),
         registrationTime: Date.now(),
         dts: dtToUse,
-        transportadora: isManual ? (document.getElementById('manual-transportadora')?.value || '') : (firstOriginal[headerMap.transportadora] || '')
+        transportadora: (() => {
+          const t = (document.getElementById('driver-transportadora')?.value || '').toString().trim();
+          if (t) return t;
+          return (firstOriginal[headerMap.transportadora] || '').toString();
+        })()
       };
 
+
+      // Segurança: HIDROMAN sempre com transportadora HIDROMAN
+      if ((presetTransportadora || '').toString().trim().toUpperCase() === 'HIDROMAN') {
+        driverData.transportadora = 'HIDROMAN';
+      }
       const sheetData = isManual ? [{
         ...firstOriginal,
         [headerMap.dts]: dtToUse,
         [headerMap.cliente]: (document.getElementById('manual-client')?.value || ''),
-        [headerMap.produto]: (document.getElementById('manual-type')?.value || ''),
+        [headerMap.produto]: (document.getElementById('manual-type')?.value || manualPresetType || ''),
         [headerMap.plt]: (document.getElementById('manual-plt')?.value || ''),
-        [headerMap.transportadora]: (document.getElementById('manual-transportadora')?.value || ''),
+        [headerMap.transportadora]: (document.getElementById('driver-transportadora')?.value || ''),
         [headerMap.canal]: (document.getElementById('manual-canal')?.value || ''),
         [headerMap.deposito]: 'FÁBRICA'
       }] : originalDataArray;
@@ -1677,7 +2349,7 @@
         if (!isSaved) displayError('Não consegui salvar no painel agora, mas a folha foi impressa.', 7000);
         showCallPanel(driverData.name, priorityInfo.isPriority || priorityInfo.isGradeQueimada || priorityInfo.isAtrasado);
 
-                try { document.getElementById('printable-area').innerHTML = ''; } catch {}
+        try { document.getElementById('printable-area').innerHTML = ''; } catch {}
         window.onafterprint = null;
       };
 
@@ -1693,236 +2365,280 @@
       setTimeout(() => { if (!afterPrintFired) afterPrint(); }, 1500);
     }
 
-    // ===== FOLHA DE IMPRESSÃO =====
-    
-        // ===== FOLHA DE IMPRESSÃO COMPLETA (IGUAL AO ORIGINAL) =====
-        function buildPrintableSheet(driverData, sheetDataArray, isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado, isManual) {
-            const now = new Date();
-            const printDate = now.toLocaleDateString('pt-BR');
-            const printTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    // ===== FOLHA DE IMPRESSÃO COMPLETA (IGUAL AO ORIGINAL) =====
+    function buildPrintableSheet(driverData, sheetDataArray, isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado, isManual) {
+      const now = new Date();
+      const printDate = now.toLocaleDateString('pt-BR');
+      const printTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-            const firstResult = sheetDataArray[0];
+      const firstResult = sheetDataArray[0];
 
-            // ✅ NOVO: Tag de operação no topo da folha (RITMO / INSUMO / LATA)
-            const productRaw = (firstResult[headerMap.produto] || '').toString().toUpperCase();
-            let operationTag = '';
-            if (productRaw.includes('RITMO')) operationTag = 'RITMO';
-            else if (productRaw.includes('INSUMO')) operationTag = 'INSUMO';
-            else if (productRaw.includes('LATA')) operationTag = 'LATA';
+      const productRaw = (firstResult[headerMap.produto] || '').toString().toUpperCase();
+      let operationTag = '';
+      // Operação (exibição amigável)
+      const transpUpper = ((driverData.transportadora || '') + '').toString().trim().toUpperCase();
+      if (transpUpper === 'HIDROMAN') operationTag = 'HIDROMAN';
+      else if (productRaw.includes('HIDROMAN')) operationTag = 'HIDROMAN';
+      else if (productRaw.includes('BALDEIO') || productRaw.includes('RITMO')) operationTag = 'BALDEIO';
+      else if (productRaw.includes('INSUMO')) operationTag = 'INSUMO';
+      else if (productRaw.includes('BULK')) operationTag = 'BULK';
+      else if (productRaw.includes('PRODUTO ACABADO')) operationTag = 'PRODUTO ACABADO';
+      else if (productRaw.includes('PALETE')) operationTag = 'PALETES VAZIO';
+      else if (productRaw.includes('LATA')) operationTag = 'LATAS VAZIAS';
+
+      // Fallback: garante HIDROMAN no cabeçalho/status quando a transportadora for HIDROMAN
+      if (!operationTag) {
+        const t2 = ((driverData.transportadora || '') + '').toString().trim().toUpperCase();
+        if (t2.includes('HIDROMAN')) operationTag = 'HIDROMAN';
+      }
 
 
-            const companyPrint = ((firstResult[headerMap.transportadora] || driverData.transportadora || '') + '').toString().trim();
-            // ✅ NOVO: quando não tiver DT real, imprime em branco (sem caracteres)
-            const rawTransport = (firstResult[headerMap.dts] || '').toString().trim();
-            const transportNumberPrint = (/^\d+$/.test(rawTransport) ? rawTransport : '');
+      const companyPrint = ((firstResult[headerMap.transportadora] || driverData.transportadora || '') + '').toString().trim();
+      const rawTransport = (firstResult[headerMap.dts] || '').toString().trim();
+      const transportNumberPrint = (/^\d+$/.test(rawTransport) ? rawTransport : '');
 
-
-            const unloadDtRaw = (driverData.unloadDt || '').toString().trim();
-            const unloadDtPrint = unloadDtRaw ? unloadDtRaw : '';
-            let priorityHtml = '';
+      const unloadDtRaw = (driverData.unloadDt || '').toString().trim();
+      const unloadDtPrint = unloadDtRaw ? unloadDtRaw : '';
+      let priorityHtml = '';
             if (isGradeQueimada) {
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FBBF24;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">GRADE QUEIMADA</h2></div>`;
+                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FBBF24;">
+                                  <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">GRADE QUEIMADA</h2>
+                                </div>`;
             } else if (isAtrasado) {
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FACC15;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ATRASADO</h2></div>`;
+                // aqui representa PERDA DE AGENDA
+                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FACC15;">
+                                  <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">PERDA DE AGENDA</h2>
+                                </div>`;
+            } else if (isAntecipacao) {
+                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
+                                  <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ANTECIPAÇÃO</h2>
+                                </div>`;
+            } else if (isOtif && isTop18) {
+                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
+                                  <h2 class="font-extrabold tracking-wider" style="font-size: 20px;">OTIF / TOP 18</h2>
+                                </div>`;
+            } else if (isOtif) {
+                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
+                                  <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">OTIF</h2>
+                                </div>`;
             } else if (isPriority) {
-                let reasons = [];
-                if (isTop18) reasons.push("TOP 18");
-                if (isOtif) reasons.push("OTIF");
-                if (isAntecipacao) reasons.push("Antecipação");
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;"><h2 class="font-extrabold tracking-wider" style="font-size: 22px;">PRIORIDADE</h2><p class="font-bold" style="font-size: 16px;">(${reasons.join(' / ')})</p></div>`;
+                // Aderente
+                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #BBF7D0;">
+                                  <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ADERENTE</h2>
+                                </div>`;
             } else {
-                priorityHtml = `<div class="border border-black text-center p-1"><h2 class="font-bold tracking-wider">STATUS</h2><p style="font-size: 14px;">(${operationTag || 'Normal'})</p></div>`;
+                priorityHtml = `<div class="border border-black text-center p-1">
+                                  <h2 class="font-bold tracking-wider">STATUS</h2>
+                                  <p style="font-size: 14px;">(${operationTag || 'Normal'})</p>
+                                </div>`;
             }
 
-            const allCanais = ['Y001', 'Y002', 'Y004', 'Y006', 'Y055'];
-            const canalPrint = (firstResult[headerMap.canal] || '').toString().trim().toUpperCase();
-            const canaisHtml = allCanais.map(c => `${c === canalPrint ? '[X]' : '[&nbsp;&nbsp;]'} ${c}`).join(' ');
+      const allCanais = ['Y001', 'Y002', 'Y004', 'Y006', 'Y055'];
+      const canalPrint = (firstResult[headerMap.canal] || '').toString().trim().toUpperCase();
+      const canaisHtml = allCanais.map(c => `${c === canalPrint ? '[X]' : '[&nbsp;&nbsp;]'} ${c}`).join(' ');
 
-            const productHeader = isManual ? "Tipo de Carga" : "Produto";
-            const productTableHtml = `
-                <table class="w-full text-left text-sm border-collapse border border-black">
-                    <thead class="bg-gray-200">
-                        <tr>
-                            <th class="border border-black p-1">${productHeader}</th>
-                            <th class="border border-black p-1 text-center">Quantidade (PLT)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${sheetDataArray.map(item => `
-                            <tr>
-                                <td class="border border-black p-1 font-bold">${item[headerMap.produto] || 'N/A'}</td>
-                                <td class="border border-black p-1 text-center font-bold">${item[headerMap.plt] || 'N/A'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
+      const isBaldeio = !!isManual && (productRaw.includes('BALDEIO') || transpUpper === 'RITMO' || transpUpper === 'JSL');
+      const isInsumoManual = !!isManual && !isBaldeio && productRaw.includes('INSUMO');
 
-            document.getElementById('printable-area').innerHTML = `
-                <div class="p-2 bg-white text-black font-sans text-xs print-main-container">
-                    <header class="flex justify-between items-start mb-4 border-b-2 border-black pb-2">
-                        <div class="flex flex-col items-center">
-                            <div class="flex items-center gap-1">
-                                <span class="text-[9px] font-bold">EST.</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#E50025">
-                                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                                </svg>
-                                <span class="text-[9px] font-bold">1873</span>
-                            </div>
-                            <h1 class="text-3xl font-bold font-title tracking-wider">HEINEKEN</h1>
-                        </div>
-                        <div class="w-1/3 pt-1">${priorityHtml}</div>
-                    </header>
+      // Cabeçalho da coluna esquerda:
+      // - Carregar (planilha): Produto
+      // - Baldeio: Produto (em branco para preencher à caneta)
+      // - Descarga / HIDROMAN / outros manuais: Produto (ou Tipo de Produto no caso de Insumo)
+      const productHeader = isManual
+        ? (isBaldeio ? 'Produto' : (isInsumoManual ? 'Tipo de Produto' : 'Produto'))
+        : 'Produto';
 
+      const productTableHtml = `
+        <table class="w-full text-left text-sm border-collapse border border-black">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="border border-black p-1">${productHeader}</th>
+              <th class="border border-black p-1 text-center">Quantidade (PLT)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sheetDataArray.map(item => {
+              const prod = isManual
+                ? (isBaldeio ? '' : ((item[headerMap.produto] || '') || (operationTag || '')))
+                : (item[headerMap.produto] || 'N/A');
 
-                    ${operationTag ? `
-                    <div class="text-center mb-2 text-base font-extrabold tracking-widest">
-                        ${operationTag}
-                    </div>` : ``}
+              const qtd = isManual
+                ? (item[headerMap.plt] || '')
+                : (item[headerMap.plt] || 'N/A');
 
-                    <div class="text-center mb-2 text-sm">
-                        <p>CANAL: ${canaisHtml}</p>
-                    </div>
+              const rowStyle = isManual ? 'style="height:46px; vertical-align:middle;"' : '';
 
-                    <div class="mb-2 border border-black p-2">
-                        <table class="w-full text-left text-sm">
-                            <tr>
-                                <td class="w-1/2 pr-8 align-top">
-                                    <p><strong>DATA/HORA:</strong> ${printDate} ${printTime}</p>
-                                    <p><strong>MOTORISTA:</strong> ${driverData.name}</p>
-                                    <p><strong>CPF:</strong> ${driverData.cpf}</p>
-                                    <p><strong>PLACA:</strong> ${driverData.truckPlate}</p>
-                                    <p><strong>CARRETA 1:</strong> ${driverData.trailerPlate}</p>
-                                    <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
-                                    <p><strong>CELULAR:</strong> ${driverData.phone}</p>
-                                </td>
-                                <td class="w-1/2 align-top">
-                                    <p><strong>CLIENTE:</strong></p>
-                                    <p class="font-bold">${firstResult[headerMap.cliente] || 'N/A'}</p>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
+              return `
+                <tr>
+                  <td class="border border-black p-1 font-bold" ${rowStyle}>${prod}</td>
+                  <td class="border border-black p-1 text-center font-bold" ${rowStyle}>${qtd}</td>
+                </tr>
+              `;
+}).join('')}
+          </tbody>
+        </table>
+      `;
 
-                    <div class="mb-2">${productTableHtml}</div>
+      document.getElementById('printable-area').innerHTML = `
+        <div class="p-2 bg-white text-black font-sans text-xs print-main-container">
+          <header class="flex justify-between items-start mb-4 border-b-2 border-black pb-2">
+            <div class="flex flex-col items-center">
+              <div class="flex items-center gap-1">
+                <span class="text-[9px] font-bold">EST.</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#E50025">
+                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z"/>
+                </svg>
+                <span class="text-[9px] font-bold">1873</span>
+              </div>
+              <h1 class="text-3xl font-bold font-title tracking-wider">HEINEKEN</h1>
+            </div>
+            <div class="w-1/3 pt-1">${priorityHtml}</div>
+          </header>
 
-                    <table class="w-full border-collapse border-2 border-black mb-2">
-                        <thead>
-                            <tr class="bg-gray-200">
-                                <th class="border border-black p-1">MOTORISTA</th>
-                                <th class="border border-black p-1">Nº NOTA FISCAL</th>
-                                <th class="border border-black p-1">Nº TRANSPORTE</th>
-                                <th class="border border-black p-1">DT DESCARGA</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="border border-black p-1">
-                                    <p>[ ] Carregamento</p>
-                                    <p>[ ] Descarregamento</p>
-                                </td>
-                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${driverData.invoice || '---'}</td>
-                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${transportNumberPrint}</td>
-                                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${unloadDtPrint}</td>
-                            </tr>
-                            <tr>
-                                <td colspan="4" class="border border-black p-1 text-xs">
-                                    [X] Eu, motorista, estou ciente das regras de segurança vigentes no armazém da HEINEKEN de Jacareí
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+          ${operationTag ? `
+          <div class="text-center mb-2 text-base font-extrabold tracking-widest">
+            ${operationTag}
+          </div>` : ``}
 
-                    <table class="w-full border-collapse border border-black mb-2 text-xs">
-                        <thead class="bg-gray-200 text-left">
-                            <tr>
-                                <th class="border border-black p-1">PROCESSO</th>
-                                <th class="border border-black p-1">RESPONSÁVEL</th>
-                                <th class="border border-black p-1">NOME</th>
-                                <th class="border border-black p-1 w-1/3">ASSINATURA</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="border border-black p-1 h-5">Confirmação</td>
-                                <td class="border border-black p-1 text-center">Motorista</td>
-                                <td class="border border-black p-1">${driverData.name}</td>
-                                <td class="border border-black p-1"></td>
-                            </tr>
-                            <tr>
-                                <td class="border border-black p-1 h-5">Recebimento</td>
-                                <td class="border border-black p-1 text-center">Conferente</td>
-                                <td class="border border-black p-1"></td>
-                                <td class="border border-black p-1"></td>
-                            </tr>
-                            <tr>
-                                <td class="border border-black p-1 h-5">Conferência</td>
-                                <td class="border border-black p-1 text-center">Conferente</td>
-                                <td class="border border-black p-1"></td>
-                                <td class="border border-black p-1"></td>
-                            </tr>
-                            <tr>
-                                <td class="border border-black p-1 h-5">Liberação</td>
-                                <td class="border border-black p-1 text-center">Faturista/Conferente</td>
-                                <td class="border border-black p-1"></td>
-                                <td class="border border-black p-1"></td>
-                            </tr>
-                            <!-- ✅ NOVO: Campo de assinatura do Analista -->
-                            <tr>
-                                <td class="border border-black p-1 h-5">Analista</td>
-                                <td class="border border-black p-1 text-center">Analista</td>
-                                <td class="border border-black p-1"></td>
-                                <td class="border border-black p-1"></td>
-                            </tr>
-                        </tbody>
-                    </table>
+          <div class="text-center mb-2 text-sm">
+            <p>CANAL: ${canaisHtml}</p>
+          </div>
 
-                    <div class="border border-black p-2 mb-2">
-                        <h3 class="text-center font-bold mb-1">RESPEITE AS REGRAS DE SEGURANÇA:</h3>
-                        <ul class="text-[9px] space-y-0.5" style="list-style-position: inside;">
-                            <li>Proibido o uso de adornos.</li>
-                            <li>Obrigatório o uso de todos os EPIs: Capacetes c/ jugular, Botas de Segurança, Colete refletivo, Óculos de segurança, Luvas e Máscaras.</li>
-                            <li>Obrigatório Uso das faixas de pedestres.</li>
-                            <li>Obrigatória distância de 5m entre pessoas e empilhadeiras.</li>
-                            <li>Respeitar procedimentos HEINEKEN, Colaboradores e Segurança Patrimonial.</li>
-                        </ul>
-                    </div>
+          <div class="mb-2 border border-black p-2">
+            <table class="w-full text-left text-sm">
+              <tr>
+                <td class="w-1/2 pr-8 align-top">
+                  <p><strong>DATA/HORA:</strong> ${printDate} ${printTime}</p>
+                  <p><strong>MOTORISTA:</strong> ${driverData.name}</p>
+                  <p><strong>CPF:</strong> ${driverData.cpf}</p>
+                  <p><strong>PLACA:</strong> ${driverData.truckPlate}</p>
+                  <p><strong>CARRETA 1:</strong> ${driverData.trailerPlate}</p>
+                  <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
+                  <p><strong>CELULAR:</strong> ${driverData.phone}</p>
+                </td>
+                <td class="w-1/2 align-top">
+                  <p><strong>CLIENTE:</strong></p>
+                  <p class="font-bold">${firstResult[headerMap.cliente] || 'N/A'}</p>
+                </td>
+              </tr>
+            </table>
+          </div>
 
-                    <div class="border border-black p-2">
-                        <div class="flex justify-between items-center mb-1">
-                            <h2 class="text-base font-bold">★ HEINEKEN UNIDADE JACAREÍ</h2>
-                        </div>
+          <div class="mb-2">${productTableHtml}</div>
 
-                        <!-- ✅ Rodapé lado a lado (inline CSS para funcionar no print mesmo com HTML dinâmico) -->
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; column-gap:24px; font-size:12px; line-height:1.25;">
-                            <div style="display:flex; flex-direction:column; row-gap:2px;">
-                                <p><strong>DATA:</strong> ${printDate}</p>
-                                <p><strong>NOME:</strong> ${driverData.name}</p>
-                                <p><strong>TELEFONE:</strong> ${driverData.phone}</p>
-                                <p><strong>PLACA 1:</strong> ${driverData.truckPlate}</p>
-                                <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
-                                <p><strong>NOTA FISCAL:</strong> ${driverData.invoice || ''}</p>
-                                <p><strong>SETOR:</strong></p>
-                            </div>
+          <table class="w-full border-collapse border-2 border-black mb-2">
+            <thead>
+              <tr class="bg-gray-200">
+                <th class="border border-black p-1">MOTORISTA</th>
+                <th class="border border-black p-1">Nº NOTA FISCAL</th>
+                <th class="border border-black p-1">Nº TRANSPORTE</th>
+                <th class="border border-black p-1">DT DESCARGA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="border border-black p-1">
+                  <p>[ ] Carregamento</p>
+                  <p>[ ] Descarregamento</p>
+                </td>
+                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${driverData.invoice || '---'}</td>
+                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${transportNumberPrint}</td>
+                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${unloadDtPrint}</td>
+              </tr>
+              <tr>
+                <td colspan="4" class="border border-black p-1 text-xs">
+                  [X] Eu, motorista, estou ciente das regras de segurança vigentes no armazém da HEINEKEN de Jacareí
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-                            <div style="display:flex; flex-direction:column; row-gap:2px;">
-                                <p><strong>HORA CHEGADA:</strong> ${printTime}</p>
-                                <p><strong>CNH:</strong> ${driverData.cnh || ''}</p>
-                                <p><strong>CPF:</strong> ${driverData.cpf}</p>
-                                <p><strong>EMPRESA:</strong> ${companyPrint}</p>
-                                <p><strong>OPERAÇÃO:</strong> ${operationTag || ''}</p>
-                                <p><strong>PLACA 2:</strong> ${driverData.trailerPlate || ''}</p>
-                                <p><strong>RENAVAM:</strong> ${driverData.renavam || ''}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        // ===== /FOLHA COMPLETA =====
+          <table class="w-full border-collapse border border-black mb-2 text-xs">
+            <thead class="bg-gray-200 text-left">
+              <tr>
+                <th class="border border-black p-1">PROCESSO</th>
+                <th class="border border-black p-1">RESPONSÁVEL</th>
+                <th class="border border-black p-1">NOME</th>
+                <th class="border border-black p-1 w-1/3">ASSINATURA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="border border-black p-1 h-5">Confirmação</td>
+                <td class="border border-black p-1 text-center">Motorista</td>
+                <td class="border border-black p-1">${driverData.name}</td>
+                <td class="border border-black p-1"></td>
+              </tr>
+              <tr>
+                <td class="border border-black p-1 h-5">Recebimento</td>
+                <td class="border border-black p-1 text-center">Conferente</td>
+                <td class="border border-black p-1"></td>
+                <td class="border border-black p-1"></td>
+              </tr>
+              <tr>
+                <td class="border border-black p-1 h-5">Conferência</td>
+                <td class="border border-black p-1 text-center">Conferente</td>
+                <td class="border border-black p-1"></td>
+                <td class="border border-black p-1"></td>
+              </tr>
+              <tr>
+                <td class="border border-black p-1 h-5">Liberação</td>
+                <td class="border border-black p-1 text-center">Faturista/Conferente</td>
+                <td class="border border-black p-1"></td>
+                <td class="border border-black p-1"></td>
+              </tr>
+              <tr>
+                <td class="border border-black p-1 h-5">Analista</td>
+                <td class="border border-black p-1 text-center">Analista</td>
+                <td class="border border-black p-1"></td>
+                <td class="border border-black p-1"></td>
+              </tr>
+            </tbody>
+          </table>
 
+          <div class="border border-black p-2 mb-2">
+            <h3 class="text-center font-bold mb-1">RESPEITE AS REGRAS DE SEGURANÇA:</h3>
+            <ul class="text-[9px] space-y-0.5" style="list-style-position: inside;">
+              <li>Proibido o uso de adornos.</li>
+              <li>Obrigatório o uso de todos os EPIs: Capacetes c/ jugular, Botas de Segurança, Colete refletivo, Óculos de segurança, Luvas e Máscaras.</li>
+              <li>Obrigatório Uso das faixas de pedestres.</li>
+              <li>Obrigatória distância de 5m entre pessoas e empilhadeiras.</li>
+              <li>Respeitar procedimentos HEINEKEN, Colaboradores e Segurança Patrimonial.</li>
+            </ul>
+          </div>
 
-        // ===== Painel =====
+          <div class="border border-black p-2">
+            <div class="flex justify-between items-center mb-1">
+              <h2 class="text-base font-bold">★ HEINEKEN UNIDADE JACAREÍ</h2>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; column-gap:24px; font-size:12px; line-height:1.25;">
+              <div style="display:flex; flex-direction:column; row-gap:2px;">
+                <p><strong>DATA:</strong> ${printDate}</p>
+                <p><strong>NOME:</strong> ${driverData.name}</p>
+                <p><strong>TELEFONE:</strong> ${driverData.phone}</p>
+                <p><strong>PLACA 1:</strong> ${driverData.truckPlate}</p>
+                <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
+                <p><strong>NOTA FISCAL:</strong> ${driverData.invoice || ''}</p>
+                <p><strong>SETOR:</strong></p>
+              </div>
+
+              <div style="display:flex; flex-direction:column; row-gap:2px;">
+                <p><strong>HORA CHEGADA:</strong> ${printTime}</p>
+                <p><strong>CNH:</strong> ${driverData.cnh || ''}</p>
+                <p><strong>CPF:</strong> ${driverData.cpf}</p>
+                <p><strong>EMPRESA:</strong> ${companyPrint}</p>
+                <p><strong>OPERAÇÃO:</strong> ${operationTag || ''}</p>
+                <p><strong>PLACA 2:</strong> ${driverData.trailerPlate || ''}</p>
+                <p><strong>RENAVAM:</strong> ${driverData.renavam || ''}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ===== Painel =====
     function showCallPanel(driverName, isAlert) {
       clearTimeout(panelTimeout);
       callPanelMessage.innerHTML = `ATENÇÃO ${driverName},<br>Aguarde a ser chamado, iremos mandar mensagem no celular`;
@@ -1953,7 +2669,20 @@
     function resetApp() {
       callPanelOverlay.style.display = 'none';
       resultsArea.innerHTML = '';
-      renderActionSelector();
+      try { actionArea.innerHTML = ''; } catch {}
+
+      // Voltar para a primeira etapa (CPF)
+      sessionCpf = '';
+      sessionDriver = null;
+      currentMode = null;
+      pendingUnloadDt = '';
+      requireUnloadDtInForm = false;
+      manualPresetType = '';
+      manualDtIdOverride = '';
+      hideManualExtras = false;
+      showUnloadInputs = true;
+
+      renderCpfGate();
       clearTimeout(panelTimeout);
     }
 
@@ -1979,13 +2708,13 @@
       document.getElementById('manual-form-btn')?.addEventListener('click', async () => {
         await unlockAudio();
         manualPresetType = '';
-        hideManualExtras = false;
-        showUnloadInputs = true;
-        requireUnloadDtInForm = false;
-        pendingUnloadDt = '';
-
-        manualDtIdOverride = normalizeDtId(query) || generateInternalId('MANUAL');
-        showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Marcação Manual', isManualOverride: true });
+        hideManualExtras = false;        showUnloadInputs = !!loadAlsoUnload;
+      presetTransportadora = '';
+      lockTransportadora = false;
+      baldeioDtCarga = '';
+      baldeioDtDescarga = '';
+        requireUnloadDtInForm = false;        manualDtIdOverride = normalizeDtId(query) || generateInternalId('MANUAL');
+                showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Marcação Manual', isManualOverride: true });
       });
     }
 
