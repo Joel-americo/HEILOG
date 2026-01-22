@@ -1191,6 +1191,9 @@
               <button id="unload-opt-paletes" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
                 🟫 Paletes Vazio
               </button>
+              <button id="unload-opt-vasilhames" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                🍾 Vasilhames
+              </button>
               <button id="unload-opt-pa" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
                 🍺 Produto Acabado
               </button>
@@ -1298,6 +1301,7 @@ showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: typeLabel
         document.getElementById('unload-opt-latas')?.addEventListener('click', () => goManualUnload('Latas Vazias', 'LATAS'));
         document.getElementById('unload-opt-bulk')?.addEventListener('click', () => goManualUnload('Bulk', 'BULK'));
         document.getElementById('unload-opt-paletes')?.addEventListener('click', () => goManualUnload('Paletes Vazio', 'PAL'));
+        document.getElementById('unload-opt-vasilhames')?.addEventListener('click', () => goManualUnload('Vasilhames', 'VAS'));
         document.getElementById('unload-opt-pa')?.addEventListener('click', () => goManualUnload('Produto Acabado', 'PA'));
         document.getElementById('unload-opt-insumo')?.addEventListener('click', () => goManualUnload('Insumo', 'INS'));
       }
@@ -1427,16 +1431,7 @@ performSearchByDt(dt);
           if (!isAuthReady || !db) return displayError("Banco de dados ainda não está pronto. Tente novamente.", 4000);
 
           await renderIntegrationStatus(cpf);
-
-          // Se aprovado, pode seguir para o menu automaticamente
-          if (passed && typeof postIntegrationNavigate === 'function') {
-            const cb = postIntegrationNavigate;
-            postIntegrationNavigate = null;
-            setTimeout(() => { try { cb(); } catch {} }, 900);
-          }
-        });
-
-        cpfEl?.focus();
+        });cpfEl?.focus();
       }
       // Handlers (HIDROMAN) - vai direto para dados do motorista
       if (mode === 'HIDROMAN') {
@@ -1633,6 +1628,10 @@ performSearchByDt(dt);
       const lastScore = data?.lastScore ?? '—';
       const lastApprovedAt = toDateMaybe(data?.lastApprovedAt);
       const lastApprovedTxt = lastApprovedAt ? fmt(lastApprovedAt) : '—';
+      const lastScoreNum = (typeof data?.lastScore === 'number') ? data.lastScore : parseInt(data?.lastScore, 10);
+      const canRepeat = Number.isFinite(lastScoreNum) && lastScoreNum < INTEGRATION_MIN_SCORE;
+      const showStartBtn = !(status.state === 'VALID' || status.state === 'EXPIRING');
+      const startLabel = canRepeat ? 'Repetir teste' : 'Fazer teste';
 
       host.innerHTML = `
         <div class="bg-black/25 border border-white/10 rounded-xl p-4 space-y-2">
@@ -1649,11 +1648,11 @@ performSearchByDt(dt);
           </div>
 
           <div class="flex gap-2 pt-2">
-            <button id="int-start" class="btn-green flex-1 py-2 rounded-lg">${status.state === 'VALID' ? 'Refazer (opcional)' : 'Fazer teste'}</button>
-            <button id="int-history" class="btn-ghost flex-1 py-2 rounded-lg">Histórico</button>
+            ${showStartBtn ? `<button id="int-start" class="btn-green flex-1 py-2 rounded-lg">${startLabel}</button>` : ``}
+            <button id="int-history" class="${showStartBtn ? 'btn-ghost flex-1 py-2 rounded-lg' : 'btn-ghost w-full py-2 rounded-lg'}">Histórico</button>
           </div>
 
-          <div id="int-subview" class="pt-2"></div>
+<div id="int-subview" class="pt-2"></div>
         </div>
       `;
 
@@ -1778,6 +1777,14 @@ performSearchByDt(dt);
                    <div class="font-bold">REPROVADO ❌</div>
                    <div>Sua nota: <strong>${score}/${qOrder.length}</strong>. Você pode tentar novamente.</div>
                  </div>`;
+          }
+
+          // Se aprovado e existe próximo passo (CPF gate), pula direto para o menu
+          if (passed && typeof postIntegrationNavigate === 'function') {
+            const cb = postIntegrationNavigate;
+            postIntegrationNavigate = null;
+            setTimeout(() => { try { cb(); } catch {} }, 300);
+            return;
           }
 
           await renderIntegrationStatus(cpf);
@@ -2384,6 +2391,7 @@ const unloadEl = document.getElementById('unload-dt');
       else if (productRaw.includes('BULK')) operationTag = 'BULK';
       else if (productRaw.includes('PRODUTO ACABADO')) operationTag = 'PRODUTO ACABADO';
       else if (productRaw.includes('PALETE')) operationTag = 'PALETES VAZIO';
+      else if (productRaw.includes('VASILH')) operationTag = 'VASILHAMES';
       else if (productRaw.includes('LATA')) operationTag = 'LATAS VAZIAS';
 
       // Fallback: garante HIDROMAN no cabeçalho/status quando a transportadora for HIDROMAN
@@ -2674,6 +2682,7 @@ const unloadEl = document.getElementById('unload-dt');
       // Voltar para a primeira etapa (CPF)
       sessionCpf = '';
       sessionDriver = null;
+      try { localStorage.removeItem('heilog-last-cpf'); } catch {}
       currentMode = null;
       pendingUnloadDt = '';
       requireUnloadDtInForm = false;
