@@ -203,7 +203,7 @@
     let cpfMask, phoneMask;
 
     // Fluxos
-    let currentMode = null;                 // LOAD | UNLOAD | BOTH | LATA_INSUMO | RITMO | INTEGRACAO
+    let currentMode = null;                 // LOAD | UNLOAD | BOTH | LATA_INSUMO | RITMO | INTEGRACAO | HIDROMAN
     let isSheetReady = false;
     let pendingUnloadDt = '';
     let requireUnloadDtInForm = false;
@@ -581,9 +581,6 @@
       if (!scheduledDateTime) {
         return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
       }
-      if (!scheduledDateTime) {
-        return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
-      }
 
       const OTIF_CANAIS = new Set(['Y001','Y002','Y055']);
       const ADERENTE_CANAIS = new Set(['Y004','Y006']);
@@ -647,6 +644,62 @@
       return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
     }
 
+    // --- Operação/Movimento (para salvar no Firestore) ---
+    function toTitleCase(s) {
+      return (s || '').toString().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function computeTransportOperationLabel() {
+      const mode = (currentMode || '').toString().trim().toUpperCase();
+      const presetType = (manualPresetType || '').toString().trim();
+      const presetTypeUp = presetType.toUpperCase();
+      const transp = (presetTransportadora || '').toString().trim().toUpperCase();
+
+      // Descargas (UNLOAD)
+      const unloadMap = {
+        'LATAS VAZIAS': 'Descarga de Latas',
+        'BULK': 'Descarga de Bulk',
+        'PALETES VAZIO': 'Descarga de Paletes',
+        'PALETES VAZIOS': 'Descarga de Paletes',
+        'PALETES': 'Descarga de Paletes',
+        'VASILHAMES': 'Descarga de Vasilhames',
+        'PRODUTO ACABADO': 'Descarga de Produto Acabado',
+        'INSUMO': 'Descarga de Insumo',
+      };
+
+      // Carregamento (LOAD)
+      if (mode === 'LOAD') {
+        return loadAlsoUnload ? 'Carga e Descarga' : 'Carregamento';
+      }
+
+      // Descarregamento (UNLOAD)
+      if (mode === 'UNLOAD') {
+        if (unloadMap[presetTypeUp]) return unloadMap[presetTypeUp];
+        if (presetTypeUp) return `Descarga de ${toTitleCase(presetTypeUp)}`;
+        return 'Descarga';
+      }
+
+      // Baldeio (RITMO/JSL)
+      if (mode === 'RITMO') {
+        return transp ? `Baldeio - ${transp}` : 'Baldeio';
+      }
+
+      // HIDROMAN
+      if (mode === 'HIDROMAN') return 'Hidroman';
+
+      // Integração (não é transporte, mas deixamos fallback)
+      if (mode === 'INTEGRACAO') return 'Integração';
+
+      // Fallback quando currentMode estiver diferente/ausente
+      if (presetTypeUp) {
+        if (unloadMap[presetTypeUp]) return unloadMap[presetTypeUp];
+        if (presetTypeUp === 'BALDEIO') return transp ? `Baldeio - ${transp}` : 'Baldeio';
+        if (presetTypeUp === 'HIDROMAN') return 'Hidroman';
+      }
+
+      return 'Operação';
+    }
+
     // --- Firestore save (motorista + patio) ---
     async function saveDriverData(driverData, originalSheetData, priorityInfo) {
       if (!isAuthReady || !db || !appId) {
@@ -678,6 +731,8 @@
           renavam: driverData.renavam,
           transportadora: driverData.transportadora,
           lastDts: driverData.dts || "",
+          // ✅ NOVO: operação selecionada (movimento)
+          lastOperacao: driverData.operacao || '',
           lastPriority: {
             isPriority: !!pInfoForDriver.isPriority,
             isOtif: !!pInfoForDriver.isOtif,
@@ -719,6 +774,8 @@
           dt: dtId,
           motorista: driverData.name,
           transportadora: driverData.transportadora,
+          // ✅ NOVO: operação selecionada (movimento)
+          operacao: driverData.operacao || '',
           cpf: unmaskedCpf,
           placa: driverData.truckPlate,
           telefone: normalizeDigits(driverData.phone),
@@ -776,7 +833,6 @@
       }
     }
 
-    
     // =======================
     // CPF Gate (entrada única)
     // =======================
@@ -979,10 +1035,9 @@
       });
     }
 
-// =======================
+    // =======================
     // UI - MENU (SIMPLIFICADO)
     // =======================
-    
     function renderActionSelector() {
       currentMode = null;
       pendingUnloadDt = '';
@@ -1030,6 +1085,7 @@
               </div>
               <span class="mode-arrow">➡️</span>
             </button>
+
             <button data-mode="RITMO" class="mode-btn btn-ghost btn-xl" title="Baldeio: DT opcional (se vazio, gera ID interno)">
               <div class="left">
                 <div class="emoji">⚡</div>
@@ -1041,7 +1097,6 @@
               <span class="mode-arrow">➡️</span>
             </button>
 
-            
             <button data-mode="HIDROMAN" class="mode-btn btn-ghost btn-xl" title="HIDROMAN: vai direto para o cadastro do motorista (sem planilha)">
               <div class="left">
                 <div class="emoji">💧</div>
@@ -1052,7 +1107,8 @@
               </div>
               <span class="mode-arrow">➡️</span>
             </button>
-<button data-mode="INTEGRACAO" class="mode-btn btn-ghost btn-xl" title="Teste de Integração (válido por 3 meses)">
+
+            <button data-mode="INTEGRACAO" class="mode-btn btn-ghost btn-xl" title="Teste de Integração (válido por 3 meses)">
               <div class="left">
                 <div class="emoji">📝</div>
                 <div>
@@ -1120,7 +1176,6 @@
       });
     }
 
-
     function renderModeForm(mode) {
       resultsArea.innerHTML = '';
       pendingUnloadDt = '';
@@ -1134,12 +1189,6 @@
       lockTransportadora = false;
       baldeioDtCarga = '';
       baldeioDtDescarga = '';
-      baldeioDtCarga = '';
-      baldeioDtDescarga = '';
-      presetTransportadora = '';
-      lockTransportadora = false;
-      baldeioDtCarga = '';
-      baldeioDtDescarga = '';
 
       const backBtn = `
         <button id="back-to-modes" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">
@@ -1149,9 +1198,7 @@
 
       let html = '';
 
-      
       if (mode === 'LOAD') {
-        // Primeiro pergunta se também vai descarregar
         html = `
           <div class="section space-y-3">
             <div class="step">PASSO 1</div>
@@ -1172,8 +1219,6 @@
         `;
       }
 
-
-      
       if (mode === 'UNLOAD') {
         html = `
           <div class="section space-y-3">
@@ -1223,8 +1268,6 @@
         `;
       }
 
-
-      
       if (mode === 'RITMO') {
         html = `
           <div class="section space-y-3">
@@ -1245,7 +1288,6 @@
           </div>
         `;
       }
-
 
       if (mode === 'INTEGRACAO') {
         html = `
@@ -1276,26 +1318,21 @@
         resultsArea.innerHTML = '';
       });
 
-      
-      
-      // Handlers (descarregar) - escolhe o tipo e vai direto para dados do motorista (sem planilha)
       if (mode === 'UNLOAD') {
         const goManualUnload = async (typeLabel, prefix) => {
           await unlockAudio();
           manualPresetType = typeLabel;
           hideManualExtras = true;
-          showUnloadInputs = false;          // sem NF/DT descarga por padrão (mais simples)
+          showUnloadInputs = false;
           requireUnloadDtInForm = false;
           pendingUnloadDt = '';
 
           manualDtIdOverride = generateInternalId(prefix || 'SEM_DT');
-          
 
-          // Próxima tela: esconde o menu de opções e mostra apenas o formulário
           actionArea.innerHTML = '';
           resultsArea.innerHTML = '';
           try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
-showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: typeLabel, isManualOverride: true });
+          showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: typeLabel, isManualOverride: true });
         };
 
         document.getElementById('unload-opt-latas')?.addEventListener('click', () => goManualUnload('Latas Vazias', 'LATAS'));
@@ -1305,10 +1342,9 @@ showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: typeLabel
         document.getElementById('unload-opt-pa')?.addEventListener('click', () => goManualUnload('Produto Acabado', 'PA'));
         document.getElementById('unload-opt-insumo')?.addEventListener('click', () => goManualUnload('Insumo', 'INS'));
       }
-// Handlers (carregar) - pergunta se vai descarregar
+
       if (mode === 'LOAD') {
         const goToDtForm = (needsUnload) => {
-          // Renderiza o formulário da DT (e DT descarga se precisar)
           const backBtn2 = `<button id="back-to-modes" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">⬅ Voltar</button>`;
           actionArea.innerHTML = `
             <div class="section space-y-3">
@@ -1339,9 +1375,7 @@ showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: typeLabel
           const dtEl = document.getElementById('mode-dt');
           const unloadEl = document.getElementById('mode-unload-dt');
 
-          // Se voltar de tela, mantém o que já foi digitado
           if (unloadEl && pendingUnloadDt) unloadEl.value = pendingUnloadDt;
-
 
           document.getElementById('mode-go')?.addEventListener('click', async () => {
             await unlockAudio();
@@ -1352,7 +1386,7 @@ showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: typeLabel
             pendingUnloadDt = needsUnload ? (unloadEl?.value || '').trim() : '';
             requireUnloadDtInForm = false;
             showUnloadInputs = !!needsUnload;
-performSearchByDt(dt);
+            performSearchByDt(dt);
           });
 
           dtEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
@@ -1374,51 +1408,6 @@ performSearchByDt(dt);
         });
       }
 
-      if (mode === 'LATA_INSUMO') {
-        document.getElementById('pick-lata')?.addEventListener('click', async () => {
-          await unlockAudio();
-          manualPresetType = 'Latas Vazias';
-          hideManualExtras = true;
-          showUnloadInputs = false;
-          requireUnloadDtInForm = false;
-          pendingUnloadDt = '';
-          manualDtIdOverride = generateInternalId('SEM_DT');
-          showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Latas Vazias / sem DT', isManualOverride: true });
-        });
-
-        document.getElementById('pick-insumo')?.addEventListener('click', async () => {
-          await unlockAudio();
-          manualPresetType = 'Insumo';
-          hideManualExtras = true;
-          showUnloadInputs = false;
-          requireUnloadDtInForm = false;
-          pendingUnloadDt = '';
-          manualDtIdOverride = generateInternalId('SEM_DT');
-          showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Insumo / sem DT', isManualOverride: true });
-        });
-      }
-
-      if (mode === 'RITMO') {
-        const optEl = document.getElementById('mode-dt-optional');
-        document.getElementById('mode-go')?.addEventListener('click', async () => {
-          await unlockAudio();
-          manualPresetType = 'Baldeio';
-          hideManualExtras = true;
-          showUnloadInputs = false;
-          requireUnloadDtInForm = false;
-          pendingUnloadDt = '';
-
-          const typed = optEl?.value?.trim() || '';
-          const dtId = normalizeDtId(typed) || generateInternalId('RITMO');
-          manualDtIdOverride = dtId;
-
-          showDriverForm([{ [headerMap.dts]: dtId }], { modeLabel: 'Baldeio', isManualOverride: true });
-        });
-
-        optEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('mode-go')?.click(); });
-        optEl?.focus();
-      }
-
       if (mode === 'INTEGRACAO') {
         const cpfEl = document.getElementById('int-cpf');
         if (cpfEl) IMask(cpfEl, { mask: '000.000.000-00' });
@@ -1431,9 +1420,10 @@ performSearchByDt(dt);
           if (!isAuthReady || !db) return displayError("Banco de dados ainda não está pronto. Tente novamente.", 4000);
 
           await renderIntegrationStatus(cpf);
-        });cpfEl?.focus();
+        });
+        cpfEl?.focus();
       }
-      // Handlers (HIDROMAN) - vai direto para dados do motorista
+
       if (mode === 'HIDROMAN') {
         document.getElementById('hidroman-go')?.addEventListener('click', async () => {
           await unlockAudio();
@@ -1442,7 +1432,6 @@ performSearchByDt(dt);
           showUnloadInputs = false;
           requireUnloadDtInForm = false;
           pendingUnloadDt = '';
-          // Transportadora fixa
           presetTransportadora = 'HIDROMAN';
           lockTransportadora = true;
           manualDtIdOverride = generateInternalId('HID');
@@ -1451,9 +1440,7 @@ performSearchByDt(dt);
         });
       }
 
-
-      
-      // Handlers (Baldeio) - escolhe Ritmo ou JSL e (opcionalmente) informa DTs
+      // Baldeio: escolhe Ritmo ou JSL e (opcionalmente) informa DTs
       if (mode === 'RITMO') {
         const goBaldeioStep2 = () => {
           const backBtnB = `<button id="back-to-baldeio-transp" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">⬅ Voltar</button>`;
@@ -1517,9 +1504,6 @@ performSearchByDt(dt);
         document.getElementById('baldeio-ritmo')?.addEventListener('click', () => chooseTransp('RITMO'));
         document.getElementById('baldeio-jsl')?.addEventListener('click', () => chooseTransp('JSL'));
       }
-
-
-
     }
 
     // =======================
@@ -1652,7 +1636,7 @@ performSearchByDt(dt);
             <button id="int-history" class="${showStartBtn ? 'btn-ghost flex-1 py-2 rounded-lg' : 'btn-ghost w-full py-2 rounded-lg'}">Histórico</button>
           </div>
 
-<div id="int-subview" class="pt-2"></div>
+          <div id="int-subview" class="pt-2"></div>
         </div>
       `;
 
@@ -1779,7 +1763,6 @@ performSearchByDt(dt);
                  </div>`;
           }
 
-          // Se aprovado e existe próximo passo (CPF gate), pula direto para o menu
           if (passed && typeof postIntegrationNavigate === 'function') {
             const cb = postIntegrationNavigate;
             postIntegrationNavigate = null;
@@ -1904,11 +1887,10 @@ performSearchByDt(dt);
     }
 
     function showDriverForm(dataArray, options = {}) {
-            // Próxima tela: esconde o menu anterior e sobe para o topo
       try { actionArea.innerHTML = ''; } catch {}
       try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { try { window.scrollTo(0,0); } catch {} }
 
-const firstResult = dataArray[0] || {};
+      const firstResult = dataArray[0] || {};
       const isManual = options.isManualOverride === true ? true : !firstResult[headerMap.cliente];
       const modeLabel = options.modeLabel || 'Operação';
 
@@ -1932,23 +1914,24 @@ const firstResult = dataArray[0] || {};
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 items-start">
                   <select id="manual-type" class="form-select select-xl">
-                  <option value="">Tipo de Carga</option>
-                  <option value="Bulk">Bulk</option>
-                  <option value="Paletes Vazio">Paletes Vazio</option>
-                  <option value="Embalagem">Embalagem</option>
-                  <option value="Latas Vazias">Latas Vazias</option>
-                  <option value="Produto Acabado">Produto Acabado</option>
-                  <option value="Insumo">Insumo</option>
-                  <option value="Baldeio">Baldeio</option>
-                  <option value="Descarga">Descarga</option>
-                </select>
+                    <option value="">Tipo de Carga</option>
+                    <option value="Bulk">Bulk</option>
+                    <option value="Paletes Vazio">Paletes Vazio</option>
+                    <option value="Embalagem">Embalagem</option>
+                    <option value="Latas Vazias">Latas Vazias</option>
+                    <option value="Produto Acabado">Produto Acabado</option>
+                    <option value="Insumo">Insumo</option>
+                    <option value="Baldeio">Baldeio</option>
+                    <option value="Descarga">Descarga</option>
+                  </select>
                   <div id="manual-type-help" class="help sm:pt-2">Escolha o tipo. Se não souber, deixe em branco.</div>
                 </div>
 
                 <div ${hideManualExtras ? 'hidden' : ''}>
                   <input type="text" id="manual-plt" class="form-input input-xl" placeholder="Quantidade (PLT) (opcional)">
                 </div>
-<select id="manual-canal" class="form-select select-xl">
+
+                <select id="manual-canal" class="form-select select-xl">
                   <option value="">Canal (opcional)</option>
                   <option value="Y001">Y001</option>
                   <option value="Y002">Y002</option>
@@ -1992,7 +1975,6 @@ const firstResult = dataArray[0] || {};
 
             <input type="text" id="driver-transportadora" class="form-input input-xl" placeholder="Transportadora">
             <div class="help">Se souber, preencha a transportadora.</div>
-
           </div>
 
           <div class="section space-y-2">
@@ -2002,13 +1984,13 @@ const firstResult = dataArray[0] || {};
             <input type="text" id="truck-plate" class="form-input input-xl" placeholder="Placa do cavalo">
             <input type="text" id="trailer-plate" class="form-input input-xl" placeholder="Placa da carreta (opcional)">
 
-            
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <input type="text" id="driver-cnh" class="form-input input-xl" placeholder="CNH (número) *">
               <input type="text" id="cnh-expiry" class="form-input input-xl" placeholder="Validade da CNH (DD/MM/AAAA)">
             </div>
             <div class="help">A CNH é importante. Se não souber a validade, pode deixar em branco.</div>
-<select id="truck-axles" class="form-select select-xl">
+
+            <select id="truck-axles" class="form-select select-xl">
               <option value="">Eixos (opcional)</option>
               <option value="2">2 Eixos</option>
               <option value="3">3 Eixos</option>
@@ -2058,7 +2040,6 @@ const firstResult = dataArray[0] || {};
 
       applyFormMasksAndValidations();
 
-      // Prefills
       if (isManual) {
         const manualTypeEl = document.getElementById('manual-type');
         const manualClientEl = document.getElementById('manual-client');
@@ -2069,7 +2050,6 @@ const firstResult = dataArray[0] || {};
         if (manualPltEl && hideManualExtras && !manualPltEl.value) manualPltEl.value = '';
       }
 
-      // Ajuda: explica o "Tipo de Carga" para facilitar a escolha
       const manualTypeEl2 = document.getElementById('manual-type');
       const manualTypeHelp = document.getElementById('manual-type-help');
       const explainType = (val) => {
@@ -2093,14 +2073,12 @@ const firstResult = dataArray[0] || {};
         });
       }
 
-      // Transportadora (visível em todos os fluxos)
       const driverTranspEl = document.getElementById('driver-transportadora');
       if (driverTranspEl && !driverTranspEl.value) {
         const fromSheet = (firstResult?.[headerMap.transportadora] || '').toString();
         driverTranspEl.value = fromSheet;
       }
 
-            // Aplica preset de transportadora (quando existir)
       if (driverTranspEl && presetTransportadora) {
         driverTranspEl.value = presetTransportadora;
       }
@@ -2113,12 +2091,12 @@ const firstResult = dataArray[0] || {};
         }
       }
 
-const unloadEl = document.getElementById('unload-dt');
+      const unloadEl = document.getElementById('unload-dt');
       if (unloadEl && pendingUnloadDt) unloadEl.value = pendingUnloadDt;
 
       document.getElementById('driver-cpf')?.addEventListener('input', findAndFillDriverData);
 
-      // ✅ Bloqueio por Integração (motorista só imprime se estiver com integração válida)
+      // Bloqueio por Integração (motorista só imprime se estiver com integração válida)
       const _intCpfEl = document.getElementById('driver-cpf');
       const _intStatusEl = document.getElementById('driver-int-status');
       const _intBadgeEl = document.getElementById('driver-int-badge');
@@ -2139,7 +2117,6 @@ const unloadEl = document.getElementById('unload-dt');
         if (!_intCpfEl || !_intStatusEl || !_intBadgeEl) return;
         const cpfDigits = normalizeDigits(_intCpfEl.value);
 
-        // ✅ FIX: trava até CPF completo
         if (cpfDigits.length !== 11) {
           _intBadgeEl.textContent = '—';
           _intStatusEl.textContent = 'Digite o CPF completo para verificar.';
@@ -2265,7 +2242,7 @@ const unloadEl = document.getElementById('unload-dt');
       if (!validateField(nameEl, "Nome do motorista é obrigatório.")) return;
       if (!validateField(cpfEl, "CPF é obrigatório.", () => cpfMask?.unmaskedValue?.length === 11)) return;
 
-      // ✅ Integração obrigatória
+      // Integração obrigatória
       try {
         const cpfDigits = normalizeDigits(cpfEl.value);
         const st = await getIntegrationStateForCpf(cpfDigits);
@@ -2316,11 +2293,14 @@ const unloadEl = document.getElementById('unload-dt');
         })()
       };
 
+      // ✅ NOVO: define a operação selecionada para salvar no Firestore
+      driverData.operacao = computeTransportOperationLabel();
 
       // Segurança: HIDROMAN sempre com transportadora HIDROMAN
       if ((presetTransportadora || '').toString().trim().toUpperCase() === 'HIDROMAN') {
         driverData.transportadora = 'HIDROMAN';
       }
+
       const sheetData = isManual ? [{
         ...firstOriginal,
         [headerMap.dts]: dtToUse,
@@ -2382,7 +2362,6 @@ const unloadEl = document.getElementById('unload-dt');
 
       const productRaw = (firstResult[headerMap.produto] || '').toString().toUpperCase();
       let operationTag = '';
-      // Operação (exibição amigável)
       const transpUpper = ((driverData.transportadora || '') + '').toString().trim().toUpperCase();
       if (transpUpper === 'HIDROMAN') operationTag = 'HIDROMAN';
       else if (productRaw.includes('HIDROMAN')) operationTag = 'HIDROMAN';
@@ -2394,12 +2373,10 @@ const unloadEl = document.getElementById('unload-dt');
       else if (productRaw.includes('VASILH')) operationTag = 'VASILHAMES';
       else if (productRaw.includes('LATA')) operationTag = 'LATAS VAZIAS';
 
-      // Fallback: garante HIDROMAN no cabeçalho/status quando a transportadora for HIDROMAN
       if (!operationTag) {
         const t2 = ((driverData.transportadora || '') + '').toString().trim().toUpperCase();
         if (t2.includes('HIDROMAN')) operationTag = 'HIDROMAN';
       }
-
 
       const companyPrint = ((firstResult[headerMap.transportadora] || driverData.transportadora || '') + '').toString().trim();
       const rawTransport = (firstResult[headerMap.dts] || '').toString().trim();
@@ -2408,38 +2385,36 @@ const unloadEl = document.getElementById('unload-dt');
       const unloadDtRaw = (driverData.unloadDt || '').toString().trim();
       const unloadDtPrint = unloadDtRaw ? unloadDtRaw : '';
       let priorityHtml = '';
-            if (isGradeQueimada) {
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FBBF24;">
-                                  <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">GRADE QUEIMADA</h2>
-                                </div>`;
-            } else if (isAtrasado) {
-                // aqui representa PERDA DE AGENDA
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FACC15;">
-                                  <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">PERDA DE AGENDA</h2>
-                                </div>`;
-            } else if (isAntecipacao) {
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
-                                  <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ANTECIPAÇÃO</h2>
-                                </div>`;
-            } else if (isOtif && isTop18) {
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
-                                  <h2 class="font-extrabold tracking-wider" style="font-size: 20px;">OTIF / TOP 18</h2>
-                                </div>`;
-            } else if (isOtif) {
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
-                                  <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">OTIF</h2>
-                                </div>`;
-            } else if (isPriority) {
-                // Aderente
-                priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #BBF7D0;">
-                                  <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ADERENTE</h2>
-                                </div>`;
-            } else {
-                priorityHtml = `<div class="border border-black text-center p-1">
-                                  <h2 class="font-bold tracking-wider">STATUS</h2>
-                                  <p style="font-size: 14px;">(${operationTag || 'Normal'})</p>
-                                </div>`;
-            }
+      if (isGradeQueimada) {
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FBBF24;">
+                          <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">GRADE QUEIMADA</h2>
+                        </div>`;
+      } else if (isAtrasado) {
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FACC15;">
+                          <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">PERDA DE AGENDA</h2>
+                        </div>`;
+      } else if (isAntecipacao) {
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
+                          <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ANTECIPAÇÃO</h2>
+                        </div>`;
+      } else if (isOtif && isTop18) {
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
+                          <h2 class="font-extrabold tracking-wider" style="font-size: 20px;">OTIF / TOP 18</h2>
+                        </div>`;
+      } else if (isOtif) {
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
+                          <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">OTIF</h2>
+                        </div>`;
+      } else if (isPriority) {
+        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #BBF7D0;">
+                          <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ADERENTE</h2>
+                        </div>`;
+      } else {
+        priorityHtml = `<div class="border border-black text-center p-1">
+                          <h2 class="font-bold tracking-wider">STATUS</h2>
+                          <p style="font-size: 14px;">(${operationTag || 'Normal'})</p>
+                        </div>`;
+      }
 
       const allCanais = ['Y001', 'Y002', 'Y004', 'Y006', 'Y055'];
       const canalPrint = (firstResult[headerMap.canal] || '').toString().trim().toUpperCase();
@@ -2448,10 +2423,6 @@ const unloadEl = document.getElementById('unload-dt');
       const isBaldeio = !!isManual && (productRaw.includes('BALDEIO') || transpUpper === 'RITMO' || transpUpper === 'JSL');
       const isInsumoManual = !!isManual && !isBaldeio && productRaw.includes('INSUMO');
 
-      // Cabeçalho da coluna esquerda:
-      // - Carregar (planilha): Produto
-      // - Baldeio: Produto (em branco para preencher à caneta)
-      // - Descarga / HIDROMAN / outros manuais: Produto (ou Tipo de Produto no caso de Insumo)
       const productHeader = isManual
         ? (isBaldeio ? 'Produto' : (isInsumoManual ? 'Tipo de Produto' : 'Produto'))
         : 'Produto';
@@ -2482,7 +2453,7 @@ const unloadEl = document.getElementById('unload-dt');
                   <td class="border border-black p-1 text-center font-bold" ${rowStyle}>${qtd}</td>
                 </tr>
               `;
-}).join('')}
+            }).join('')}
           </tbody>
         </table>
       `;
@@ -2679,7 +2650,6 @@ const unloadEl = document.getElementById('unload-dt');
       resultsArea.innerHTML = '';
       try { actionArea.innerHTML = ''; } catch {}
 
-      // Voltar para a primeira etapa (CPF)
       sessionCpf = '';
       sessionDriver = null;
       try { localStorage.removeItem('heilog-last-cpf'); } catch {}
@@ -2717,13 +2687,15 @@ const unloadEl = document.getElementById('unload-dt');
       document.getElementById('manual-form-btn')?.addEventListener('click', async () => {
         await unlockAudio();
         manualPresetType = '';
-        hideManualExtras = false;        showUnloadInputs = !!loadAlsoUnload;
-      presetTransportadora = '';
-      lockTransportadora = false;
-      baldeioDtCarga = '';
-      baldeioDtDescarga = '';
-        requireUnloadDtInForm = false;        manualDtIdOverride = normalizeDtId(query) || generateInternalId('MANUAL');
-                showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Marcação Manual', isManualOverride: true });
+        hideManualExtras = false;
+        showUnloadInputs = !!loadAlsoUnload;
+        presetTransportadora = '';
+        lockTransportadora = false;
+        baldeioDtCarga = '';
+        baldeioDtDescarga = '';
+        requireUnloadDtInForm = false;
+        manualDtIdOverride = normalizeDtId(query) || generateInternalId('MANUAL');
+        showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'Marcação Manual', isManualOverride: true });
       });
     }
 
