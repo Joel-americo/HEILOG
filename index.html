@@ -44,6 +44,43 @@
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     #call-panel-content { padding: 3rem; border-radius: 1rem; text-align: center; color: #1a202c; animation: fadeIn 0.3s ease-out; }
 
+    /* Popup de confirmação das placas */
+    #plate-confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0,0,0,0.82);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1100;
+      padding: 1rem;
+    }
+
+    #plate-confirm-modal {
+      width: 100%;
+      max-width: 520px;
+      border-radius: 22px;
+    }
+
+    .plate-line {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    .plate-line .label {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      margin-bottom: 4px;
+    }
+
+    .plate-line .value {
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
     /* ✅ NÃO MOSTRAR A FOLHA NA TELA (só no print) */
     #printable-area { position: fixed; left: -10000px; top: 0; width: 100%; }
 
@@ -52,7 +89,7 @@
       #printable-area, #printable-area * { visibility: visible; }
       #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
       .print-main-container { border: 4px solid black !important; padding: 1rem; color: black !important; }
-      #app-container, #call-panel-overlay { display: none; }
+      #app-container, #call-panel-overlay, #plate-confirm-overlay { display: none !important; }
     }
 
     /* Menu tiles (modo inicial) - mantido mas não usado no modo simplificado */
@@ -145,6 +182,40 @@
     <div id="call-panel-content" class="w-full max-w-2xl">
       <h2 id="call-panel-message" class="text-4xl md:text-6xl font-bold uppercase mb-6"></h2>
       <button id="close-panel-btn" class="bg-white/80 hover:bg-white text-gray-800 font-bold py-3 px-8 rounded-lg transition-all">Fechar</button>
+    </div>
+  </div>
+
+  <!-- Popup de confirmação das placas -->
+  <div id="plate-confirm-overlay">
+    <div id="plate-confirm-modal" class="card shadow-2xl p-6 space-y-4">
+      <div class="text-center">
+        <h3 class="font-title text-3xl text-white uppercase">Confira se as placas estão corretas</h3>
+        <p class="help mt-2">
+          Se estiver algo errado, toque em <b>Alterar</b>.
+          Se estiver tudo certo, toque em <b>Confirmar e Imprimir</b>.
+        </p>
+      </div>
+
+      <div class="space-y-3">
+        <div class="plate-line">
+          <div class="label text-gray-300">Placa do cavalo</div>
+          <div id="confirm-truck-plate" class="value text-white">-</div>
+        </div>
+
+        <div class="plate-line">
+          <div class="label text-gray-300">Placa da carreta</div>
+          <div id="confirm-trailer-plate" class="value text-white">-</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+        <button id="plate-confirm-edit-btn" class="btn-ghost w-full py-4 rounded-xl text-lg font-extrabold">
+          Alterar
+        </button>
+        <button id="plate-confirm-print-btn" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+          Confirmar e Imprimir
+        </button>
+      </div>
     </div>
   </div>
 
@@ -490,23 +561,14 @@
 
     // --- PRIORIDADE ---
     function getPriorityInfo(sheetRow) {
-      // Regras (baseadas na planilha):
-      // - Sem dados de agenda/canal/segmento => NORMAL
-      // - Y001/Y002/Y055 (OTIF) e dentro da janela (antecipado / no horário / até 1h) => OTIF (ou OTIF/TOP 18)
-      // - Y004/Y006 e dentro da janela => ADERENTE
-      // - > 1h depois => PERDA DE AGENDA
-      // - 1+ dias depois => GRADE QUEIMADA
-      // - agenda 20/21/22/23 => ANTECIPAÇÃO
-
       let isPriority = false;
       let isOtif = false;
       let isTop18 = false;
       let isAderente = false;
       let isAntecipacao = false;
       let isGradeQueimada = false;
-      let isAtrasado = false; // aqui representa "PERDA DE AGENDA"
+      let isAtrasado = false;
 
-      // Se não houver info (DT fora da planilha), fica NORMAL.
       if (!sheetRow) return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
 
       const canal = (sheetRow[headerMap.canal] || '').toString().trim().toUpperCase();
@@ -515,46 +577,37 @@
       const segmento = (sheetRow[headerMap.xtAdicional] || '').toString().toUpperCase();
       isTop18 = segmento.includes('TOP18') || segmento.includes('TOP 18');
 
-      // Se faltar data/hora/canal, mantém NORMAL
-      // aceita formatos: dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd, yyyy/mm/dd e também "dd/mm/yyyy hh:mm"
       const extractDateTime = (dStr, tStr) => {
         let d = (dStr || '').toString().trim();
         let t = (tStr || '').toString().trim();
 
-        // se a data vier junto com hora
         if (d.includes(' ') && !t) {
           const parts = d.split(' ');
           d = parts[0] || d;
           t = parts[1] || '';
         }
 
-        // limpa segundos extras e espaços
         t = t.replace(/\s+/g, '');
         if (t.includes('h')) t = t.replace('h', ':');
 
         const parseDate = (x) => {
           if (!x) return null;
-          // dd/mm/yyyy
           if (/^\d{2}\/\d{2}\/\d{4}$/.test(x)) {
             const [dd, mm, yyyy] = x.split('/').map(v => parseInt(v, 10));
             return new Date(yyyy, mm - 1, dd);
           }
-          // dd-mm-yyyy
           if (/^\d{2}-\d{2}-\d{4}$/.test(x)) {
             const [dd, mm, yyyy] = x.split('-').map(v => parseInt(v, 10));
             return new Date(yyyy, mm - 1, dd);
           }
-          // yyyy-mm-dd
           if (/^\d{4}-\d{2}-\d{2}$/.test(x)) {
             const [yyyy, mm, dd] = x.split('-').map(v => parseInt(v, 10));
             return new Date(yyyy, mm - 1, dd);
           }
-          // yyyy/mm/dd
           if (/^\d{4}\/\d{2}\/\d{2}$/.test(x)) {
             const [yyyy, mm, dd] = x.split('/').map(v => parseInt(v, 10));
             return new Date(yyyy, mm - 1, dd);
           }
-          // tenta Date nativo
           const dn = new Date(x);
           return Number.isNaN(dn.getTime()) ? null : dn;
         };
@@ -592,13 +645,11 @@
       const today = new Date(now); today.setHours(0, 0, 0, 0);
       const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
 
-      // 1+ dias depois => Grade Queimada
       if (today.getTime() > scheduledDay.getTime()) {
         isGradeQueimada = true;
         return { label: 'GRADE QUEIMADA', level: 3, isPriority: true, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
       }
 
-      // Dia ANTES do agendado (chegou antecipado) => entra na janela (classifica OTIF/ADERENTE)
       if (today.getTime() < scheduledDay.getTime()) {
         if (isOtif) {
           isPriority = true;
@@ -612,7 +663,6 @@
         return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
       }
 
-      // Horários 20-23 => Antecipação
       const plannedHour = scheduledDateTime.getHours();
       if (plannedHour >= 20 && plannedHour <= 23) {
         isAntecipacao = true;
@@ -620,16 +670,13 @@
         return { label: 'ANTECIPAÇÃO', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
       }
 
-      // Mesma data: calcula diferença
       const diffMs = now.getTime() - scheduledDateTime.getTime();
 
-      // Depois de 1h => Perda de Agenda
       if (diffMs > (60 * 60 * 1000)) {
         isAtrasado = true;
         return { label: 'PERDA DE AGENDA', level: 2, isPriority: true, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
       }
 
-      // Dentro da janela (antecipado / no horário / até 1h)
       if (isOtif) {
         isPriority = true;
         if (isTop18) return { label: 'OTIF/TOP 18', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
@@ -655,7 +702,6 @@
       const presetTypeUp = presetType.toUpperCase();
       const transp = (presetTransportadora || '').toString().trim().toUpperCase();
 
-      // Descargas (UNLOAD)
       const unloadMap = {
         'LATAS VAZIAS': 'Descarga de Latas',
         'BULK': 'Descarga de Bulk',
@@ -667,30 +713,23 @@
         'INSUMO': 'Descarga de Insumo',
       };
 
-      // Carregamento (LOAD)
       if (mode === 'LOAD') {
         return loadAlsoUnload ? 'Carga e Descarga' : 'Carregamento';
       }
 
-      // Descarregamento (UNLOAD)
       if (mode === 'UNLOAD') {
         if (unloadMap[presetTypeUp]) return unloadMap[presetTypeUp];
         if (presetTypeUp) return `Descarga de ${toTitleCase(presetTypeUp)}`;
         return 'Descarga';
       }
 
-      // Baldeio (RITMO/JSL)
       if (mode === 'RITMO') {
         return transp ? `Baldeio - ${transp}` : 'Baldeio';
       }
 
-      // HIDROMAN
       if (mode === 'HIDROMAN') return 'Hidroman';
-
-      // Integração (não é transporte, mas deixamos fallback)
       if (mode === 'INTEGRACAO') return 'Integração';
 
-      // Fallback quando currentMode estiver diferente/ausente
       if (presetTypeUp) {
         if (unloadMap[presetTypeUp]) return unloadMap[presetTypeUp];
         if (presetTypeUp === 'BALDEIO') return transp ? `Baldeio - ${transp}` : 'Baldeio';
@@ -715,7 +754,6 @@
         return false;
       }
 
-      // drivers
       try {
         const driverDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'drivers', unmaskedCpf);
         const pInfoForDriver = priorityInfo || getPriorityInfo(originalSheetData || {});
@@ -731,7 +769,6 @@
           renavam: driverData.renavam,
           transportadora: driverData.transportadora,
           lastDts: driverData.dts || "",
-          // ✅ NOVO: operação selecionada (movimento)
           lastOperacao: driverData.operacao || '',
           lastPriority: {
             isPriority: !!pInfoForDriver.isPriority,
@@ -751,7 +788,6 @@
         return false;
       }
 
-      // patio
       try {
         const patioDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'patio', dtId);
         const pInfo = priorityInfo || getPriorityInfo(originalSheetData || {});
@@ -774,7 +810,6 @@
           dt: dtId,
           motorista: driverData.name,
           transportadora: driverData.transportadora,
-          // ✅ NOVO: operação selecionada (movimento)
           operacao: driverData.operacao || '',
           cpf: unmaskedCpf,
           placa: driverData.truckPlate,
@@ -833,9 +868,6 @@
       }
     }
 
-    // =======================
-    // CPF Gate (entrada única)
-    // =======================
     async function loadDriverByCpf(cpfDigits) {
       const cpf = normalizeDigits(cpfDigits);
       if (cpf.length !== 11 || !db) return null;
@@ -1035,9 +1067,6 @@
       });
     }
 
-    // =======================
-    // UI - MENU (SIMPLIFICADO)
-    // =======================
     function renderActionSelector() {
       currentMode = null;
       pendingUnloadDt = '';
@@ -1128,7 +1157,6 @@
         </div>
       `;
 
-      // Alto contraste
       const hcKey = "heilog-hc";
       const applyHc = (on) => {
         actionArea.classList.toggle("hc", !!on);
@@ -1440,7 +1468,6 @@
         });
       }
 
-      // Baldeio: escolhe Ritmo ou JSL e (opcionalmente) informa DTs
       if (mode === 'RITMO') {
         const goBaldeioStep2 = () => {
           const backBtnB = `<button id="back-to-baldeio-transp" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">⬅ Voltar</button>`;
@@ -1506,9 +1533,6 @@
       }
     }
 
-    // =======================
-    // Integração: status e teste
-    // =======================
     async function loadIntegrationDoc(cpf) {
       const cacheKey = `heilog-integration-${cpf}`;
       const ref = doc(db, 'artifacts', appId, 'public', 'data', 'integrations', cpf);
@@ -1822,9 +1846,6 @@
       });
     }
 
-    // =======================
-    // Busca DT + Form motorista
-    // =======================
     function performSearchByDt(query) {
       const q = query.trim();
       if (!q) { displayError("Digite um número de DT para buscar."); return; }
@@ -2096,7 +2117,6 @@
 
       document.getElementById('driver-cpf')?.addEventListener('input', findAndFillDriverData);
 
-      // Bloqueio por Integração (motorista só imprime se estiver com integração válida)
       const _intCpfEl = document.getElementById('driver-cpf');
       const _intStatusEl = document.getElementById('driver-int-status');
       const _intBadgeEl = document.getElementById('driver-int-badge');
@@ -2203,7 +2223,18 @@
       if (phoneEl) phoneMask = IMask(phoneEl, { mask: '(00) 00000-0000' });
 
       const plateEl = document.getElementById('truck-plate');
-      if (plateEl) plateEl.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
+      if (plateEl) {
+        plateEl.addEventListener('input', (e) => {
+          e.target.value = e.target.value.toUpperCase();
+        });
+      }
+
+      const trailerEl = document.getElementById('trailer-plate');
+      if (trailerEl) {
+        trailerEl.addEventListener('input', (e) => {
+          e.target.value = e.target.value.toUpperCase();
+        });
+      }
     }
 
     function fillFormFields(data) {
@@ -2233,6 +2264,67 @@
       return true;
     }
 
+    function openPlateConfirmModal(truckPlate, trailerPlate) {
+      return new Promise((resolve) => {
+        const plateConfirmOverlay = document.getElementById('plate-confirm-overlay');
+        const confirmTruckPlate = document.getElementById('confirm-truck-plate');
+        const confirmTrailerPlate = document.getElementById('confirm-trailer-plate');
+        const plateConfirmEditBtn = document.getElementById('plate-confirm-edit-btn');
+        const plateConfirmPrintBtn = document.getElementById('plate-confirm-print-btn');
+
+        if (
+          !plateConfirmOverlay ||
+          !confirmTruckPlate ||
+          !confirmTrailerPlate ||
+          !plateConfirmEditBtn ||
+          !plateConfirmPrintBtn
+        ) {
+          console.error('Modal de confirmação das placas não encontrado no DOM.');
+          resolve(true);
+          return;
+        }
+
+        confirmTruckPlate.textContent = (truckPlate || 'NÃO INFORMADO').toUpperCase();
+        confirmTrailerPlate.textContent = (trailerPlate || 'NÃO INFORMADO').toUpperCase();
+
+        plateConfirmOverlay.style.display = 'flex';
+
+        const cleanup = () => {
+          plateConfirmOverlay.style.display = 'none';
+          plateConfirmEditBtn.onclick = null;
+          plateConfirmPrintBtn.onclick = null;
+          plateConfirmOverlay.onclick = null;
+          document.removeEventListener('keydown', escHandler);
+        };
+
+        const escHandler = (e) => {
+          if (e.key === 'Escape') {
+            cleanup();
+            resolve(false);
+          }
+        };
+
+        plateConfirmEditBtn.onclick = () => {
+          cleanup();
+          resolve(false);
+        };
+
+        plateConfirmPrintBtn.onclick = () => {
+          cleanup();
+          resolve(true);
+        };
+
+        plateConfirmOverlay.onclick = (e) => {
+          if (e.target === plateConfirmOverlay) {
+            cleanup();
+            resolve(false);
+          }
+        };
+
+        document.addEventListener('keydown', escHandler);
+      });
+    }
+
     async function generateAndPrintSheet(originalDataArray, { isManual }) {
       const nameEl = document.getElementById('driver-name');
       const cpfEl = document.getElementById('driver-cpf');
@@ -2242,7 +2334,6 @@
       if (!validateField(nameEl, "Nome do motorista é obrigatório.")) return;
       if (!validateField(cpfEl, "CPF é obrigatório.", () => cpfMask?.unmaskedValue?.length === 11)) return;
 
-      // Integração obrigatória
       try {
         const cpfDigits = normalizeDigits(cpfEl.value);
         const st = await getIntegrationStateForCpf(cpfDigits);
@@ -2265,6 +2356,17 @@
       const unloadDtEl = document.getElementById('unload-dt');
       if (requireUnloadDtInForm && unloadDtEl) {
         if (!validateField(unloadDtEl, "DT de descarga é obrigatória.", () => unloadDtEl.value.trim().length > 0)) return;
+      }
+
+      const trailerEl = document.getElementById('trailer-plate');
+      const confirmedPlates = await openPlateConfirmModal(
+        (plateEl?.value || '').trim().toUpperCase(),
+        (trailerEl?.value || '').trim().toUpperCase()
+      );
+
+      if (!confirmedPlates) {
+        plateEl?.focus();
+        return;
       }
 
       const firstOriginal = originalDataArray[0] || {};
@@ -2293,10 +2395,8 @@
         })()
       };
 
-      // ✅ NOVO: define a operação selecionada para salvar no Firestore
       driverData.operacao = computeTransportOperationLabel();
 
-      // Segurança: HIDROMAN sempre com transportadora HIDROMAN
       if ((presetTransportadora || '').toString().trim().toUpperCase() === 'HIDROMAN') {
         driverData.transportadora = 'HIDROMAN';
       }
@@ -2352,7 +2452,6 @@
       setTimeout(() => { if (!afterPrintFired) afterPrint(); }, 1500);
     }
 
-    // ===== FOLHA DE IMPRESSÃO COMPLETA (IGUAL AO ORIGINAL) =====
     function buildPrintableSheet(driverData, sheetDataArray, isPriority, isOtif, isTop18, isAntecipacao, isGradeQueimada, isAtrasado, isManual) {
       const now = new Date();
       const printDate = now.toLocaleDateString('pt-BR');
@@ -2617,7 +2716,6 @@
       `;
     }
 
-    // ===== Painel =====
     function showCallPanel(driverName, isAlert) {
       clearTimeout(panelTimeout);
       callPanelMessage.innerHTML = `ATENÇÃO ${driverName},<br>Aguarde a ser chamado, iremos mandar mensagem no celular`;
@@ -2647,6 +2745,8 @@
 
     function resetApp() {
       callPanelOverlay.style.display = 'none';
+      const plateConfirmOverlay = document.getElementById('plate-confirm-overlay');
+      if (plateConfirmOverlay) plateConfirmOverlay.style.display = 'none';
       resultsArea.innerHTML = '';
       try { actionArea.innerHTML = ''; } catch {}
 
@@ -2699,7 +2799,6 @@
       });
     }
 
-    // --- Event listeners ---
     closePanelBtn.addEventListener('click', resetApp);
     callPanelOverlay.addEventListener('click', (e) => { if (e.target === callPanelOverlay) resetApp(); });
     window.addEventListener('load', initializeAppLogic);
