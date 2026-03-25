@@ -796,6 +796,12 @@
     let presetTransportadora = '';
     let lockTransportadora = false;
 
+    // Registro detalhado do fluxo escolhido
+    let selectedFlowKey = '';
+    let selectedFlowLabel = '';
+    let selectedFlowStep1 = '';
+    let selectedFlowStep2 = '';
+
     // Baldeio: DTs opcionais
     let baldeioDtCarga = '';
     let baldeioDtDescarga = '';
@@ -826,6 +832,45 @@
       const pad = (n) => String(n).padStart(2, '0');
       const id = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
       return `${prefix}_${id}`;
+    }
+
+    function setFlowSelection(key, label, step1 = '', step2 = '') {
+      selectedFlowKey = key || '';
+      selectedFlowLabel = label || '';
+      selectedFlowStep1 = step1 || '';
+      selectedFlowStep2 = step2 || '';
+    }
+
+    async function registerFlowClick(extra = {}) {
+      if (!isAuthReady || !db || !appId) return;
+
+      try {
+        const eventId = generateInternalId('FLOW');
+        const cpfDigits =
+          normalizeDigits(sessionCpf) ||
+          normalizeDigits(document.getElementById('driver-cpf')?.value || '');
+
+        const payload = {
+          id: eventId,
+          cpf: cpfDigits || '',
+          motorista: sessionDriver?.name || '',
+          flowKey: extra.flowKey || selectedFlowKey || '',
+          flowLabel: extra.flowLabel || selectedFlowLabel || '',
+          flowStep1: extra.flowStep1 || selectedFlowStep1 || '',
+          flowStep2: extra.flowStep2 || selectedFlowStep2 || '',
+          currentMode: (currentMode || '').toString().toUpperCase(),
+          loadAlsoUnload: !!loadAlsoUnload,
+          presetTransportadora: (presetTransportadora || '').toString().trim().toUpperCase(),
+          origem: 'motorista_click',
+          createdAt: new Date().toISOString(),
+          createdAtMs: Date.now()
+        };
+
+        const ref = doc(db, 'artifacts', appId, 'public', 'data', 'flow_clicks', eventId);
+        await setDoc(ref, payload, { merge: true });
+      } catch (e) {
+        console.warn('Falha ao registrar clique de fluxo:', e);
+      }
     }
 
     function addDays(date, days) {
@@ -1274,6 +1319,8 @@
           transportadora: driverData.transportadora,
           lastDts: driverData.dts || "",
           lastOperacao: driverData.operacao || '',
+          lastFlowKey: driverData.flowKey || '',
+          lastFlowLabel: driverData.flowLabel || '',
           lastPriority: {
             isPriority: !!pInfoForDriver.isPriority,
             isOtif: !!pInfoForDriver.isOtif,
@@ -1316,6 +1363,12 @@
           transportadora: driverData.transportadora,
           tipoVeiculo: driverData.vehicleType || '',
           operacao: driverData.operacao || '',
+          flowKey: driverData.flowKey || '',
+          flowLabel: driverData.flowLabel || '',
+          flowStep1: driverData.flowStep1 || '',
+          flowStep2: driverData.flowStep2 || '',
+          loadAlsoUnload: !!driverData.loadAlsoUnload,
+          presetTransportadora: driverData.presetTransportadora || '',
           cpf: unmaskedCpf,
           placa: driverData.truckPlate,
           telefone: normalizeDigits(driverData.phone),
@@ -1584,6 +1637,10 @@
       loadAlsoUnload = false;
       presetTransportadora = '';
       lockTransportadora = false;
+      selectedFlowKey = '';
+      selectedFlowLabel = '';
+      selectedFlowStep1 = '';
+      selectedFlowStep2 = '';
       baldeioDtCarga = '';
       baldeioDtDescarga = '';
 
@@ -1682,6 +1739,13 @@
         btn.addEventListener('click', async () => {
           await unlockAudio();
           currentMode = btn.dataset.mode;
+
+          if (currentMode === 'INTEGRACAO') {
+            setFlowSelection('INTEGRACAO', 'Integração', 'INTEGRACAO', 'TESTE');
+          } else if (currentMode === 'HIDROMAN') {
+            setFlowSelection('HIDROMAN', 'Hidroman', 'HIDROMAN', 'HIDROMAN');
+          }
+
           renderModeForm(currentMode);
         });
       });
@@ -1721,6 +1785,10 @@
       loadAlsoUnload = false;
       presetTransportadora = '';
       lockTransportadora = false;
+      selectedFlowKey = '';
+      selectedFlowLabel = '';
+      selectedFlowStep1 = '';
+      selectedFlowStep2 = '';
       baldeioDtCarga = '';
       baldeioDtDescarga = '';
 
@@ -1861,6 +1929,23 @@
           requireUnloadDtInForm = false;
           pendingUnloadDt = '';
 
+          const flowKeyMap = {
+            'LATAS VAZIAS': 'UNLOAD_LATAS_VAZIAS',
+            'BULK': 'UNLOAD_BULK',
+            'PALETES VAZIO': 'UNLOAD_PALETES_VAZIO',
+            'VASILHAMES': 'UNLOAD_VASILHAMES',
+            'PRODUTO ACABADO': 'UNLOAD_PRODUTO_ACABADO',
+            'INSUMO': 'UNLOAD_INSUMO'
+          };
+          const normalizedType = (typeLabel || '').toString().trim().toUpperCase();
+          setFlowSelection(
+            flowKeyMap[normalizedType] || 'UNLOAD',
+            `Descarregar - ${typeLabel}`,
+            'DESCARREGAR',
+            normalizedType || 'DESCARGA'
+          );
+          await registerFlowClick();
+
           manualDtIdOverride = generateInternalId(prefix || 'SEM_DT');
 
           actionArea.innerHTML = '';
@@ -1932,12 +2017,16 @@
         document.getElementById('load-no-unload')?.addEventListener('click', async () => {
           await unlockAudio();
           loadAlsoUnload = false;
+          setFlowSelection('LOAD_ONLY', 'Carregar', 'CARREGAR', 'SOMENTE_CARREGAR');
+          await registerFlowClick();
           goToDtForm(false);
         });
 
         document.getElementById('load-yes-unload')?.addEventListener('click', async () => {
           await unlockAudio();
           loadAlsoUnload = true;
+          setFlowSelection('LOAD_AND_UNLOAD', 'Carregar e Descarregar', 'CARREGAR', 'CARREGAR_E_DESCARREGAR');
+          await registerFlowClick();
           goToDtForm(true);
         });
       }
@@ -1948,6 +2037,8 @@
 
         document.getElementById('int-check')?.addEventListener('click', async () => {
           await unlockAudio();
+          setFlowSelection('INTEGRACAO', 'Integração', 'INTEGRACAO', 'TESTE');
+          await registerFlowClick();
           const cpfMasked = cpfEl?.value || '';
           const cpf = normalizeDigits(cpfMasked);
           if (cpf.length !== 11) return displayError("CPF inválido.", 4000);
@@ -1968,6 +2059,8 @@
           pendingUnloadDt = '';
           presetTransportadora = 'HIDROMAN';
           lockTransportadora = true;
+          setFlowSelection('HIDROMAN', 'Hidroman', 'HIDROMAN', 'HIDROMAN');
+          await registerFlowClick();
           manualDtIdOverride = generateInternalId('HID');
 
           showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: 'HIDROMAN', isManualOverride: true });
@@ -2031,6 +2124,14 @@
           lockTransportadora = false;
           baldeioDtCarga = '';
           baldeioDtDescarga = '';
+
+          if (presetTransportadora === 'JSL') {
+            setFlowSelection('BALDEIO_JSL', 'Baldeio - JSL', 'BALDEIO', 'JSL');
+          } else {
+            setFlowSelection('BALDEIO_RITMO', 'Baldeio - Ritmo', 'BALDEIO', 'RITMO');
+          }
+
+          await registerFlowClick();
           goBaldeioStep2();
         };
 
@@ -2927,6 +3028,12 @@
       };
 
       driverData.operacao = computeTransportOperationLabel();
+      driverData.flowKey = selectedFlowKey || '';
+      driverData.flowLabel = selectedFlowLabel || driverData.operacao || '';
+      driverData.flowStep1 = selectedFlowStep1 || '';
+      driverData.flowStep2 = selectedFlowStep2 || '';
+      driverData.loadAlsoUnload = !!loadAlsoUnload;
+      driverData.presetTransportadora = (presetTransportadora || '').toString().trim().toUpperCase();
 
       if ((presetTransportadora || '').toString().trim().toUpperCase() === 'HIDROMAN') {
         driverData.transportadora = 'HIDROMAN';
