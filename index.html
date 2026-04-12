@@ -914,6 +914,344 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
+
+    /* ===== UI PREMIUM / CORPORATIVA ===== */
+    body.simple-ui {
+      background:
+        radial-gradient(circle at top left, rgba(0, 144, 74, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 24%),
+        linear-gradient(180deg, #0f3418 0%, #102d17 48%, #0d2613 100%);
+    }
+
+    .card.workspace-card {
+      background: linear-gradient(180deg, rgba(8, 34, 16, 0.88), rgba(8, 28, 14, 0.92));
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow: 0 22px 60px rgba(0,0,0,0.28);
+      border-radius: 28px;
+    }
+
+    .topbar {
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .brand-row {
+      align-items: center;
+      gap: 18px;
+    }
+
+    .brand-block p {
+      color: rgba(243,244,246,0.72);
+      font-size: 1rem;
+    }
+
+    .system-pill {
+      background: rgba(255,255,255,0.045);
+      border-color: rgba(255,255,255,0.08);
+      padding: 9px 12px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: rgba(243,244,246,0.9);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .system-pill .status-dot {
+      width: 7px;
+      height: 7px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34,197,94,0.12);
+    }
+
+    .simple-ui .section {
+      background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .simple-ui .big-title {
+      font-size: 1.42rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .simple-ui .compact-note {
+      font-size: 0.92rem;
+      line-height: 1.35;
+      color: rgba(243,244,246,0.72);
+    }
+
+    .simple-ui .progress-wrap {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .simple-ui .progress-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      border-radius: 18px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .simple-ui .progress-index {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.82rem;
+      font-weight: 900;
+      color: rgba(255,255,255,0.84);
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.09);
+      flex: 0 0 auto;
+    }
+
+    .simple-ui .progress-copy {
+      min-width: 0;
+    }
+
+    .simple-ui .progress-step .kicker {
+      margin: 0 0 2px;
+      font-size: 0.68rem;
+      opacity: .58;
+      letter-spacing: .08em;
+    }
+
+    .simple-ui .progress-label {
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .simple-ui .progress-step.active {
+      background: linear-gradient(180deg, rgba(0,144,74,0.18), rgba(0,144,74,0.10));
+      border-color: rgba(0,144,74,0.42);
+      box-shadow: 0 0 0 1px rgba(0,144,74,0.16) inset;
+    }
+
+    .simple-ui .progress-step.active .progress-index {
+      background: rgba(0,144,74,0.34);
+      border-color: rgba(0,144,74,0.48);
+      color: #fff;
+    }
+
+    .simple-ui .progress-step.done .progress-index {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+    }
+
+    .simple-ui .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .simple-ui .flow-group {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 22px;
+      padding: 16px;
+      gap: 14px;
+    }
+
+    .simple-ui .flow-group-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.88rem;
+      letter-spacing: 0.08em;
+      color: rgba(243,244,246,0.76);
+    }
+
+    .simple-ui .flow-group-title::after {
+      content: '';
+      height: 1px;
+      flex: 1 1 auto;
+      background: linear-gradient(90deg, rgba(255,255,255,0.12), transparent);
+    }
+
+    .simple-ui .mode-btn {
+      position: relative;
+      width: 100%;
+      min-height: 100px;
+      padding: 18px 18px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      text-align: left;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+
+    .simple-ui .mode-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(0,144,74,0.30);
+      background: linear-gradient(180deg, rgba(0,144,74,0.10), rgba(255,255,255,0.04));
+      box-shadow: 0 10px 26px rgba(0,0,0,0.16);
+    }
+
+    .simple-ui .mode-btn:disabled {
+      opacity: .58;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .simple-ui .mode-main {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .simple-ui .mode-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      flex: 0 0 auto;
+    }
+
+    .simple-ui .mode-copy {
+      min-width: 0;
+    }
+
+    .simple-ui .mode-title {
+      font-size: 1.14rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.15;
+      margin-bottom: 4px;
+    }
+
+    .simple-ui .mode-meta {
+      font-size: 0.82rem;
+      color: rgba(243,244,246,0.66);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .simple-ui .mode-arrow {
+      font-size: 1.25rem;
+      color: rgba(243,244,246,0.64);
+      flex: 0 0 auto;
+    }
+
+    .simple-ui .input-shell {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      padding: 10px;
+    }
+
+    .simple-ui .input-label-inline {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(243,244,246,0.62);
+      padding: 0 10px 6px;
+    }
+
+    .simple-ui .input-shell .input-xl {
+      border-radius: 16px;
+      font-size: 1.12rem;
+      border-color: rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.18);
+    }
+
+    .simple-ui .action-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .simple-ui .last-cpf-btn {
+      width: 100%;
+      text-align: left;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: background .18s ease, border-color .18s ease;
+    }
+
+    .simple-ui .last-cpf-btn:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    .simple-ui .last-cpf-kicker {
+      font-size: 0.7rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(243,244,246,0.58);
+      margin-bottom: 4px;
+    }
+
+    .simple-ui .last-cpf-value {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .simple-ui .btn-clean {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .simple-ui .btn-clean:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    @media (max-width: 1024px) {
+      .simple-ui .progress-wrap,
+      .simple-ui .flow-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .simple-ui .action-row {
+        grid-template-columns: 1fr;
+      }
+      .simple-ui .mode-btn {
+        min-height: 92px;
+      }
+      .simple-ui .progress-label {
+        white-space: normal;
+      }
+    }
+
   </style>
 </head>
 
@@ -1148,10 +1486,14 @@
           ${steps.map((label, idx) => {
             const stepNo = idx + 1;
             const cls = stepNo < current ? 'progress-step done' : (stepNo === current ? 'progress-step active' : 'progress-step');
+            const indexText = stepNo < current ? '✓' : String(stepNo).padStart(2, '0');
             return `
               <div class="${cls}">
-                <span class="kicker">Etapa ${stepNo}</span>
-                <div>${label}</div>
+                <span class="progress-index">${indexText}</span>
+                <div class="progress-copy">
+                  <span class="kicker">Etapa ${stepNo}</span>
+                  <div class="progress-label">${label}</div>
+                </div>
               </div>
             `;
           }).join('')}
@@ -1847,28 +2189,26 @@
         <div class="section space-y-4">
           <div class="section-head">
             <div>
-              <div class="big-title text-white">Identificação</div>
-              <div class="compact-note mt-1">Digite o CPF para continuar.</div>
+              <div class="big-title text-white">Identificação do motorista</div>
+              <div class="compact-note mt-1">Digite o CPF para iniciar o atendimento.</div>
             </div>
-            <div class="soft-badge">Cadastro e integração automáticos</div>
           </div>
 
           ${lastCpf ? `
-            <button id="gate-use-last" type="button" class="form-hint-box w-full text-left hover:bg-white/10 transition-all">
-              <div class="text-xs uppercase tracking-wide text-gray-300 font-extrabold">Último CPF</div>
-              <div class="text-lg font-black text-white mt-1">${lastCpf}</div>
+            <button id="gate-use-last" type="button" class="last-cpf-btn">
+              <div class="last-cpf-kicker">Último acesso</div>
+              <div class="last-cpf-value">${lastCpf}</div>
             </button>
           ` : ''}
 
-          <div class="space-y-2">
-            <label for="gate-cpf" class="text-sm font-extrabold text-white/90">CPF do motorista</label>
+          <div class="input-shell">
+            <label for="gate-cpf" class="input-label-inline">CPF do motorista</label>
             <input type="text" id="gate-cpf" inputmode="numeric" class="form-input input-xl rounded-lg" placeholder="000.000.000-00">
-            <div class="compact-note">O sistema localiza o cadastro e valida a integração automaticamente.</div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+          <div class="action-row">
             <button id="gate-go" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">Continuar</button>
-            <button id="gate-clear" type="button" class="btn-ghost w-full sm:w-auto px-6 py-4 rounded-xl text-base font-bold">Limpar</button>
+            <button id="gate-clear" type="button" class="btn-clean w-full sm:w-auto px-6 py-4 rounded-xl text-base font-bold">Limpar</button>
           </div>
         </div>
       `;
@@ -2040,82 +2380,81 @@
 
       actionArea.innerHTML = `
         ${renderProgressBar(2, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
-        <div id="mode-root" class="space-y-3">
+        <div id="mode-root" class="space-y-4">
           <div class="section">
             <div class="section-head">
               <div>
-                <div class="big-title text-white">Escolha o fluxo</div>
-                <div class="compact-note mt-1">Selecione a operação para continuar.</div>
+                <div class="big-title text-white">Selecione a operação</div>
+                <div class="compact-note mt-1">Escolha o fluxo que deseja iniciar.</div>
               </div>
-              <div class="soft-badge">Descarregar e Baldeio funcionam sem planilha</div>
             </div>
           </div>
 
           <div class="flow-group">
-            <div class="flow-group-title">Principais</div>
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-2">
-              <button data-mode="LOAD" class="mode-btn btn-ghost btn-xl" title="Carregamento usando DT (consulta na planilha)">
-                <div class="left">
-                  <div class="emoji">🚚</div>
-                  <div>
-                    <div>Carregar</div>
-                    <div class="desc">Com DT da planilha</div>
+            <div class="flow-group-title">Operações principais</div>
+            <div class="flow-grid">
+              <button data-mode="LOAD" class="mode-btn" title="Carregamento usando DT (consulta na planilha)">
+                <div class="mode-main">
+                  <div class="mode-icon">CR</div>
+                  <div class="mode-copy">
+                    <div class="mode-title">Carregar</div>
+                    <div class="mode-meta">Consulta a DT na planilha</div>
                   </div>
                 </div>
-                <span class="mode-arrow">→</span>
+                <span class="mode-arrow">›</span>
               </button>
 
-              <button data-mode="UNLOAD" class="mode-btn btn-ghost btn-xl" title="Descarregamento com DT de descarga (sem planilha)">
-                <div class="left">
-                  <div class="emoji">📥</div>
-                  <div>
-                    <div>Descarregar</div>
-                    <div class="desc">Sem planilha</div>
+              <button data-mode="UNLOAD" class="mode-btn" title="Descarregamento com DT de descarga (sem planilha)">
+                <div class="mode-main">
+                  <div class="mode-icon">DC</div>
+                  <div class="mode-copy">
+                    <div class="mode-title">Descarregar</div>
+                    <div class="mode-meta">Fluxo direto, sem planilha</div>
                   </div>
                 </div>
-                <span class="mode-arrow">→</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="flow-group">
-            <div class="flow-group-title">Especiais</div>
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-2">
-              <button data-mode="RITMO" class="mode-btn btn-ghost btn-xl" title="Baldeio: DT opcional (se vazio, gera ID interno)">
-                <div class="left">
-                  <div class="emoji">⚡</div>
-                  <div>
-                    <div>Baldeio</div>
-                    <div class="desc">DT opcional</div>
-                  </div>
-                </div>
-                <span class="mode-arrow">→</span>
-              </button>
-
-              <button data-mode="HIDROMAN" class="mode-btn btn-ghost btn-xl" title="HIDROMAN: vai direto para o cadastro do motorista (sem planilha)">
-                <div class="left">
-                  <div class="emoji">💧</div>
-                  <div>
-                    <div>HIDROMAN</div>
-                    <div class="desc">Sem planilha</div>
-                  </div>
-                </div>
-                <span class="mode-arrow">→</span>
+                <span class="mode-arrow">›</span>
               </button>
             </div>
           </div>
 
           <div class="flow-group">
-            <div class="flow-group-title">Suporte</div>
-            <button data-mode="INTEGRACAO" class="mode-btn btn-ghost btn-xl" title="Teste de Integração (válido por 3 meses)">
-              <div class="left">
-                <div class="emoji">📝</div>
-                <div>
-                  <div>Integração</div>
-                  <div class="desc">Validade de 3 meses</div>
+            <div class="flow-group-title">Operações especiais</div>
+            <div class="flow-grid">
+              <button data-mode="RITMO" class="mode-btn" title="Baldeio: DT opcional (se vazio, gera ID interno)">
+                <div class="mode-main">
+                  <div class="mode-icon">BL</div>
+                  <div class="mode-copy">
+                    <div class="mode-title">Baldeio</div>
+                    <div class="mode-meta">Aceita operação com DT opcional</div>
+                  </div>
+                </div>
+                <span class="mode-arrow">›</span>
+              </button>
+
+              <button data-mode="HIDROMAN" class="mode-btn" title="HIDROMAN: vai direto para o cadastro do motorista (sem planilha)">
+                <div class="mode-main">
+                  <div class="mode-icon">HD</div>
+                  <div class="mode-copy">
+                    <div class="mode-title">HIDROMAN</div>
+                    <div class="mode-meta">Fluxo dedicado, sem planilha</div>
+                  </div>
+                </div>
+                <span class="mode-arrow">›</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flow-group">
+            <div class="flow-group-title">Apoio</div>
+            <button data-mode="INTEGRACAO" class="mode-btn" title="Teste de Integração (válido por 3 meses)">
+              <div class="mode-main">
+                <div class="mode-icon">IN</div>
+                <div class="mode-copy">
+                  <div class="mode-title">Integração</div>
+                  <div class="mode-meta">Teste com validade de 3 meses</div>
                 </div>
               </div>
-              <span class="mode-arrow">→</span>
+              <span class="mode-arrow">›</span>
             </button>
           </div>
         </div>
@@ -2156,7 +2495,7 @@
           btn.title = disabled ? 'Planilha não carregou ainda.' : (btn.dataset.title || '');
 
           const arrow = btn.querySelector('.mode-arrow');
-          if (arrow) arrow.textContent = disabled ? '🔒' : '➡️';
+          if (arrow) arrow.textContent = disabled ? 'Indisp.' : '›';
         }
       });
     }
