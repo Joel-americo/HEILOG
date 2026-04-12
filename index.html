@@ -676,6 +676,244 @@
     }
 
     .simple-ui .divider { height:1px; background: rgba(255,255,255,0.10); margin: 12px 0; }
+
+    .desktop-shell {
+      width: 100%;
+      max-width: 1200px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .workspace-card {
+      width: 100%;
+      min-height: min(860px, calc(100vh - 32px));
+      padding: 22px;
+    }
+
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .topbar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 4px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand-block {
+      min-width: 0;
+    }
+
+    .system-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: #f3f4f6;
+      font-size: 0.9rem;
+      font-weight: 700;
+      max-width: 100%;
+    }
+
+    .system-pill .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #facc15;
+      display: inline-block;
+      flex: 0 0 auto;
+    }
+
+    .system-pill .status-text {
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .simple-ui .progress-wrap {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 2px;
+    }
+
+    .simple-ui .progress-step {
+      flex: 1 1 120px;
+      min-width: 0;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      padding: 10px 12px;
+    }
+
+    .simple-ui .progress-step .kicker {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: .06em;
+      opacity: .75;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .simple-ui .progress-step.active {
+      background: rgba(0, 144, 74, 0.16);
+      border-color: rgba(0, 144, 74, 0.45);
+      box-shadow: 0 0 0 1px rgba(0, 144, 74, 0.2) inset;
+    }
+
+    .simple-ui .progress-step.done {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    .simple-ui .flow-group {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 18px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .simple-ui .flow-group-title {
+      font-weight: 900;
+      font-size: 0.95rem;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .simple-ui .flow-group-subtitle {
+      display: none;
+    }
+
+    .simple-ui .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .simple-ui .summary-item {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .simple-ui .summary-item .label {
+      font-size: 0.8rem;
+      opacity: .76;
+      margin-bottom: 4px;
+    }
+
+    .simple-ui .summary-item .value {
+      font-size: 1rem;
+      font-weight: 900;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+
+    .simple-ui .form-hint-box {
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .simple-ui .compact-note {
+      font-size: 0.92rem;
+      color: rgba(243,244,246,0.82);
+      line-height: 1.35;
+    }
+
+    .simple-ui .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .simple-ui .soft-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #e5e7eb;
+    }
+
+    .simple-ui .error-card {
+      background: rgba(229, 0, 37, 0.16);
+      border: 1px solid rgba(229, 0, 37, 0.44);
+      color: #fff;
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 10px 28px rgba(0,0,0,.18);
+    }
+
+    .simple-ui .error-card .title {
+      font-size: 1rem;
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+
+    .simple-ui .error-card .tip {
+      font-size: .92rem;
+      opacity: .96;
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+
+    #plate-confirm-modal { max-width: 760px; }
+
+    @media (min-width: 1024px) {
+      .simple-ui .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      .brand-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .system-pill {
+        width: 100%;
+      }
+    }
+
+    @media (min-width: 1280px) {
+      #app-container { padding: 18px; }
+      .workspace-card { padding: 28px; }
+      .simple-ui .summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
   </style>
 </head>
 
@@ -711,6 +949,8 @@
         </div>
       </div>
 
+      <div id="confirm-operation-summary" class="summary-grid"></div>
+
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
         <button id="plate-confirm-edit-btn" class="btn-ghost w-full py-4 rounded-xl text-lg font-extrabold">
           Alterar
@@ -723,20 +963,35 @@
   </div>
 
   <div id="app-container" class="min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="w-full max-w-md card shadow-2xl rounded-2xl p-8 space-y-6">
-      <div class="text-center">
-        <svg class="w-20 h-20 mx-auto mb-2" viewBox="0 0 24 24" fill="#E50025" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z"/>
-        </svg>
-        <h1 class="font-title text-5xl font-bold text-white uppercase tracking-wider">HEILOG</h1>
-        <p class="text-gray-400 mt-1">Seu assistente de logística.</p>
-      </div>
+    <div class="desktop-shell">
+      <div class="card shadow-2xl rounded-2xl workspace-card">
+        <div class="workspace-grid">
+          <div class="space-y-6 min-w-0">
+            <div class="topbar">
+              <div class="brand-row">
+                <div class="brand-block">
+                  <div class="flex items-center justify-center lg:justify-start gap-4">
+                    <svg class="w-16 h-16 lg:w-20 lg:h-20" viewBox="0 0 24 24" fill="#E50025" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z"/>
+                    </svg>
+                    <div>
+                      <h1 class="font-title text-4xl lg:text-5xl font-bold text-white uppercase tracking-wider">HEILOG</h1>
+                      <p class="text-gray-300 mt-1">Seu assistente de logística.</p>
+                    </div>
+                  </div>
+                </div>
 
-      <div id="action-area" class="space-y-4"></div>
-      <div id="results-area" class="pt-2 min-h-[5rem]"></div>
+                <div class="system-pill">
+                  <span class="status-dot"></span>
+                  <span id="file-status" class="status-text text-yellow-200">Atualizando planilha...</span>
+                </div>
+              </div>
+            </div>
 
-      <div class="text-center pt-4 border-t border-gray-700/50">
-        <p id="file-status" class="text-yellow-400 text-xs h-4"></p>
+            <div id="action-area" class="space-y-4 min-w-0"></div>
+            <div id="results-area" class="pt-2 min-h-[5rem] min-w-0"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -885,6 +1140,94 @@
       if (v instanceof Date) return v;
       const d = new Date(v);
       return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function renderProgressBar(current, steps) {
+      return `
+        <div class="progress-wrap">
+          ${steps.map((label, idx) => {
+            const stepNo = idx + 1;
+            const cls = stepNo < current ? 'progress-step done' : (stepNo === current ? 'progress-step active' : 'progress-step');
+            return `
+              <div class="${cls}">
+                <span class="kicker">Etapa ${stepNo}</span>
+                <div>${label}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function sanitizePlate(value) {
+      return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+    }
+
+    function isValidBrazilianPlate(value) {
+      const v = sanitizePlate(value);
+      return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(v) || /^[A-Z]{3}[0-9]{4}$/.test(v);
+    }
+
+    function isValidCnh(value) {
+      const digits = String(value || '').replace(/\D/g, '');
+      return digits.length >= 9 && digits.length <= 11;
+    }
+
+    function isValidDateBR(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return true;
+      const m = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (!m) return false;
+      const d = Number(m[1]);
+      const mo = Number(m[2]);
+      const y = Number(m[3]);
+      const dt = new Date(y, mo - 1, d);
+      return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
+    }
+
+    function scrollToField(element) {
+      try { element?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch {}
+    }
+
+    function deriveErrorTip(message) {
+      const msg = String(message || '').toLowerCase();
+      if (msg.includes('cpf')) return 'Confira se o CPF foi digitado completo, com 11 números.';
+      if (msg.includes('telefone')) return 'Digite o telefone com DDD. Exemplo: (12) 99999-9999.';
+      if (msg.includes('placa')) return 'Use a placa completa do veículo, por exemplo ABC1234 ou ABC1D23.';
+      if (msg.includes('integração')) return 'Sem integração válida, o sistema mantém a impressão bloqueada.';
+      if (msg.includes('planilha')) return 'Se a planilha estiver indisponível, use um fluxo sem planilha, como Descarregar ou Baldeio.';
+      if (msg.includes('cnh')) return 'Confirme o número da CNH e, se preencher a validade, use o formato DD/MM/AAAA.';
+      if (msg.includes('impress')) return 'Verifique se o navegador permitiu abrir a janela de impressão.';
+      return 'Corrija o ponto indicado e tente novamente.';
+    }
+
+    function buildSummaryItem(label, value) {
+      return `
+        <div class="summary-item">
+          <div class="label">${escapeHtml(label)}</div>
+          <div class="value">${escapeHtml(value || 'Não informado')}</div>
+        </div>
+      `;
+    }
+
+    function getDriverFormSummary() {
+      const op = computeTransportOperationLabel();
+      const dtBase = String(manualDtIdOverride || (document.getElementById('manual-id-preview')?.textContent || '').replace(/^ID:\s*/, '') || '').trim();
+      const unloadDt = (document.getElementById('unload-dt')?.value || pendingUnloadDt || baldeioDtDescarga || '').trim();
+      const printableDt = currentMode === 'RITMO'
+        ? ((baldeioDtCarga || '').trim() || 'Sem DT')
+        : (dtBase || 'Conforme operação');
+      return {
+        motorista: document.getElementById('driver-name')?.value || '',
+        cpf: document.getElementById('driver-cpf')?.value || '',
+        operacao: op || 'Operação',
+        dt: printableDt,
+        dtDescarga: unloadDt || 'Não informada',
+        transportadora: document.getElementById('driver-transportadora')?.value || '',
+        tipoVeiculo: document.getElementById('vehicle-type')?.value || '',
+        cavalo: document.getElementById('truck-plate')?.value || '',
+        carreta: document.getElementById('trailer-plate')?.value || ''
+      };
     }
 
     // --- Audio Unlock ---
@@ -1495,13 +1838,38 @@
 
     function renderCpfGate() {
       resultsArea.innerHTML = '';
-      actionArea.innerHTML = `
-        <div class="section space-y-3">
-          <div class="big-title text-white">Digite seu CPF</div>
-          <div class="help">Para continuar, precisamos validar cadastro e integração.</div>
 
-          <input type="text" id="gate-cpf" class="form-input input-xl rounded-lg" placeholder="CPF">
-          <button id="gate-go" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">Continuar ➡️</button>
+      let lastCpf = '';
+      try { lastCpf = localStorage.getItem('heilog-last-cpf') || ''; } catch {}
+
+      actionArea.innerHTML = `
+        ${renderProgressBar(1, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
+        <div class="section space-y-4">
+          <div class="section-head">
+            <div>
+              <div class="big-title text-white">Identificação</div>
+              <div class="compact-note mt-1">Digite o CPF para continuar.</div>
+            </div>
+            <div class="soft-badge">Cadastro e integração automáticos</div>
+          </div>
+
+          ${lastCpf ? `
+            <button id="gate-use-last" type="button" class="form-hint-box w-full text-left hover:bg-white/10 transition-all">
+              <div class="text-xs uppercase tracking-wide text-gray-300 font-extrabold">Último CPF</div>
+              <div class="text-lg font-black text-white mt-1">${lastCpf}</div>
+            </button>
+          ` : ''}
+
+          <div class="space-y-2">
+            <label for="gate-cpf" class="text-sm font-extrabold text-white/90">CPF do motorista</label>
+            <input type="text" id="gate-cpf" inputmode="numeric" class="form-input input-xl rounded-lg" placeholder="000.000.000-00">
+            <div class="compact-note">O sistema localiza o cadastro e valida a integração automaticamente.</div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+            <button id="gate-go" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">Continuar</button>
+            <button id="gate-clear" type="button" class="btn-ghost w-full sm:w-auto px-6 py-4 rounded-xl text-base font-bold">Limpar</button>
+          </div>
         </div>
       `;
 
@@ -1513,11 +1881,25 @@
         if (cpfEl && last) cpfEl.value = last;
       } catch {}
 
+      document.getElementById('gate-use-last')?.addEventListener('click', () => {
+        if (cpfEl && lastCpf) {
+          cpfEl.value = lastCpf;
+          cpfEl.focus();
+        }
+      });
+
+      document.getElementById('gate-clear')?.addEventListener('click', () => {
+        if (cpfEl) {
+          cpfEl.value = '';
+          cpfEl.focus();
+        }
+      });
+
       const go = async () => {
         await unlockAudio();
         const cpfMasked = cpfEl?.value || '';
         const cpf = normalizeDigits(cpfMasked);
-        if (cpf.length !== 11) return displayError('CPF inválido.', 4000);
+        if (cpf.length !== 11) return displayError('Digite um CPF válido para continuar.', 4000, { field: cpfEl });
         if (!isAuthReady || !db) return displayError('Aguarde carregar o sistema...', 3000);
 
         sessionCpf = cpf;
@@ -1553,9 +1935,11 @@
     function renderRegistrationForm(cpfMasked) {
       resultsArea.innerHTML = '';
       actionArea.innerHTML = `
+        ${renderProgressBar(1, ['Cadastro', 'Integração', 'Fluxo'])}
         <div class="section space-y-3">
           <div class="big-title text-white">Cadastro do Motorista</div>
           <div class="help">Preencha os dados e depois faremos a integração.</div>
+          <div class="form-hint-box text-sm text-gray-200">Cadastro salvo reaproveitado automaticamente.</div>
 
           <input type="text" id="reg-cpf" class="form-input input-xl rounded-lg" placeholder="CPF" value="${cpfMasked || ''}" readonly>
           <input type="text" id="reg-name" class="form-input input-xl rounded-lg" placeholder="Nome completo">
@@ -1580,8 +1964,18 @@
 
       const plateEl = document.getElementById('reg-plate');
       const trailerEl = document.getElementById('reg-trailer');
-      plateEl?.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
-      trailerEl?.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
+      plateEl?.addEventListener('input', (e) => e.target.value = sanitizePlate(e.target.value));
+      trailerEl?.addEventListener('input', (e) => e.target.value = sanitizePlate(e.target.value));
+
+      if (sessionDriver) {
+        document.getElementById('reg-name').value = sessionDriver.name || '';
+        if (phoneEl && sessionDriver.phone) phoneEl.value = sessionDriver.phone;
+        document.getElementById('reg-transp').value = sessionDriver.transportadora || '';
+        document.getElementById('reg-cnh').value = sessionDriver.cnh || '';
+        if (plateEl) plateEl.value = sanitizePlate(sessionDriver.truckPlate || '');
+        if (trailerEl) trailerEl.value = sanitizePlate(sessionDriver.trailerPlate || '');
+        document.getElementById('reg-axles').value = sessionDriver.axles || '';
+      }
 
       document.getElementById('reg-back')?.addEventListener('click', () => {
         renderCpfGate();
@@ -1596,10 +1990,10 @@
         const cnh = (document.getElementById('reg-cnh')?.value || '').trim();
         const plate = (document.getElementById('reg-plate')?.value || '').trim().toUpperCase();
 
-        if (!name) return displayError('Nome é obrigatório.', 4000);
-        if (!phone) return displayError('Telefone é obrigatório.', 4000);
-        if (!cnh) return displayError('CNH é obrigatória.', 4000);
-        if (!plate) return displayError('Placa do cavalo é obrigatória.', 4000);
+        if (!name) return displayError('Nome é obrigatório.', 5000, { field: document.getElementById('reg-name') });
+        if (normalizeDigits(phone).length < 10) return displayError('Telefone é obrigatório.', 5000, { field: document.getElementById('reg-phone') });
+        if (!isValidCnh(cnh)) return displayError('CNH inválida.', 5000, { field: document.getElementById('reg-cnh') });
+        if (!isValidBrazilianPlate(plate)) return displayError('Placa do cavalo é obrigatória.', 5000, { field: document.getElementById('reg-plate') });
 
         const payload = {
           cpf,
@@ -1607,8 +2001,8 @@
           phone,
           transportadora: transp,
           cnh,
-          truckPlate: plate,
-          trailerPlate: (document.getElementById('reg-trailer')?.value || '').trim().toUpperCase(),
+          truckPlate: sanitizePlate(plate),
+          trailerPlate: sanitizePlate((document.getElementById('reg-trailer')?.value || '').trim()),
           axles: (document.getElementById('reg-axles')?.value || ''),
         };
 
@@ -1645,95 +2039,88 @@
       baldeioDtDescarga = '';
 
       actionArea.innerHTML = `
+        ${renderProgressBar(2, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
         <div id="mode-root" class="space-y-3">
           <div class="section">
-            <div class="big-title text-white">Escolha o que vai fazer</div>
-            <div class="help mt-1">Toque numa opção abaixo.</div>
-            <div class="divider"></div>
-            <button id="contrast-toggle" class="btn-ghost w-full py-3 rounded-xl text-sm font-bold" type="button">
-              👁️ Alto contraste
-            </button>
+            <div class="section-head">
+              <div>
+                <div class="big-title text-white">Escolha o fluxo</div>
+                <div class="compact-note mt-1">Selecione a operação para continuar.</div>
+              </div>
+              <div class="soft-badge">Descarregar e Baldeio funcionam sem planilha</div>
+            </div>
           </div>
 
-          <div class="space-y-2">
-            <button data-mode="LOAD" class="mode-btn btn-ghost btn-xl" title="Carregamento usando DT (consulta na planilha)">
-              <div class="left">
-                <div class="emoji">🚚</div>
-                <div>
-                  <div>Carregar</div>
-                  <div class="desc">Usa DT da planilha</div>
+          <div class="flow-group">
+            <div class="flow-group-title">Principais</div>
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-2">
+              <button data-mode="LOAD" class="mode-btn btn-ghost btn-xl" title="Carregamento usando DT (consulta na planilha)">
+                <div class="left">
+                  <div class="emoji">🚚</div>
+                  <div>
+                    <div>Carregar</div>
+                    <div class="desc">Com DT da planilha</div>
+                  </div>
                 </div>
-              </div>
-              <span class="mode-arrow">➡️</span>
-            </button>
+                <span class="mode-arrow">→</span>
+              </button>
 
-            <button data-mode="UNLOAD" class="mode-btn btn-ghost btn-xl" title="Descarregamento com DT de descarga (sem planilha)">
-              <div class="left">
-                <div class="emoji">📥</div>
-                <div>
-                  <div>Descarregar</div>
-                  <div class="desc">Sem planilha</div>
+              <button data-mode="UNLOAD" class="mode-btn btn-ghost btn-xl" title="Descarregamento com DT de descarga (sem planilha)">
+                <div class="left">
+                  <div class="emoji">📥</div>
+                  <div>
+                    <div>Descarregar</div>
+                    <div class="desc">Sem planilha</div>
+                  </div>
                 </div>
-              </div>
-              <span class="mode-arrow">➡️</span>
-            </button>
+                <span class="mode-arrow">→</span>
+              </button>
+            </div>
+          </div>
 
-            <button data-mode="RITMO" class="mode-btn btn-ghost btn-xl" title="Baldeio: DT opcional (se vazio, gera ID interno)">
-              <div class="left">
-                <div class="emoji">⚡</div>
-                <div>
-                  <div>Baldeio</div>
-                  <div class="desc">DT opcional</div>
+          <div class="flow-group">
+            <div class="flow-group-title">Especiais</div>
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-2">
+              <button data-mode="RITMO" class="mode-btn btn-ghost btn-xl" title="Baldeio: DT opcional (se vazio, gera ID interno)">
+                <div class="left">
+                  <div class="emoji">⚡</div>
+                  <div>
+                    <div>Baldeio</div>
+                    <div class="desc">DT opcional</div>
+                  </div>
                 </div>
-              </div>
-              <span class="mode-arrow">➡️</span>
-            </button>
+                <span class="mode-arrow">→</span>
+              </button>
 
-            <button data-mode="HIDROMAN" class="mode-btn btn-ghost btn-xl" title="HIDROMAN: vai direto para o cadastro do motorista (sem planilha)">
-              <div class="left">
-                <div class="emoji">💧</div>
-                <div>
-                  <div>HIDROMAN</div>
-                  <div class="desc">Sem planilha</div>
+              <button data-mode="HIDROMAN" class="mode-btn btn-ghost btn-xl" title="HIDROMAN: vai direto para o cadastro do motorista (sem planilha)">
+                <div class="left">
+                  <div class="emoji">💧</div>
+                  <div>
+                    <div>HIDROMAN</div>
+                    <div class="desc">Sem planilha</div>
+                  </div>
                 </div>
-              </div>
-              <span class="mode-arrow">➡️</span>
-            </button>
+                <span class="mode-arrow">→</span>
+              </button>
+            </div>
+          </div>
 
+          <div class="flow-group">
+            <div class="flow-group-title">Suporte</div>
             <button data-mode="INTEGRACAO" class="mode-btn btn-ghost btn-xl" title="Teste de Integração (válido por 3 meses)">
               <div class="left">
                 <div class="emoji">📝</div>
                 <div>
-                  <div>Integração (Teste)</div>
-                  <div class="desc">Libera por 3 meses</div>
+                  <div>Integração</div>
+                  <div class="desc">Validade de 3 meses</div>
                 </div>
               </div>
-              <span class="mode-arrow">➡️</span>
+              <span class="mode-arrow">→</span>
             </button>
-          </div>
-
-          <div class="section">
-            <div class="help">
-              Dica: se a planilha estiver fora do ar, use <b>Descarregar</b> ou <b>Baldeio</b>.
-            </div>
           </div>
         </div>
       `;
 
-      const hcKey = "heilog-hc";
-      const applyHc = (on) => {
-        actionArea.classList.toggle("hc", !!on);
-        try { localStorage.setItem(hcKey, on ? "1" : "0"); } catch {}
-      };
-      const hcSaved = (() => {
-        try { return localStorage.getItem(hcKey) === "1"; } catch { return false; }
-      })();
-      applyHc(hcSaved);
-
-      document.getElementById("contrast-toggle")?.addEventListener("click", () => {
-        const next = !actionArea.classList.contains("hc");
-        applyHc(next);
-      });
 
       document.querySelectorAll('.mode-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -1802,6 +2189,7 @@
 
       if (mode === 'LOAD') {
         html = `
+          ${renderProgressBar(2, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
           <div class="section space-y-3">
             <div class="step">PASSO 1</div>
             <div class="big-title text-white">Carregar</div>
@@ -1823,12 +2211,16 @@
 
       if (mode === 'UNLOAD') {
         html = `
+          ${renderProgressBar(2, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
           <div class="section space-y-3">
             <div class="step">PASSO 1</div>
             <div class="big-title text-white">Descarregar</div>
             <div class="help">Escolha o tipo de operação:</div>
 
-            <div class="space-y-2">
+            <div class="flow-group">
+              <div class="flow-group-title">Tipos de descarga</div>
+              <div class="flow-group-subtitle">Escolha a categoria antes de preencher os dados.</div>
+              <div class="space-y-2">
               <button id="unload-opt-latas" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
                 🥫 Latas Vazias
               </button>
@@ -1847,6 +2239,7 @@
               <button id="unload-opt-insumo" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
                 🧪 Insumo
               </button>
+              </div>
             </div>
 
             ${backBtn}
@@ -1856,6 +2249,7 @@
 
       if (mode === 'HIDROMAN') {
         html = `
+          ${renderProgressBar(2, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
           <div class="section space-y-3">
             <div class="step">PASSO 1</div>
             <div class="big-title text-white">HIDROMAN</div>
@@ -1872,6 +2266,7 @@
 
       if (mode === 'RITMO') {
         html = `
+          ${renderProgressBar(2, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
           <div class="section space-y-3">
             <div class="step">PASSO 1</div>
             <div class="big-title text-white">Baldeio</div>
@@ -1893,6 +2288,7 @@
 
       if (mode === 'INTEGRACAO') {
         html = `
+          ${renderProgressBar(2, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
           <div class="section space-y-3">
             <div class="big-title text-white">Integração (Teste)</div>
             <div class="help">
@@ -1966,6 +2362,7 @@
         const goToDtForm = (needsUnload) => {
           const backBtn2 = `<button id="back-to-modes" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">⬅ Voltar</button>`;
           actionArea.innerHTML = `
+            ${renderProgressBar(3, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
             <div class="section space-y-3">
               <div class="step">PASSO 2</div>
               <div class="big-title text-white">Digite a DT</div>
@@ -2071,6 +2468,7 @@
         const goBaldeioStep2 = () => {
           const backBtnB = `<button id="back-to-baldeio-transp" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">⬅ Voltar</button>`;
           actionArea.innerHTML = `
+            ${renderProgressBar(3, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
             <div class="section space-y-3">
               <div class="step">PASSO 2</div>
               <div class="big-title text-white">Baldeio</div>
@@ -2523,14 +2921,16 @@
       const modeLabel = options.modeLabel || 'Operação';
 
       resultsArea.innerHTML = `
+        ${renderProgressBar(3, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
         <div class="section space-y-3">
-          <div class="flex items-start justify-between gap-2">
+          <div class="flex items-start justify-between gap-2 flex-wrap">
             <div>
               <div class="big-title text-white">${modeLabel}</div>
               <div class="help">Preencha os dados abaixo e toque em <b>Imprimir</b>.</div>
             </div>
             <button id="back-from-form" class="btn-ghost px-4 py-3 rounded-xl text-sm font-bold">⬅ Voltar</button>
           </div>
+          <div class="form-hint-box text-sm text-gray-200">O sistema reaproveita automaticamente o cadastro salvo do motorista.</div>
 
           ${isManual ? `
             <details class="section">
@@ -2570,7 +2970,7 @@
                 <div class="help">Canal: se não souber, deixe vazio.</div>
 
                 <div class="help">
-                  <span class="badge">ID: ${String(firstResult[headerMap.dts] || '').trim()}</span>
+                  <span id="manual-id-preview" class="badge">ID: ${String(firstResult[headerMap.dts] || '').trim()}</span>
                 </div>
               </div>
             </details>
@@ -2678,6 +3078,13 @@
 
       applyFormMasksAndValidations();
 
+      const driverCpfEl = document.getElementById('driver-cpf');
+      if (driverCpfEl && sessionCpf) {
+        driverCpfEl.value = sessionCpf;
+        if (cpfMask) cpfMask.unmaskedValue = normalizeDigits(sessionCpf);
+      }
+      if (sessionDriver) fillFormFields(sessionDriver);
+
       if (isManual) {
         const manualTypeEl = document.getElementById('manual-type');
         const manualClientEl = document.getElementById('manual-client');
@@ -2731,6 +3138,13 @@
 
       const unloadEl = document.getElementById('unload-dt');
       if (unloadEl && pendingUnloadDt) unloadEl.value = pendingUnloadDt;
+
+      if (sessionDriver) {
+        const autoInfo = document.createElement('div');
+        autoInfo.className = 'form-hint-box text-sm text-gray-200';
+        autoInfo.innerHTML = `<b>Cadastro reaproveitado:</b> dados principais preenchidos automaticamente.`;
+        resultsArea.firstElementChild?.appendChild(autoInfo);
+      }
 
       document.getElementById('driver-cpf')?.addEventListener('input', findAndFillDriverData);
 
@@ -2839,27 +3253,40 @@
       const phoneEl = document.getElementById('driver-phone');
       if (phoneEl) phoneMask = IMask(phoneEl, { mask: '(00) 00000-0000' });
 
-      const plateEl = document.getElementById('truck-plate');
-      if (plateEl) {
-        plateEl.addEventListener('input', (e) => {
-          e.target.value = e.target.value.toUpperCase();
+      const cnhExpiryEl = document.getElementById('cnh-expiry');
+      if (cnhExpiryEl) IMask(cnhExpiryEl, { mask: '00/00/0000' });
+
+      const cnhEl = document.getElementById('driver-cnh');
+      if (cnhEl) {
+        cnhEl.addEventListener('input', (e) => {
+          e.target.value = e.target.value.replace(/\D/g, '').slice(0, 11);
+          e.target.classList.remove('invalid');
         });
       }
 
-      const trailerEl = document.getElementById('trailer-plate');
-      if (trailerEl) {
-        trailerEl.addEventListener('input', (e) => {
-          e.target.value = e.target.value.toUpperCase();
+      const applyPlateMask = (el) => {
+        if (!el) return;
+        el.addEventListener('input', (e) => {
+          e.target.value = sanitizePlate(e.target.value);
+          e.target.classList.remove('invalid');
         });
-      }
+      };
+
+      applyPlateMask(document.getElementById('truck-plate'));
+      applyPlateMask(document.getElementById('trailer-plate'));
+
+      document.querySelectorAll('.form-input, .form-select').forEach((el) => {
+        el.addEventListener('input', () => el.classList.remove('invalid'));
+        el.addEventListener('change', () => el.classList.remove('invalid'));
+      });
     }
 
     function fillFormFields(data) {
       document.getElementById('driver-name').value = data.name || '';
       document.getElementById('driver-cnh').value = data.cnh || '';
       document.getElementById('cnh-expiry').value = data.cnhExpiry || '';
-      document.getElementById('truck-plate').value = data.truckPlate || '';
-      document.getElementById('trailer-plate').value = data.trailerPlate || '';
+      document.getElementById('truck-plate').value = sanitizePlate(data.truckPlate || '');
+      document.getElementById('trailer-plate').value = sanitizePlate(data.trailerPlate || '');
       document.getElementById('truck-axles').value = data.axles || '';
       const vehicleTypeEl = document.getElementById('vehicle-type');
       if (vehicleTypeEl) vehicleTypeEl.value = data.vehicleType || '';
@@ -2873,21 +3300,24 @@
     }
 
     function validateField(element, errorMessage, condition = () => element.value.trim() !== '') {
+      if (!element) return false;
       if (!condition()) {
         element.classList.add('invalid');
-        displayError(errorMessage, 4000);
-        element.focus();
+        displayError(errorMessage, 5000, { field: element });
+        try { element.focus(); } catch {}
+        scrollToField(element);
         return false;
       }
       element.classList.remove('invalid');
       return true;
     }
 
-    function openPlateConfirmModal(truckPlate, trailerPlate) {
+    function openPlateConfirmModal(truckPlate, trailerPlate, summary = {}) {
       return new Promise((resolve) => {
         const plateConfirmOverlay = document.getElementById('plate-confirm-overlay');
         const confirmTruckPlate = document.getElementById('confirm-truck-plate');
         const confirmTrailerPlate = document.getElementById('confirm-trailer-plate');
+        const confirmSummary = document.getElementById('confirm-operation-summary');
         const plateConfirmEditBtn = document.getElementById('plate-confirm-edit-btn');
         const plateConfirmPrintBtn = document.getElementById('plate-confirm-print-btn');
 
@@ -2895,6 +3325,7 @@
           !plateConfirmOverlay ||
           !confirmTruckPlate ||
           !confirmTrailerPlate ||
+          !confirmSummary ||
           !plateConfirmEditBtn ||
           !plateConfirmPrintBtn
         ) {
@@ -2905,6 +3336,17 @@
 
         confirmTruckPlate.textContent = (truckPlate || 'NÃO INFORMADO').toUpperCase();
         confirmTrailerPlate.textContent = (trailerPlate || 'NÃO INFORMADO').toUpperCase();
+        confirmSummary.innerHTML = [
+          buildSummaryItem('Motorista', summary.motorista),
+          buildSummaryItem('CPF', summary.cpf),
+          buildSummaryItem('Operação', summary.operacao),
+          buildSummaryItem('DT', summary.dt),
+          buildSummaryItem('DT Descarga', summary.dtDescarga),
+          buildSummaryItem('Transportadora', summary.transportadora),
+          buildSummaryItem('Tipo de veículo', summary.tipoVeiculo),
+          buildSummaryItem('Cavalo', summary.cavalo),
+          buildSummaryItem('Carreta', summary.carreta)
+        ].join('');
 
         plateConfirmOverlay.style.display = 'flex';
 
@@ -2957,7 +3399,7 @@
         const cpfDigits = normalizeDigits(cpfEl.value);
         const st = await getIntegrationStateForCpf(cpfDigits);
         if (!st.ok) {
-          displayError("Integração obrigatória: faça o teste antes de imprimir.", 6000);
+          displayError("Integração obrigatória: faça o teste antes de imprimir.", 6000, { field: document.getElementById('driver-int-open') });
           document.getElementById('driver-int-open')?.classList.remove('hidden');
           return;
         }
@@ -2968,21 +3410,38 @@
       }
 
       if (!validateField(phoneEl, "Telefone é obrigatório.", () => (phoneMask?.unmaskedValue?.length || 0) >= 10)) return;
-      if (!validateField(plateEl, "Placa do cavalo é obrigatória.")) return;
+      if (!validateField(plateEl, "Placa do cavalo é obrigatória.", () => isValidBrazilianPlate(plateEl?.value || ''))) return;
+      const trailerEl = document.getElementById('trailer-plate');
+      if (trailerEl?.value?.trim() && !validateField(trailerEl, "Placa da carreta inválida.", () => isValidBrazilianPlate(trailerEl?.value || ''))) return;
       const vehicleTypeEl = document.getElementById('vehicle-type');
       if (vehicleTypeEl && !validateField(vehicleTypeEl, "Tipo de veículo é obrigatório.")) return;
       const cnhEl = document.getElementById('driver-cnh');
-      if (cnhEl && !validateField(cnhEl, "CNH é obrigatória.")) return;
+      if (cnhEl && !validateField(cnhEl, "CNH é obrigatória.", () => isValidCnh(cnhEl.value))) return;
+      const cnhExpiryEl = document.getElementById('cnh-expiry');
+      if (cnhExpiryEl?.value?.trim() && !validateField(cnhExpiryEl, "Validade da CNH inválida.", () => isValidDateBR(cnhExpiryEl.value))) return;
 
       const unloadDtEl = document.getElementById('unload-dt');
       if (requireUnloadDtInForm && unloadDtEl) {
         if (!validateField(unloadDtEl, "DT de descarga é obrigatória.", () => unloadDtEl.value.trim().length > 0)) return;
       }
 
-      const trailerEl = document.getElementById('trailer-plate');
+      const summaryForPrint = getDriverFormSummary();
+      summaryForPrint.dt = (() => {
+        const firstOriginal = originalDataArray[0] || {};
+        const baseDt = String(firstOriginal[headerMap.dts] || '').trim();
+        if (currentMode === 'LOAD') return baseDt || 'Sem DT';
+        if (currentMode === 'RITMO') return (baldeioDtCarga || '').trim() || 'Sem DT';
+        return summaryForPrint.dt || 'Conforme operação';
+      })();
+      summaryForPrint.dtDescarga = (() => {
+        const raw = (document.getElementById('unload-dt')?.value || pendingUnloadDt || baldeioDtDescarga || '').trim();
+        return raw || 'Não informada';
+      })();
+
       const confirmedPlates = await openPlateConfirmModal(
-        (plateEl?.value || '').trim().toUpperCase(),
-        (trailerEl?.value || '').trim().toUpperCase()
+        sanitizePlate((plateEl?.value || '').trim()),
+        sanitizePlate((trailerEl?.value || '').trim()),
+        summaryForPrint
       );
 
       if (!confirmedPlates) {
@@ -3008,13 +3467,13 @@
       }
 
       const driverData = {
-        name: nameEl.value,
+        name: nameEl.value.trim(),
         cpf: cpfEl.value,
         phone: phoneEl.value,
         cnh: document.getElementById('driver-cnh')?.value || '',
         cnhExpiry: document.getElementById('cnh-expiry')?.value || '',
-        truckPlate: plateEl.value,
-        trailerPlate: document.getElementById('trailer-plate')?.value || '',
+        truckPlate: sanitizePlate(plateEl.value),
+        trailerPlate: sanitizePlate(document.getElementById('trailer-plate')?.value || ''),
         vehicleType: document.getElementById('vehicle-type')?.value || '',
         axles: document.getElementById('truck-axles')?.value || '',
         renavam: document.getElementById('driver-renavam')?.value || '',
@@ -3739,21 +4198,34 @@ function showCallPanel(driverName, isAlert) {
       clearTimeout(panelTimeout);
     }
 
-    function displayError(message, duration = 0) {
+    function displayError(message, duration = 0, options = {}) {
       document.getElementById('temp-alert')?.remove();
       const alertDiv = document.createElement('div');
       alertDiv.id = 'temp-alert';
-      alertDiv.className = 'bg-red-500 text-white p-3 rounded-lg mb-4 text-center';
-      alertDiv.textContent = message;
+      alertDiv.className = 'error-card';
+      alertDiv.innerHTML = `
+        <div class="title">Não foi possível continuar</div>
+        <div>${escapeHtml(message)}</div>
+        <div class="tip">${escapeHtml(options.tip || deriveErrorTip(message))}</div>
+      `;
+
       resultsArea.insertAdjacentElement('afterbegin', alertDiv);
+
+      if (options.field) {
+        try { options.field.classList.add('invalid'); } catch {}
+        scrollToField(options.field);
+      } else {
+        try { alertDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
+      }
+
       if (duration > 0) setTimeout(() => alertDiv.remove(), duration);
     }
 
     function displayNotFound(query) {
       resultsArea.innerHTML = `
         <div class="bg-yellow-900/50 border border-yellow-700 text-yellow-300 p-4 rounded-xl text-center">
-          <p class="font-semibold">DT "${query}" não encontrado na planilha.</p>
-          <button id="manual-form-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
+          <p class="font-semibold">DT "${query}" não encontrada na planilha.</p>
+          <p class="text-sm mt-2">Você pode continuar mesmo assim criando a folha manual.</p><button id="manual-form-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
             Criar Folha de Marcação Manual
           </button>
         </div>
