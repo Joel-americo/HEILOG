@@ -530,18 +530,28 @@
 
     .xl-priorities {
       display: flex;
-      justify-content: center;
-      gap: 30px;
-      padding: 4px 0 1px;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 18px;
+      padding: 6px 2px 1px;
       font-size: 9px;
       font-weight: 900;
     }
 
     .xl-priority-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      display: flex;
+      align-items: flex-end;
+      gap: 0;
+      flex: 1 1 0;
+      white-space: nowrap;
       font-size: 9px;
+    }
+
+    .xl-priority-item .xl-line {
+      flex: 1 1 auto;
+      min-width: 140px;
+      margin-left: 2px;
+      height: 11px;
     }
 
     .xl-check-page,
@@ -4202,15 +4212,14 @@
             <div></div>
             <div class="xl-doc-meta">
               <div>PO-JAC-CDD-012</div>
-              <div>Revisão 6</div>
-              <div>Data 30/01/2026</div>
+              <div>Revisão 5</div>
+              <div>Data: 03/07/2025</div>
             </div>
           </div>
 
           <div class="xl-priorities">
-            <span class="xl-priority-item">PRIORIDADE 01 <span class="xl-box big"></span></span>
-            <span class="xl-priority-item">PRIORIDADE 02 <span class="xl-box big"></span></span>
-            <span class="xl-priority-item">PRIORIDADE 03 <span class="xl-box big"></span></span>
+            <span class="xl-priority-item">HORÁRIO DE ENTRADA NA DOCA <span class="xl-line"></span></span>
+            <span class="xl-priority-item">HORÁRIO DE SAIDA DA DOCA <span class="xl-line"></span></span>
           </div>
         </div>
       `;
