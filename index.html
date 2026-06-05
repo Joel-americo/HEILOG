@@ -4032,8 +4032,8 @@
                 </td>
                 <td class="xl-header-title" style="width:45%;">CHECKLIST (DES) CARREGAMENTO</td>
                 <td class="xl-header-datetime" style="width:22%;">
-                  <div style="padding:6px 8px;">${escapeHtml(printDate)}</div>
-                  <div style="padding:6px 8px; border-top:1px solid #000;">Hora</div>
+                  <div style="padding:5px 7px;">${escapeHtml(printDate)}</div>
+                  <div style="padding:5px 7px; border-top:1px solid #000;">Hora</div>
                 </td>
               </tr>
             </table>
@@ -4257,41 +4257,54 @@
 
       const unloadDtRaw = (driverData.printableUnloadDt || '').toString().trim();
       const unloadDtPrint = unloadDtRaw ? unloadDtRaw : '';
+
+      // Agenda: quando a operação usa a planilha, usa Data/Hora da planilha.
+      // Em operações que não usam a planilha (manuais), preenche sempre com data e hora atual.
+      const rawAgendaDate = (firstResult[headerMap.data] || '').toString().trim();
+      const rawAgendaTime = (firstResult[headerMap.agenda] || '').toString().trim();
+      const agendaDatePrint = isManual ? printDate : (rawAgendaDate || printDate);
+      const agendaTimePrint = isManual ? printTime : (rawAgendaTime || printTime);
       let priorityHtml = '';
       if (isGradeQueimada) {
-        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FBBF24;">
-                          <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">GRADE QUEIMADA</h2>
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#FBBF24; border-radius:0;">
+                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
+                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">GRADE QUEIMADA</div>
                         </div>`;
       } else if (isAtrasado) {
-        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #FACC15;">
-                          <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">PERDA DE AGENDA</h2>
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#FACC15; border-radius:0;">
+                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
+                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">PERDA DE AGENDA</div>
                         </div>`;
       } else if (isAntecipacao) {
-        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
-                          <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ANTECIPAÇÃO</h2>
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#F87171; border-radius:0; color:#111;">
+                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
+                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">ANTECIPAÇÃO</div>
                         </div>`;
       } else if (isOtif && isTop18) {
-        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
-                          <h2 class="font-extrabold tracking-wider" style="font-size: 20px;">OTIF / TOP 18</h2>
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#F87171; border-radius:0; color:#111;">
+                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
+                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">OTIF / TOP 18</div>
                         </div>`;
       } else if (isOtif) {
-        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #F87171;">
-                          <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">OTIF</h2>
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#F87171; border-radius:0; color:#111;">
+                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
+                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">OTIF</div>
                         </div>`;
       } else if (isPriority) {
-        priorityHtml = `<div class="border-4 border-black text-center p-2" style="background-color: #BBF7D0;">
-                          <h2 class="font-extrabold tracking-wider" style="font-size: 22px;">ADERENTE</h2>
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#BBF7D0; border-radius:0; color:#111;">
+                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
+                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">ADERENTE</div>
                         </div>`;
       } else {
-        priorityHtml = `<div class="border border-black text-center p-1">
-                          <h2 class="font-bold tracking-wider">STATUS</h2>
-                          <p style="font-size: 14px;">(${operationTag || 'Normal'})</p>
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:10px 10px; background:#fff; border-radius:0;">
+                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:4px;">STATUS</div>
+                          <div style="font-size:16px;">(${operationTag || 'BALDEIO'})</div>
                         </div>`;
       }
 
       const allCanais = ['Y001', 'Y002', 'Y004', 'Y006', 'Y055'];
       const canalPrint = (firstResult[headerMap.canal] || '').toString().trim().toUpperCase();
-      const canaisHtml = allCanais.map(c => `${c === canalPrint ? '[X]' : '[  ]'} ${c}`).join(' ');
+      const canaisHtml = allCanais.map(c => `${c === canalPrint ? '[X]' : '[ ]'} ${c}`).join(' ');
 
       const isBaldeio = !!isManual && (productRaw.includes('BALDEIO') || transpUpper === 'RITMO' || transpUpper === 'JSL');
       const isInsumoManual = !!isManual && !isBaldeio && productRaw.includes('INSUMO');
@@ -4300,197 +4313,207 @@
         ? (isBaldeio ? 'Produto' : (isInsumoManual ? 'Tipo de Produto' : 'Produto'))
         : 'Produto';
 
-      const productTableHtml = `
-        <table class="w-full text-left text-sm border-collapse border border-black">
-          <thead class="bg-gray-200">
-            <tr>
-              <th class="border border-black p-1">${productHeader}</th>
-              <th class="border border-black p-1 text-center">Quantidade (PLT)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${sheetDataArray.map(item => {
-              const prod = isManual
-                ? (isBaldeio ? '' : ((item[headerMap.produto] || '') || (operationTag || '')))
-                : (item[headerMap.produto] || 'N/A');
+      const safeRows = sheetDataArray.length ? sheetDataArray : [{}];
+      const rowsHtml = safeRows.map(item => {
+        const prod = isManual
+          ? (isBaldeio ? '' : ((item[headerMap.produto] || '') || (operationTag || '')))
+          : (item[headerMap.produto] || '');
 
-              const qtd = isManual
-                ? (item[headerMap.plt] || '')
-                : (item[headerMap.plt] || 'N/A');
+        const qtd = isManual
+          ? (item[headerMap.plt] || '')
+          : (item[headerMap.plt] || '');
 
-              const rowStyle = isManual ? 'style="height:46px; vertical-align:middle;"' : '';
-
-              return `
-                <tr>
-                  <td class="border border-black p-1 font-bold" ${rowStyle}>${prod}</td>
-                  <td class="border border-black p-1 text-center font-bold" ${rowStyle}>${qtd}</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
+        return `
+          <tr>
+            <td style="border:1px solid #cfcfcf; padding:5px 7px; height:32px; font-weight:700;">${prod}</td>
+            <td style="border:1px solid #cfcfcf; padding:5px 7px; height:32px; text-align:center; font-weight:700;">${qtd}</td>
+          </tr>
+        `;
+      }).join('');
 
       const checklistHtml = buildChecklistPrintPage(driverData, sheetDataArray, operationTag, printDate, printTime);
 
       document.getElementById('printable-area').innerHTML = `
-        <div class="p-2 bg-white text-black font-sans text-xs print-main-container">
-          <header class="flex justify-between items-start mb-4 border-b-2 border-black pb-2">
-            <div class="flex flex-col items-center">
-              <div class="flex items-center gap-1">
-                <span class="text-[9px] font-bold">EST.</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#E50025">
+        <style>
+          .hm-sheet p { margin: 0 0 2px 0; }
+          .hm-sheet strong { font-weight: 900; }
+          @media print {
+            .hm-sheet {
+              zoom: 0.97;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+          }
+        </style>
+        <div class="bg-white text-black font-sans print-main-container hm-sheet" style="padding:12px; font-size:10.8px; color:#111; border:2.5px solid #111; background:#fff;">
+          <header style="display:grid; grid-template-columns: 1.1fr 1.2fr .65fr; gap:12px; align-items:center; border-bottom:2px solid #111; padding-bottom:9px; margin-bottom:9px;">
+            <div style="display:flex; align-items:center; gap:10px; min-height:66px; padding:5px 3px;">
+              <div style="display:flex; align-items:center; gap:5px; white-space:nowrap;">
+                <span style="font-size:11px; font-weight:900;">EST.</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="#E50025">
                   <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z"/>
                 </svg>
-                <span class="text-[9px] font-bold">1873</span>
+                <span style="font-size:11px; font-weight:900;">1873</span>
               </div>
-              <h1 class="text-3xl font-bold font-title tracking-wider">HEINEKEN</h1>
+              <div>
+                <div class="font-title" style="font-size:28px; font-weight:900; letter-spacing:.07em; line-height:1;">HEINEKEN</div>
+                <div style="font-size:9px; font-weight:800; letter-spacing:.08em; margin-top:3px;">UNIDADE JACAREÍ • HEILOG</div>
+              </div>
             </div>
-            <div class="w-1/3 pt-1">${priorityHtml}</div>
+
+            <div style="border:2px solid #111; min-height:66px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:7px 9px; text-align:center;">
+              <div style="font-size:11px; font-weight:900; margin-bottom:8px;">Gerada em ${printDate} às ${printTime}</div>
+              <div style="border:1.5px solid #555; border-radius:22px; padding:6px 14px; font-size:11px; line-height:1.15;">
+                CANAL: <strong>${canaisHtml}</strong>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; justify-content:center; min-height:72px;">
+              ${priorityHtml}
+            </div>
           </header>
 
-          ${operationTag ? `
-          <div class="text-center mb-2 text-base font-extrabold tracking-widest">
-            ${operationTag}
-          </div>` : ``}
-
-          <div class="text-center mb-2 text-sm">
-            <p>CANAL: ${canaisHtml}</p>
-          </div>
-
-          <div class="mb-2 border border-black p-2">
-            <table class="w-full text-left text-sm">
-              <tr>
-                <td class="w-1/2 pr-8 align-top">
+          <div style="display:grid; grid-template-columns: 1fr .66fr; gap:10px; margin-bottom:8px;">
+            <section style="border:2px solid #111;">
+              <div style="background:#f3f4f6; border-bottom:1px solid #111; padding:6px 9px; font-size:11.5px; font-weight:900; letter-spacing:.03em;">DADOS DO MOTORISTA E VEÍCULO</div>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0; padding:0;">
+                <div style="padding:8px 10px; line-height:1.48; border-right:1px solid #d4d4d4;">
                   <p><strong>DATA/HORA:</strong> ${printDate} ${printTime}</p>
                   <p><strong>MOTORISTA:</strong> ${driverData.name}</p>
                   <p><strong>CPF:</strong> ${driverData.cpf}</p>
-                  <p><strong>PLACA:</strong> ${driverData.truckPlate}</p>
-                  <p><strong>CARRETA 1:</strong> ${driverData.trailerPlate}</p>
+                  <p><strong>CELULAR:</strong> ${driverData.phone}</p>
+                  <p><strong>CNH:</strong> ${driverData.cnh || ''}</p>
+                </div>
+                <div style="padding:8px 10px; line-height:1.48;">
+                  <p><strong>CAVALO:</strong> ${driverData.truckPlate}</p>
+                  <p><strong>CARRETA:</strong> ${driverData.trailerPlate}</p>
                   <p><strong>TIPO DE VEÍCULO:</strong> ${vehicleTypePrint || '---'}</p>
                   <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
-                  <p><strong>CELULAR:</strong> ${driverData.phone}</p>
-                </td>
-                <td class="w-1/2 align-top">
-                  <p><strong>CLIENTE:</strong></p>
-                  <p class="font-bold">${firstResult[headerMap.cliente] || 'N/A'}</p>
-                  <p class="mt-2"><strong>TRANSPORTADORA:</strong> ${companyPrint || '---'}</p>
-                </td>
-              </tr>
-            </table>
+                  <p><strong>RENAVAM:</strong> ${driverData.renavam || ''}</p>
+                </div>
+              </div>
+            </section>
+
+            <section style="border:2px solid #111;">
+              <div style="background:#f3f4f6; border-bottom:1px solid #111; padding:6px 9px; font-size:11.5px; font-weight:900; letter-spacing:.03em;">DADOS DA OPERAÇÃO</div>
+              <div style="padding:8px 10px; line-height:1.52;">
+                <p><strong>DATA AGENDA:</strong> ${agendaDatePrint}</p>
+                <p><strong>HORA AGENDA:</strong> ${agendaTimePrint}</p>
+                <p><strong>OPERAÇÃO:</strong> ${operationTag || '---'}</p>
+                <p><strong>CLIENTE:</strong> ${firstResult[headerMap.cliente] || 'N/A'}</p>
+                <p><strong>TRANSPORTADORA:</strong> ${companyPrint || '---'}</p>
+              </div>
+            </section>
           </div>
 
-          <div class="mb-2">${productTableHtml}</div>
+          <section style="border:2px solid #111; margin-bottom:8px;">
+            <div style="background:#f3f4f6; border-bottom:1px solid #111; padding:6px 9px; font-size:11.5px; font-weight:900; letter-spacing:.03em;">PRODUTOS / VOLUMES</div>
+            <div style="padding:8px 9px 7px;">
+              <table style="width:100%; border-collapse:collapse; font-size:11px; text-align:left; border:1px solid #cfcfcf;">
+                <thead>
+                  <tr style="background:#fafafa;">
+                    <th style="border:1px solid #cfcfcf; padding:6px 7px; text-align:center; font-size:11.5px;">${productHeader}</th>
+                    <th style="border:1px solid #cfcfcf; padding:6px 7px; text-align:center; font-size:11.5px;">Quantidade (PLT)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
 
-          <table class="w-full border-collapse border-2 border-black mb-2">
-            <thead>
-              <tr class="bg-gray-200">
-                <th class="border border-black p-1">MOTORISTA</th>
-                <th class="border border-black p-1">Nº NOTA FISCAL</th>
-                <th class="border border-black p-1">Nº TRANSPORTE</th>
-                <th class="border border-black p-1">DT DESCARGA</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="border border-black p-1">
-                  <p>[ ] Carregamento</p>
-                  <p>[ ] Descarregamento</p>
-                </td>
-                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${driverData.invoice || '---'}</td>
-                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${transportNumberPrint || ''}</td>
-                <td class="border border-black p-1 text-center text-lg font-bold align-middle">${unloadDtPrint || ''}</td>
-              </tr>
-              <tr>
-                <td colspan="4" class="border border-black p-1 text-xs">
-                  [X] Eu, motorista, estou ciente das regras de segurança vigentes no armazém da HEINEKEN de Jacareí
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <table class="w-full border-collapse border border-black mb-2 text-xs">
-            <thead class="bg-gray-200 text-left">
-              <tr>
-                <th class="border border-black p-1">PROCESSO</th>
-                <th class="border border-black p-1">RESPONSÁVEL</th>
-                <th class="border border-black p-1">NOME</th>
-                <th class="border border-black p-1 w-1/3">ASSINATURA</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="border border-black p-1 h-5">Confirmação</td>
-                <td class="border border-black p-1 text-center">Motorista</td>
-                <td class="border border-black p-1">${driverData.name}</td>
-                <td class="border border-black p-1"></td>
-              </tr>
-              <tr>
-                <td class="border border-black p-1 h-5">Recebimento</td>
-                <td class="border border-black p-1 text-center">Conferente</td>
-                <td class="border border-black p-1"></td>
-                <td class="border border-black p-1"></td>
-              </tr>
-              <tr>
-                <td class="border border-black p-1 h-5">Conferência</td>
-                <td class="border border-black p-1 text-center">Conferente</td>
-                <td class="border border-black p-1"></td>
-                <td class="border border-black p-1"></td>
-              </tr>
-              <tr>
-                <td class="border border-black p-1 h-5">Liberação</td>
-                <td class="border border-black p-1 text-center">Faturista/Conferente</td>
-                <td class="border border-black p-1"></td>
-                <td class="border border-black p-1"></td>
-              </tr>
-              <tr>
-                <td class="border border-black p-1 h-5">Analista</td>
-                <td class="border border-black p-1 text-center">Analista</td>
-                <td class="border border-black p-1"></td>
-                <td class="border border-black p-1"></td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="border border-black p-2 mb-2">
-            <h3 class="text-center font-bold mb-1">RESPEITE AS REGRAS DE SEGURANÇA:</h3>
-            <ul class="text-[9px] space-y-0.5" style="list-style-position: inside;">
-              <li>Proibido o uso de adornos.</li>
-              <li>Obrigatório o uso de todos os EPIs: Capacetes c/ jugular, Botas de Segurança, Colete refletivo, Óculos de segurança, Luvas e Máscaras.</li>
-              <li>Obrigatório Uso das faixas de pedestres.</li>
-              <li>Obrigatória distância de 5m entre pessoas e empilhadeiras.</li>
-              <li>Respeitar procedimentos HEINEKEN, Colaboradores e Segurança Patrimonial.</li>
-            </ul>
-          </div>
-
-          <div class="border border-black p-2">
-            <div class="flex justify-between items-center mb-1">
-              <h2 class="text-base font-bold">★ HEINEKEN UNIDADE JACAREÍ</h2>
+                </tbody>
+              </table>
             </div>
+          </section>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; column-gap:24px; font-size:12px; line-height:1.25;">
-              <div style="display:flex; flex-direction:column; row-gap:2px;">
+          <table style="width:100%; border-collapse:collapse; border:2px solid #111; margin-bottom:8px; font-size:11px;">
+            <thead>
+              <tr style="background:#f3f4f6;">
+                <th style="border:1px solid #cfcfcf; padding:7px 6px;">TIPO</th>
+                <th style="border:1px solid #cfcfcf; padding:7px 6px;">Nº NOTA FISCAL</th>
+                <th style="border:1px solid #cfcfcf; padding:7px 6px;">Nº TRANSPORTE</th>
+                <th style="border:1px solid #cfcfcf; padding:7px 6px;">DT DESCARGA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="border:1px solid #cfcfcf; padding:6px 9px; line-height:1.6; width:25%;">
+                  <div>[ ] Carregamento</div>
+                  <div>[ ] Descarregamento</div>
+                </td>
+                <td style="border:1px solid #cfcfcf; padding:7px 9px; text-align:center; font-size:13px; font-weight:900;">${driverData.invoice || '---'}</td>
+                <td style="border:1px solid #cfcfcf; padding:7px 9px; text-align:center; font-size:13px; font-weight:900;">${transportNumberPrint || ''}</td>
+                <td style="border:1px solid #cfcfcf; padding:7px 9px; text-align:center; font-size:13px; font-weight:900;">${unloadDtPrint || ''}</td>
+              </tr>
+              <tr>
+                <td colspan="4" style="border:1px solid #cfcfcf; padding:6px 10px; font-size:10px;">[X] Eu, motorista, estou ciente das regras de segurança vigentes no armazém da HEINEKEN de Jacareí.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <section style="border:2px solid #111; margin-bottom:8px;">
+            <div style="background:#f3f4f6; border-bottom:1px solid #111; padding:6px 9px; font-size:11.5px; font-weight:900; letter-spacing:.03em;">CHAMADO</div>
+            <div style="padding:6px 11px; min-height:28px;">
+              <div style="border-bottom:1px solid #888; height:20px;"></div>
+            </div>
+          </section>
+
+          <section style="border:2px solid #111; margin-bottom:8px;">
+            <div style="background:#f3f4f6; border-bottom:1px solid #111; padding:6px 9px; font-size:11.5px; font-weight:900; letter-spacing:.03em;">RESPONSÁVEIS / ASSINATURAS</div>
+            <table style="width:100%; border-collapse:collapse; font-size:11px;">
+              <thead style="background:#fafafa;">
+                <tr>
+                  <th style="border:1px solid #cfcfcf; padding:5px 7px;">PROCESSO</th>
+                  <th style="border:1px solid #cfcfcf; padding:5px 7px;">RESPONSÁVEL</th>
+                  <th style="border:1px solid #cfcfcf; padding:5px 7px;">NOME</th>
+                  <th style="border:1px solid #cfcfcf; padding:5px 7px;">ASSINATURA</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="border:1px solid #cfcfcf; padding:6px 7px;">Confirmação</td>
+                  <td style="border:1px solid #cfcfcf; padding:6px 7px; text-align:center;">Motorista</td>
+                  <td style="border:1px solid #cfcfcf; padding:6px 7px;">${driverData.name}</td>
+                  <td style="border:1px solid #cfcfcf; padding:6px 7px;"></td>
+                </tr>
+                <tr>
+                  <td style="border:1px solid #cfcfcf; padding:6px 7px;">Analista</td>
+                  <td style="border:1px solid #cfcfcf; padding:6px 7px; text-align:center;">Analista</td>
+                  <td style="border:1px solid #cfcfcf; padding:6px 7px;"></td>
+                  <td style="border:1px solid #cfcfcf; padding:6px 7px;"></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section style="border:2px solid #111; margin-bottom:8px;">
+            <div style="background:#111; color:#fff; padding:6px 9px; font-size:11.5px; font-weight:900; text-align:center; letter-spacing:.06em;">REGRAS DE SEGURANÇA</div>
+            <ul style="font-size:9.1px; line-height:1.32; padding:7px 12px 7px 20px; margin:0;">
+              <li>Proibido o uso de adornos.</li>
+              <li>Obrigatório o uso de todos os EPIs: capacete com jugular, bota de segurança, colete refletivo, óculos de segurança, luvas e máscara quando aplicável.</li>
+              <li>Obrigatório o uso das faixas de pedestres.</li>
+              <li>Obrigatória distância de 5m entre pessoas e empilhadeiras.</li>
+              <li>Respeitar os procedimentos HEINEKEN, colaboradores e Segurança Patrimonial.</li>
+            </ul>
+          </section>
+
+          <section style="border:2px solid #111; padding:6px 10px;">
+            <div style="font-size:13px; font-weight:900; margin-bottom:8px;">★ HEINEKEN UNIDADE JACAREÍ</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; column-gap:28px; font-size:10.5px; line-height:1.45;">
+              <div>
                 <p><strong>DATA:</strong> ${printDate}</p>
                 <p><strong>NOME:</strong> ${driverData.name}</p>
                 <p><strong>TELEFONE:</strong> ${driverData.phone}</p>
                 <p><strong>PLACA 1:</strong> ${driverData.truckPlate}</p>
-                <p><strong>EIXOS:</strong> ${driverData.axles || ''}</p>
                 <p><strong>NOTA FISCAL:</strong> ${driverData.invoice || ''}</p>
-                <p><strong>SETOR:</strong></p>
               </div>
-
-              <div style="display:flex; flex-direction:column; row-gap:2px;">
+              <div>
                 <p><strong>HORA CHEGADA:</strong> ${printTime}</p>
-                <p><strong>CNH:</strong> ${driverData.cnh || ''}</p>
                 <p><strong>CPF:</strong> ${driverData.cpf}</p>
                 <p><strong>EMPRESA:</strong> ${companyPrint}</p>
-                <p><strong>TRANSPORTADORA:</strong> ${companyPrint || ''}</p>
                 <p><strong>OPERAÇÃO:</strong> ${operationTag || ''}</p>
                 <p><strong>PLACA 2:</strong> ${driverData.trailerPlate || ''}</p>
-                <p><strong>RENAVAM:</strong> ${driverData.renavam || ''}</p>
               </div>
             </div>
-          </div>
+          </section>
         </div>
 
         ${checklistHtml}
@@ -4499,7 +4522,7 @@
 
 function showCallPanel(driverName, isAlert) {
       clearTimeout(panelTimeout);
-      callPanelMessage.innerHTML = `ATENÇÃO ${driverName},<br>Aguarde a ser chamado, iremos mandar mensagem no celular`;
+      callPanelMessage.innerHTML = `DIRIJA-SE AO<br>ATENDIMENTO`;
 
       if (isAlert) {
         callPanelContent.style.backgroundColor = '#fecaca';
