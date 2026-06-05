@@ -2191,8 +2191,7 @@
     function renderCpfGate() {
       resultsArea.innerHTML = '';
 
-      let lastCpf = '';
-      try { lastCpf = localStorage.getItem('heilog-last-cpf') || ''; } catch {}
+      let lastCpf = ''; // Não exibir CPF de marcação anterior.
 
       actionArea.innerHTML = `
         ${renderProgressBar(1, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
@@ -2226,10 +2225,7 @@
       const cpfEl = document.getElementById('gate-cpf');
       if (cpfEl) IMask(cpfEl, { mask: '000.000.000-00' });
 
-      try {
-        const last = localStorage.getItem('heilog-last-cpf') || '';
-        if (cpfEl && last) cpfEl.value = last;
-      } catch {}
+      try { localStorage.removeItem('heilog-last-cpf'); } catch {}
 
       document.getElementById('gate-use-last')?.addEventListener('click', () => {
         if (cpfEl && lastCpf) {
@@ -2239,6 +2235,7 @@
       });
 
       document.getElementById('gate-clear')?.addEventListener('click', () => {
+        try { localStorage.removeItem('heilog-last-cpf'); } catch {}
         if (cpfEl) {
           cpfEl.value = '';
           cpfEl.focus();
@@ -2253,7 +2250,7 @@
         if (!isAuthReady || !db) return displayError('Aguarde carregar o sistema...', 3000);
 
         sessionCpf = cpf;
-        try { localStorage.setItem('heilog-last-cpf', cpfMasked); } catch {}
+        try { localStorage.removeItem('heilog-last-cpf'); } catch {}
 
         fileStatus.textContent = 'Verificando cadastro e integração...';
 
@@ -4352,7 +4349,7 @@
             }
           }
         </style>
-        <div class="bg-white text-black font-sans print-main-container hm-sheet" style="padding:12px; font-size:10.8px; color:#111; border:2.5px solid #111; background:#fff;">
+        <div class="bg-white text-black font-sans print-main-container hm-sheet" style="padding:12px; font-size:14px; color:#111; border:2.5px solid #111; background:#fff;">
           <header style="display:grid; grid-template-columns: 1.1fr 1.2fr .65fr; gap:12px; align-items:center; border-bottom:2px solid #111; padding-bottom:9px; margin-bottom:9px;">
             <div style="display:flex; align-items:center; gap:10px; min-height:66px; padding:5px 3px;">
               <div style="display:flex; align-items:center; gap:5px; white-space:nowrap;">
@@ -4492,7 +4489,22 @@
           </section>
 
           <section style="border:2px solid #111; margin-bottom:8px;">
-            <div style="background:#111; color:#fff; padding:6px 9px; font-size:11.5px; font-weight:900; text-align:center; letter-spacing:.06em;">REGRAS DE SEGURANÇA</div>
+            <div style="
+  background:#e5e5e5 !important;
+  color:#000 !important;
+  border-top:2px solid #111;
+  border-bottom:2px solid #111;
+  padding:8px 10px;
+  font-size:15px;
+  font-weight:900;
+  text-align:center;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  -webkit-print-color-adjust:exact;
+  print-color-adjust:exact;
+">
+  REGRAS DE SEGURANÇA
+</div>
             <ul style="font-size:9.1px; line-height:1.32; padding:7px 12px 7px 20px; margin:0;">
               <li>Proibido o uso de adornos.</li>
               <li>Obrigatório o uso de todos os EPIs: capacete com jugular, bota de segurança, colete refletivo, óculos de segurança, luvas e máscara quando aplicável.</li>
@@ -4529,7 +4541,7 @@
 
 function showCallPanel(driverName, isAlert) {
       clearTimeout(panelTimeout);
-      callPanelMessage.innerHTML = `Por favor, Dirija-se ao Balcão do ATO!`;
+      callPanelMessage.innerHTML = `ATENÇÃO ${driverName},<br>Aguarde a ser chamado, iremos mandar mensagem no celular`;
 
       if (isAlert) {
         callPanelContent.style.backgroundColor = '#fecaca';
