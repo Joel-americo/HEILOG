@@ -1593,6 +1593,63 @@
       background: linear-gradient(to top, rgba(244,251,246,1), rgba(244,251,246,0.78));
     }
 
+
+    /* Botão global para desistência do atendimento */
+    .return-initial-floating {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 950;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 18px;
+      border-radius: 999px;
+      background: #111827;
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.16);
+      box-shadow: 0 14px 32px rgba(15,23,42,0.22);
+      font-weight: 900;
+      font-size: 0.92rem;
+      letter-spacing: 0.01em;
+      transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+
+    .return-initial-floating:hover {
+      transform: translateY(-1px);
+      background: #0f172a;
+      box-shadow: 0 18px 38px rgba(15,23,42,0.28);
+    }
+
+    .return-initial-floating.hidden {
+      display: none !important;
+    }
+
+    .plate-return-initial {
+      background: rgba(17,24,39,0.94);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.14);
+      font-weight: 900;
+    }
+
+    .plate-return-initial:hover {
+      background: #0f172a;
+    }
+
+    @media (max-width: 768px) {
+      .return-initial-floating {
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        width: auto;
+      }
+    }
+
+    @media print {
+      .return-initial-floating { display: none !important; }
+    }
+
   </style>
 </head>
 
@@ -1643,8 +1700,16 @@
           Confirmar e Imprimir
         </button>
       </div>
+
+      <button id="plate-confirm-home-btn" type="button" class="plate-return-initial w-full py-3 rounded-xl text-base font-extrabold">
+        ↩ Desistir e voltar ao início
+      </button>
     </div>
   </div>
+
+  <button id="return-initial-floating" type="button" class="return-initial-floating hidden">
+    ↩ Desistir e voltar ao início
+  </button>
 
   <div id="app-container" class="min-h-screen flex flex-col items-center justify-center p-4">
     <div class="desktop-shell">
@@ -1710,6 +1775,7 @@
     const callPanelContent = document.getElementById('call-panel-content');
     const callPanelMessage = document.getElementById('call-panel-message');
     const closePanelBtn = document.getElementById('close-panel-btn');
+    const returnInitialFloatingBtn = document.getElementById('return-initial-floating');
 
     // --- Estado ---
     let db, auth, appId;
@@ -1781,6 +1847,73 @@
     let dropHookManeuverDriver = null;
     let dropHookManeuverPlate = '';
     let dropHookAlsoUnload = false;
+
+    function resetAttendanceStateForInitialScreen() {
+      currentMode = null;
+      pendingUnloadDt = '';
+      requireUnloadDtInForm = false;
+      manualPresetType = '';
+      manualDtIdOverride = '';
+      hideManualExtras = false;
+      showUnloadInputs = true;
+      loadAlsoUnload = false;
+      sessionCpf = '';
+      sessionDriver = null;
+      postIntegrationNavigate = null;
+      presetTransportadora = '';
+      lockTransportadora = false;
+      selectedFlowKey = '';
+      selectedFlowLabel = '';
+      selectedFlowStep1 = '';
+      selectedFlowStep2 = '';
+      baldeioDtCarga = '';
+      baldeioDtDescarga = '';
+      isDropHookFlow = false;
+      dropHookTripCpf = '';
+      dropHookTripDriver = null;
+      dropHookDtCarga = '';
+      dropHookManeuverCpf = '';
+      dropHookManeuverDriver = null;
+      dropHookManeuverPlate = '';
+      dropHookAlsoUnload = false;
+    }
+
+    function updateReturnInitialButtonVisibility() {
+      if (!returnInitialFloatingBtn) return;
+      const isInitialGate = !!document.getElementById('gate-cpf');
+      const hasVisibleFlowContent = !!(
+        (actionArea?.textContent || '').trim() ||
+        (resultsArea?.textContent || '').trim()
+      );
+      returnInitialFloatingBtn.classList.toggle('hidden', isInitialGate || !hasVisibleFlowContent);
+    }
+
+    function returnToInitialScreen(confirmReturn = true) {
+      if (confirmReturn) {
+        const ok = window.confirm('Deseja desistir deste atendimento e voltar para a tela inicial?');
+        if (!ok) return;
+      }
+
+      try { document.getElementById('plate-confirm-overlay').style.display = 'none'; } catch {}
+      try { callPanelOverlay.style.display = 'none'; } catch {}
+      try { clearTimeout(panelTimeout); } catch {}
+
+      resetAttendanceStateForInitialScreen();
+      resultsArea.innerHTML = '';
+      actionArea.innerHTML = '';
+      fileStatus.textContent = isSheetReady ? 'Atendimento reiniciado.' : 'Atendimento reiniciado. Aguardando planilha...';
+      renderCpfGate();
+      updateReturnInitialButtonVisibility();
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { try { window.scrollTo(0, 0); } catch {} }
+    }
+
+    returnInitialFloatingBtn?.addEventListener('click', () => returnToInitialScreen(true));
+
+    const returnInitialObserver = new MutationObserver(() => {
+      window.requestAnimationFrame(updateReturnInitialButtonVisibility);
+    });
+    returnInitialObserver.observe(actionArea, { childList: true, subtree: true });
+    returnInitialObserver.observe(resultsArea, { childList: true, subtree: true });
 
     // --- Integração (Teste a cada 3 meses) ---
     const INTEGRATION_MIN_SCORE = 8;
@@ -4443,6 +4576,7 @@
         const confirmSummary = document.getElementById('confirm-operation-summary');
         const plateConfirmEditBtn = document.getElementById('plate-confirm-edit-btn');
         const plateConfirmPrintBtn = document.getElementById('plate-confirm-print-btn');
+        const plateConfirmHomeBtn = document.getElementById('plate-confirm-home-btn');
 
         if (
           !plateConfirmOverlay ||
@@ -4450,7 +4584,8 @@
           !confirmTrailerPlate ||
           !confirmSummary ||
           !plateConfirmEditBtn ||
-          !plateConfirmPrintBtn
+          !plateConfirmPrintBtn ||
+          !plateConfirmHomeBtn
         ) {
           console.error('Modal de confirmação das placas não encontrado no DOM.');
           resolve({ confirmed: true, truckPlate: sanitizePlate(truckPlate), trailerPlate: sanitizePlate(trailerPlate), maneuverPlate: sanitizePlate(summary?.placaManobra || dropHookManeuverPlate || '') });
@@ -4515,6 +4650,7 @@
           plateConfirmOverlay.style.display = 'none';
           plateConfirmEditBtn.onclick = null;
           plateConfirmPrintBtn.onclick = null;
+          plateConfirmHomeBtn.onclick = null;
           plateConfirmOverlay.onclick = null;
           document.removeEventListener('keydown', escHandler);
         };
@@ -4529,6 +4665,12 @@
         plateConfirmEditBtn.onclick = () => {
           cleanup();
           resolve({ confirmed: false });
+        };
+
+        plateConfirmHomeBtn.onclick = () => {
+          cleanup();
+          resolve({ confirmed: false });
+          returnToInitialScreen(false);
         };
 
         plateConfirmPrintBtn.onclick = () => {
