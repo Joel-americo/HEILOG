@@ -1593,6 +1593,134 @@
       background: linear-gradient(to top, rgba(244,251,246,1), rgba(244,251,246,0.78));
     }
 
+    /* Aba visual para Operações principais */
+    .simple-ui .flow-group.operacoes-principais-group {
+      background: linear-gradient(135deg, rgba(0, 144, 74, 0.12), rgba(255, 255, 255, 0.94) 52%, rgba(229, 0, 37, 0.05));
+      border: 2px solid rgba(0, 144, 74, 0.24);
+      box-shadow: 0 16px 34px rgba(0, 144, 74, 0.10), inset 0 1px 0 rgba(255,255,255,0.82);
+    }
+
+    .simple-ui .operacoes-principais-group .flow-group-title {
+      width: fit-content;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(0, 144, 74, 0.12);
+      border: 1px solid rgba(0, 144, 74, 0.26);
+      color: #166534 !important;
+      font-weight: 900;
+    }
+
+    .simple-ui .operacoes-principais-group .flow-group-title::after {
+      display: none;
+    }
+
+    .simple-ui .main-process-alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(0, 144, 74, 0.10), rgba(255, 255, 255, 0.96));
+      border: 1px solid rgba(0, 144, 74, 0.22);
+      color: #14532d;
+      box-shadow: 0 10px 24px rgba(0, 144, 74, 0.08);
+    }
+
+    .simple-ui .main-process-alert-icon {
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      background: rgba(0, 144, 74, 0.12);
+      border: 1px solid rgba(0, 144, 74, 0.22);
+    }
+
+    .simple-ui .main-process-alert-title {
+      font-size: 0.9rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
+      color: #166534;
+    }
+
+    .simple-ui .main-process-alert-text {
+      font-size: 0.92rem;
+      line-height: 1.35;
+      color: #14532d;
+      font-weight: 700;
+    }
+
+    .simple-ui .ritmo-exclusive-alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(255, 255, 255, 0.96));
+      border: 1px solid rgba(37, 99, 235, 0.24);
+      color: #1e3a8a;
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.10);
+    }
+
+    .simple-ui .ritmo-exclusive-alert-icon {
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      background: rgba(37, 99, 235, 0.14);
+      border: 1px solid rgba(37, 99, 235, 0.22);
+    }
+
+    .simple-ui .ritmo-exclusive-alert-title {
+      font-size: 0.9rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
+      color: #1d4ed8;
+    }
+
+    .simple-ui .ritmo-exclusive-alert-text {
+      font-size: 0.92rem;
+      line-height: 1.35;
+      color: #1e3a8a;
+      font-weight: 700;
+    }
+
+    .simple-ui .mode-btn.drop-hook-btn .mode-meta strong {
+      color: #ffffff;
+    }
+
+    /* Aba exclusiva para Operações Transportadora Ritmo */
+    .simple-ui .flow-group.transportadora-ritmo-group {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(255, 255, 255, 0.92) 52%, rgba(0, 144, 74, 0.10));
+      border: 2px solid rgba(14, 165, 233, 0.36);
+      box-shadow: 0 16px 34px rgba(14, 165, 233, 0.12), inset 0 1px 0 rgba(255,255,255,0.82);
+    }
+
+    .simple-ui .transportadora-ritmo-group .flow-group-title {
+      width: fit-content;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(14, 165, 233, 0.13);
+      border: 1px solid rgba(14, 165, 233, 0.28);
+      color: #075985 !important;
+      font-weight: 900;
+    }
+
+    .simple-ui .transportadora-ritmo-group .flow-group-title::after {
+      display: none;
+    }
+
 
     /* Botão global para desistência do atendimento */
     .return-initial-floating {
@@ -3135,8 +3263,15 @@
             </div>
           </div>
 
-          <div class="flow-group">
+          <div class="flow-group operacoes-principais-group">
             <div class="flow-group-title">Operações principais</div>
+            <div class="main-process-alert" role="note" aria-label="Orientação sobre operações principais">
+              <div class="main-process-alert-icon" aria-hidden="true">📌</div>
+              <div>
+                <div class="main-process-alert-title">Processos principais</div>
+                <div class="main-process-alert-text">Carregamento, descarga, insumos e transferências vindas de cliente ficam nestas opções.</div>
+              </div>
+            </div>
             <div class="flow-grid">
               <button data-mode="LOAD" class="mode-btn" title="Carregamento usando DT (consulta na planilha)">
                 <div class="mode-main">
@@ -3162,8 +3297,15 @@
             </div>
           </div>
 
-          <div class="flow-group">
-            <div class="flow-group-title">Operações especiais</div>
+          <div class="flow-group transportadora-ritmo-group">
+            <div class="flow-group-title">Operações Transportadora Ritmo</div>
+            <div class="ritmo-exclusive-alert" role="note" aria-label="Aviso importante sobre Drop & Hook">
+              <div class="ritmo-exclusive-alert-icon" aria-hidden="true">⚠️</div>
+              <div>
+                <div class="ritmo-exclusive-alert-title">Aviso importante</div>
+                <div class="ritmo-exclusive-alert-text">O <b>Drop &amp; Hook</b> é <b>exclusivo para motorista manobra Ritmo</b>.</div>
+              </div>
+            </div>
             <div class="flow-grid">
               <button data-mode="RITMO" class="mode-btn" title="Baldeio: DT opcional (se vazio, gera ID interno)">
                 <div class="mode-main">
@@ -3181,12 +3323,17 @@
                   <div class="mode-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7h4a3 3 0 0 1 0 6H9"/><path d="M17 17h-4a3 3 0 0 1 0-6h2"/><path d="M10 12h4"/></svg></div>
                   <div class="mode-copy">
                     <div class="mode-title">Drop & Hook</div>
-                    <div class="mode-meta">Registra DROP, carga e retorno</div>
+                    <div class="mode-meta">Registra DROP, carga e retorno · <strong>Exclusivo para motorista manobra Ritmo</strong></div>
                   </div>
                 </div>
                 <span class="mode-arrow">›</span>
               </button>
+            </div>
+          </div>
 
+          <div class="flow-group">
+            <div class="flow-group-title">Operações especiais</div>
+            <div class="flow-grid">
               <button data-mode="HIDROMAN" class="mode-btn" title="HIDROMAN: vai direto para o cadastro do motorista (sem planilha)">
                 <div class="mode-main">
                   <div class="mode-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3s4 4.7 4 8a4 4 0 1 1-8 0c0-3.3 4-8 4-8Z"/><path d="M18 16h2"/><path d="M17 19h4"/></svg></div>
@@ -3362,6 +3509,14 @@
           <div class="section space-y-3">
             <div class="step">PASSO 1</div>
             <div class="big-title text-white">Drop & Hook</div>
+            <div class="ritmo-exclusive-alert" role="note" aria-label="Aviso importante sobre exclusividade do Drop & Hook">
+              <div class="ritmo-exclusive-alert-icon" aria-hidden="true">⚠️</div>
+              <div>
+                <div class="ritmo-exclusive-alert-title">Uso exclusivo</div>
+                <div class="ritmo-exclusive-alert-text">O <b>Drop &amp; Hook</b> é <b>exclusivo para motorista manobra Ritmo</b>.</div>
+              </div>
+            </div>
+
             <div class="help">
               Informe apenas o CPF do <b>motorista viagem</b>. Depois o sistema perguntará se também vai descarregar.
               O motorista identificado no início será considerado <b>motorista manobra</b>.
