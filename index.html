@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HEILOG - Assistente de Logística (Simplificado)</title>
+  <title>HEILOG - Assistente Drop Rápido</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -1975,6 +1975,15 @@
     let dropHookManeuverDriver = null;
     let dropHookManeuverPlate = '';
     let dropHookAlsoUnload = false;
+    let dropHookQuickMode = false;
+
+    function isDropDriverAuthorized(driver = sessionDriver) {
+      return !!driver && (
+        driver.dropAutorizado === true ||
+        driver.motoristaDrop === true ||
+        driver.dropHookAutorizado === true
+      );
+    }
 
     function resetAttendanceStateForInitialScreen() {
       currentMode = null;
@@ -2004,6 +2013,7 @@
       dropHookManeuverDriver = null;
       dropHookManeuverPlate = '';
       dropHookAlsoUnload = false;
+      dropHookQuickMode = false;
     }
 
     function updateReturnInitialButtonVisibility() {
@@ -2227,6 +2237,7 @@
         cavalo: document.getElementById('truck-plate')?.value || '',
         carreta: document.getElementById('trailer-plate')?.value || '',
         isDropHook: !!isDropHookFlow,
+        quickDrop: !!isDropHookFlow && !!dropHookQuickMode,
         motoristaManobra: isDropHookFlow ? (dropHookTripDriver?.name || sessionDriver?.name || '') : (document.getElementById('driver-name')?.value || sessionDriver?.name || ''),
         cpfMotoristaManobra: isDropHookFlow ? (dropHookTripCpf || sessionCpf || '') : (sessionCpf || normalizeDigits(document.getElementById('driver-cpf')?.value || '')),
         motoristaViagem: isDropHookFlow ? (document.getElementById('driver-name')?.value || dropHookManeuverDriver?.name || '') : (dropHookTripDriver?.name || ''),
@@ -3046,6 +3057,19 @@
       }, 0);
     }
 
+    function continueAfterDriverReady() {
+      if (isDropDriverAuthorized(sessionDriver)) {
+        fileStatus.textContent = 'Motorista Drop autorizado. Abrindo acesso rápido...';
+        currentMode = 'DROP_HOOK';
+        isDropHookFlow = true;
+        setFlowSelection('DROP_HOOK', 'Drop & Hook', 'DROP_HOOK', 'MOTORISTA_VIAGEM');
+        renderModeForm('DROP_HOOK');
+        return;
+      }
+
+      renderActionSelector();
+    }
+
     function renderCpfGate() {
       resultsArea.innerHTML = '';
 
@@ -3118,7 +3142,7 @@
 
         if (sessionDriver && st.ok) {
           fileStatus.textContent = 'Tudo certo. Bem-vindo!';
-          renderActionSelector();
+          continueAfterDriverReady();
           return;
         }
 
@@ -3128,7 +3152,7 @@
         }
 
         fileStatus.textContent = 'Integração necessária.';
-        postIntegrationNavigate = () => { renderActionSelector(); };
+        postIntegrationNavigate = () => { continueAfterDriverReady(); };
         await startIntegrationFlow(cpfMasked, { autoStartTest: true });
       };
 
@@ -3219,7 +3243,7 @@
         sessionDriver = payload;
 
         fileStatus.textContent = 'Cadastro salvo. Iniciando integração...';
-        postIntegrationNavigate = () => { renderActionSelector(); };
+        postIntegrationNavigate = () => { continueAfterDriverReady(); };
 
         await startIntegrationFlow(cpfMasked, { autoStartTest: true });
       });
@@ -3250,6 +3274,8 @@
       dropHookManeuverDriver = null;
       dropHookManeuverPlate = '';
       dropHookAlsoUnload = false;
+      dropHookQuickMode = false;
+      const dropDriverAuthorized = isDropDriverAuthorized(sessionDriver);
 
       actionArea.innerHTML = `
         ${renderProgressBar(2, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
@@ -3303,7 +3329,9 @@
               <div class="ritmo-exclusive-alert-icon" aria-hidden="true">⚠️</div>
               <div>
                 <div class="ritmo-exclusive-alert-title">Aviso importante</div>
-                <div class="ritmo-exclusive-alert-text">O <b>Drop &amp; Hook</b> é <b>exclusivo para motorista manobra Ritmo</b>.</div>
+                <div class="ritmo-exclusive-alert-text">${dropDriverAuthorized
+                  ? '<b>Motorista Drop autorizado.</b> Este CPF está liberado para executar o Drop &amp; Hook.'
+                  : '<b>Bloqueado:</b> o Drop &amp; Hook exige autorização do ADMIN no cadastro do motorista.'}</div>
               </div>
             </div>
             <div class="flow-grid">
@@ -3318,12 +3346,14 @@
                 <span class="mode-arrow">›</span>
               </button>
 
-              <button data-mode="DROP_HOOK" class="mode-btn drop-hook-btn" title="Drop & Hook: informe o CPF do motorista manobra e se também haverá descarga">
+              <button data-mode="DROP_HOOK" class="mode-btn drop-hook-btn" title="${dropDriverAuthorized ? 'CPF autorizado para Drop & Hook' : 'Liberação do ADMIN necessária'}">
                 <div class="mode-main">
                   <div class="mode-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7h4a3 3 0 0 1 0 6H9"/><path d="M17 17h-4a3 3 0 0 1 0-6h2"/><path d="M10 12h4"/></svg></div>
                   <div class="mode-copy">
                     <div class="mode-title">Drop & Hook</div>
-                    <div class="mode-meta">Registra DROP, carga e retorno · <strong>Exclusivo para motorista manobra Ritmo</strong></div>
+                    <div class="mode-meta">${dropDriverAuthorized
+                      ? 'Registra DROP, carga e retorno · <strong>Motorista autorizado</strong>'
+                      : 'Bloqueado · solicite a liberação do seu CPF ao administrador'}</div>
                   </div>
                 </div>
                 <span class="mode-arrow">›</span>
@@ -3367,7 +3397,12 @@
       document.querySelectorAll('.mode-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           await unlockAudio();
-          currentMode = btn.dataset.mode;
+          const requestedMode = btn.dataset.mode;
+          if (requestedMode === 'DROP_HOOK' && !isDropDriverAuthorized(sessionDriver)) {
+            displayError('Seu CPF não está autorizado para Drop & Hook. Procure o administrador Joel.', 7000);
+            return;
+          }
+          currentMode = requestedMode;
 
           if (currentMode === 'INTEGRACAO') {
             setFlowSelection('INTEGRACAO', 'Integração', 'INTEGRACAO', 'TESTE');
@@ -3392,6 +3427,20 @@
         const mode = btn.dataset.mode;
         if (!mode) return;
 
+        if (mode === 'DROP_HOOK') {
+          const authorized = isDropDriverAuthorized(sessionDriver);
+          btn.disabled = !authorized;
+          btn.classList.toggle('opacity-50', !authorized);
+          btn.classList.toggle('cursor-not-allowed', !authorized);
+          btn.title = authorized
+            ? 'CPF autorizado para Drop & Hook'
+            : 'Drop & Hook bloqueado: liberação do ADMIN necessária';
+
+          const arrow = btn.querySelector('.mode-arrow');
+          if (arrow) arrow.textContent = authorized ? '›' : 'Bloq.';
+          return;
+        }
+
         if (needsSheet.has(mode)) {
           const disabled = !isSheetReady;
           btn.disabled = disabled;
@@ -3406,6 +3455,14 @@
     }
 
     function renderModeForm(mode) {
+      if (mode === 'DROP_HOOK' && !isDropDriverAuthorized(sessionDriver)) {
+        currentMode = null;
+        isDropHookFlow = false;
+        renderActionSelector();
+        displayError('Seu CPF não está autorizado para Drop & Hook. Procure o administrador Joel.', 7000);
+        return;
+      }
+      dropHookQuickMode = false;
       resultsArea.innerHTML = '';
       pendingUnloadDt = '';
       requireUnloadDtInForm = false;
@@ -3509,6 +3566,9 @@
           <div class="section space-y-3">
             <div class="step">PASSO 1</div>
             <div class="big-title text-white">Drop & Hook</div>
+            <div class="form-hint-box text-sm text-gray-200">
+              ⚡ <b>Acesso rápido ativado:</b> seu CPF já está autorizado como Motorista Drop.
+            </div>
             <div class="ritmo-exclusive-alert" role="note" aria-label="Aviso importante sobre exclusividade do Drop & Hook">
               <div class="ritmo-exclusive-alert-icon" aria-hidden="true">⚠️</div>
               <div>
@@ -3518,20 +3578,19 @@
             </div>
 
             <div class="help">
-              Informe apenas o CPF do <b>motorista viagem</b>. Depois o sistema perguntará se também vai descarregar.
-              O motorista identificado no início será considerado <b>motorista manobra</b>.
+              Escolha a operação. Na próxima tela, confirme apenas as placas do cavalo e da carreta.
             </div>
 
-            <input type="text" id="drop-hook-maneuver-cpf" inputmode="numeric"
-              class="form-input input-xl rounded-lg" placeholder="CPF do motorista viagem">
-
-            <div id="drop-hook-maneuver-preview" class="form-hint-box text-sm text-gray-200">
-              Ao continuar, vou buscar o cadastro do motorista viagem no Firebase.
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button id="drop-hook-load-only" class="btn-ghost w-full py-5 rounded-xl text-xl font-extrabold">
+                CARGA
+                <span style="display:block;font-size:.78rem;font-weight:700;opacity:.8;">Somente carga</span>
+              </button>
+              <button id="drop-hook-load-unload" class="btn-green w-full py-5 rounded-xl text-xl font-extrabold">
+                CARGA E DESCARGA
+                <span style="display:block;font-size:.78rem;font-weight:700;opacity:.9;">Contar as duas operações</span>
+              </button>
             </div>
-
-            <button id="drop-hook-continue" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
-              Continuar ➡️
-            </button>
 
             ${backBtn}
           </div>
@@ -3738,53 +3797,16 @@
       }
 
       if (mode === 'DROP_HOOK') {
-        const dropCpfEl = document.getElementById('drop-hook-maneuver-cpf');
-        const dropPreview = document.getElementById('drop-hook-maneuver-preview');
-        if (dropCpfEl) IMask(dropCpfEl, { mask: '000.000.000-00' });
-
-        const refreshDropPreview = async () => {
-          const cpf = normalizeDigits(dropCpfEl?.value || '');
-          if (!dropPreview) return;
-          if (cpf.length !== 11) {
-            dropPreview.innerHTML = 'Digite o CPF completo do <b>motorista viagem</b> para consultar o cadastro.';
-            return;
-          }
-          dropPreview.innerHTML = 'Buscando motorista viagem...';
-          const data = await loadDriverByCpf(cpf);
-          if (data) {
-            dropPreview.innerHTML = `
-              <div class="font-extrabold text-white">Motorista viagem encontrado</div>
-              <div>Nome: <b>${escapeHtml(data.name || '')}</b></div>
-              <div>Transportadora: <b>${escapeHtml(data.transportadora || 'Não informada')}</b></div>
-              <div>Telefone: <b>${escapeHtml(data.phone || 'Não informado')}</b></div>
-            `;
-          } else {
-            dropPreview.innerHTML = 'Motorista viagem não encontrado no cadastro. Cadastre esse motorista antes de seguir com Drop & Hook.';
-          }
-        };
-
-        let dropTimer = null;
-        dropCpfEl?.addEventListener('input', () => {
-          if (dropTimer) clearTimeout(dropTimer);
-          dropTimer = setTimeout(refreshDropPreview, 350);
-        });
-        dropCpfEl?.addEventListener('blur', refreshDropPreview);
-
-        document.getElementById('drop-hook-continue')?.addEventListener('click', async () => {
+        const beginQuickDrop = async (willUnload) => {
           await unlockAudio();
-          const manobraCpf = normalizeDigits(dropCpfEl?.value || '');
-          if (manobraCpf.length !== 11) return displayError('Digite um CPF válido para o motorista viagem.', 5000, { field: dropCpfEl });
-
-          const manobraDriver = await loadDriverByCpf(manobraCpf);
-          if (!manobraDriver) {
-            return displayError('Motorista viagem não encontrado. Cadastre o motorista viagem antes de marcar Drop & Hook.', 7000, { field: dropCpfEl });
+          if (!isDropDriverAuthorized(sessionDriver)) {
+            return displayError('Seu CPF não está autorizado para Drop & Hook. Procure o administrador Joel.', 7000);
           }
-
-          const willUnload = await openDropHookUnloadQuestionModal();
 
           isDropHookFlow = true;
-          dropHookManeuverCpf = manobraCpf;
-          dropHookManeuverDriver = manobraDriver;
+          dropHookQuickMode = true;
+          dropHookManeuverCpf = '';
+          dropHookManeuverDriver = null;
           dropHookAlsoUnload = !!willUnload;
           loadAlsoUnload = !!willUnload;
           dropHookTripCpf = normalizeDigits(sessionCpf);
@@ -3796,7 +3818,7 @@
           showUnloadInputs = false;
           requireUnloadDtInForm = false;
           pendingUnloadDt = '';
-          presetTransportadora = (sessionDriver?.transportadora || manobraDriver.transportadora || '').toString().trim().toUpperCase();
+          presetTransportadora = (sessionDriver?.transportadora || '').toString().trim().toUpperCase();
           lockTransportadora = false;
           setFlowSelection(
             'DROP_HOOK',
@@ -3815,8 +3837,8 @@
             dropHookAlsoUnload: willUnload,
             motoristaManobraCpf: normalizeDigits(sessionCpf),
             motoristaManobra: sessionDriver?.name || '',
-            motoristaViagemCpf: manobraCpf,
-            motoristaViagem: manobraDriver.name || ''
+            motoristaViagemCpf: '',
+            motoristaViagem: ''
           });
 
           showDriverForm([{
@@ -3824,12 +3846,13 @@
             [headerMap.cliente]: 'DROP & HOOK',
             [headerMap.produto]: '',
             [headerMap.plt]: '',
-            [headerMap.transportadora]: sessionDriver?.transportadora || manobraDriver.transportadora || '',
+            [headerMap.transportadora]: sessionDriver?.transportadora || '',
             [headerMap.deposito]: 'FÁBRICA'
           }], { modeLabel: willUnload ? 'Drop & Hook - Carga e Descarga' : 'Drop & Hook - Carga', isManualOverride: true });
-        });
+        };
 
-        dropCpfEl?.focus();
+        document.getElementById('drop-hook-load-only')?.addEventListener('click', () => beginQuickDrop(false));
+        document.getElementById('drop-hook-load-unload')?.addEventListener('click', () => beginQuickDrop(true));
       }
 
       if (mode === 'HIDROMAN') {
@@ -4321,15 +4344,17 @@
           ${isDropHookFlow ? `
             <div class="section space-y-2 border border-yellow-400/30 drop-hook-manobra-panel">
               <div class="step">DROP & HOOK</div>
-              <div class="big-title text-white">Motoristas da operação</div>
+              <div class="big-title text-white">${dropHookQuickMode ? 'Operação rápida' : 'Motoristas da operação'}</div>
               <div class="summary-grid">
                 ${buildSummaryItem('Motorista manobra', dropHookTripDriver?.name || sessionDriver?.name || 'Não informado')}
                 ${buildSummaryItem('CPF manobra', (dropHookTripCpf || sessionCpf) ? (dropHookTripCpf || sessionCpf).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : 'Não informado')}
-                ${buildSummaryItem('Motorista viagem', dropHookManeuverDriver?.name || 'Será preenchido abaixo')}
-                ${buildSummaryItem('CPF viagem', dropHookManeuverCpf ? dropHookManeuverCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : 'Não informado')}
+                ${dropHookQuickMode ? '' : buildSummaryItem('Motorista viagem', dropHookManeuverDriver?.name || 'Será preenchido abaixo')}
+                ${dropHookQuickMode ? '' : buildSummaryItem('CPF viagem', dropHookManeuverCpf ? dropHookManeuverCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : 'Não informado')}
                 ${buildSummaryItem('Vai descarregar também?', dropHookAlsoUnload ? 'SIM - contar carga e descarga' : 'NÃO - contar apenas carga')}
               </div>
-              <div class="help">A folha impressa terá o termo de responsabilidade para portaria e checklist com os dois motoristas.</div>
+              <div class="help">${dropHookQuickMode
+                ? 'Confira somente as placas e finalize a marcação.'
+                : 'A folha impressa terá o termo de responsabilidade para portaria e checklist com os dois motoristas.'}</div>
             </div>
           ` : ''}
 
@@ -4485,6 +4510,27 @@
         if (cpfMask) cpfMask.unmaskedValue = normalizeDigits(sessionCpf);
       }
       if (sessionDriver) fillFormFields(sessionDriver);
+
+      if (isDropHookFlow && dropHookQuickMode) {
+        document.getElementById('driver-cpf')?.closest('.section')?.classList.add('hidden');
+        document.getElementById('driver-name')?.closest('.section')?.classList.add('hidden');
+        document.getElementById('manual-type')?.closest('details')?.classList.add('hidden');
+        document.getElementById('driver-renavam')?.closest('details')?.classList.add('hidden');
+
+        const vehicleTypeEl = document.getElementById('vehicle-type');
+        const cnhEl = document.getElementById('driver-cnh');
+        const axlesEl = document.getElementById('truck-axles');
+        vehicleTypeEl?.classList.add('hidden');
+        vehicleTypeEl?.nextElementSibling?.classList.add('hidden');
+        cnhEl?.closest('.grid')?.classList.add('hidden');
+        cnhEl?.closest('.grid')?.nextElementSibling?.classList.add('hidden');
+        axlesEl?.classList.add('hidden');
+
+        const printButton = document.getElementById('generate-sheet-btn');
+        if (printButton) printButton.textContent = '✅ Confirmar placas e finalizar';
+        const printHelp = printButton?.nextElementSibling;
+        if (printHelp) printHelp.textContent = 'Confira a placa do cavalo e da carreta antes de finalizar.';
+      }
 
       if (isDropHookFlow && dropHookManeuverDriver) {
         // No Drop & Hook, o formulário principal representa o Motorista Viagem.
@@ -4760,8 +4806,9 @@
             maxlength="7" value="${escapeHtml(trailerInitial)}" placeholder="ABC1234 ou ABC1D23">
         `;
         if (confirmManeuverPlateLine && confirmManeuverPlate) {
-          confirmManeuverPlateLine.classList.toggle('hidden', !summary.isDropHook);
-          confirmManeuverPlate.innerHTML = summary.isDropHook ? `
+          const showManeuverPlate = summary.isDropHook && !summary.quickDrop;
+          confirmManeuverPlateLine.classList.toggle('hidden', !showManeuverPlate);
+          confirmManeuverPlate.innerHTML = showManeuverPlate ? `
             <input id="confirm-maneuver-plate-input" class="form-input input-xl rounded-lg w-full text-center uppercase"
               maxlength="7" value="${escapeHtml(maneuverInitial)}" placeholder="ABC1234 ou ABC1D23">
           ` : '-';
@@ -4770,7 +4817,7 @@
         confirmSummary.innerHTML = [
           buildSummaryItem('Motorista manobra', summary.isDropHook ? (summary.motoristaManobra || summary.motorista) : summary.motorista),
           buildSummaryItem('CPF manobra', summary.isDropHook ? (summary.cpfMotoristaManobra || summary.cpf) : summary.cpf),
-          ...(summary.isDropHook ? [
+          ...(summary.isDropHook && !summary.quickDrop ? [
             buildSummaryItem('Motorista viagem', summary.motoristaViagem),
             buildSummaryItem('CPF viagem', summary.cpfMotoristaViagem)
           ] : []),
@@ -4780,7 +4827,7 @@
           buildSummaryItem('DT Descarga', summary.dtDescarga),
           buildSummaryItem('Transportadora', summary.transportadora),
           buildSummaryItem('Tipo de veículo', summary.tipoVeiculo),
-          ...(summary.isDropHook ? [buildSummaryItem('Placa do manobra', summary.placaManobra || maneuverInitial)] : []),
+          ...(summary.isDropHook && !summary.quickDrop ? [buildSummaryItem('Placa do manobra', summary.placaManobra || maneuverInitial)] : []),
           buildSummaryItem('Cavalo', summary.cavalo),
           buildSummaryItem('Carreta', summary.carreta)
         ].join('');
@@ -4918,16 +4965,16 @@
         return;
       }
 
-      if (!validateField(phoneEl, "Telefone é obrigatório.", () => (phoneMask?.unmaskedValue?.length || 0) >= 10)) return;
+      if (!dropHookQuickMode && !validateField(phoneEl, "Telefone é obrigatório.", () => (phoneMask?.unmaskedValue?.length || 0) >= 10)) return;
       if (!validateField(plateEl, "Placa do cavalo é obrigatória.", () => isValidBrazilianPlate(plateEl?.value || ''))) return;
       const trailerEl = document.getElementById('trailer-plate');
       if (trailerEl?.value?.trim() && !validateField(trailerEl, "Placa da carreta inválida.", () => isValidBrazilianPlate(trailerEl?.value || ''))) return;
       const vehicleTypeEl = document.getElementById('vehicle-type');
-      if (vehicleTypeEl && !validateField(vehicleTypeEl, "Tipo de veículo é obrigatório.")) return;
+      if (!dropHookQuickMode && vehicleTypeEl && !validateField(vehicleTypeEl, "Tipo de veículo é obrigatório.")) return;
       const cnhEl = document.getElementById('driver-cnh');
-      if (cnhEl && !validateField(cnhEl, "CNH é obrigatória.", () => isValidCnh(cnhEl.value))) return;
+      if (!dropHookQuickMode && cnhEl && !validateField(cnhEl, "CNH é obrigatória.", () => isValidCnh(cnhEl.value))) return;
       const cnhExpiryEl = document.getElementById('cnh-expiry');
-      if (cnhExpiryEl?.value?.trim() && !validateField(cnhExpiryEl, "Validade da CNH inválida.", () => isValidDateBR(cnhExpiryEl.value))) return;
+      if (!dropHookQuickMode && cnhExpiryEl?.value?.trim() && !validateField(cnhExpiryEl, "Validade da CNH inválida.", () => isValidDateBR(cnhExpiryEl.value))) return;
 
       const unloadDtEl = document.getElementById('unload-dt');
       if (requireUnloadDtInForm && unloadDtEl) {
@@ -5023,18 +5070,30 @@
         transportadora: driverData.transportadora || ''
       };
 
-      driverData.motoristaViagem = driverData.isDropHook ? {
-        // No formulário principal ficam os dados do motorista viagem.
-        nome: driverData.name || dropHookManeuverDriver?.name || '',
-        cpf: normalizeDigits(driverData.cpf || dropHookManeuverCpf || ''),
-        telefone: normalizeDigits(driverData.phone || dropHookManeuverDriver?.phone || ''),
-        cnh: driverData.cnh || dropHookManeuverDriver?.cnh || '',
-        cnhExpiry: driverData.cnhExpiry || dropHookManeuverDriver?.cnhExpiry || '',
-        transportadora: driverData.transportadora || dropHookManeuverDriver?.transportadora || '',
-        truckPlate: sanitizePlate(driverData.truckPlate || dropHookManeuverDriver?.truckPlate || ''),
-        trailerPlate: sanitizePlate(driverData.trailerPlate || dropHookManeuverDriver?.trailerPlate || ''),
-        vehicleType: driverData.vehicleType || dropHookManeuverDriver?.vehicleType || ''
-      } : null;
+      driverData.motoristaViagem = driverData.isDropHook
+        ? (dropHookQuickMode ? {
+            nome: '',
+            cpf: '',
+            telefone: '',
+            cnh: '',
+            cnhExpiry: '',
+            transportadora: driverData.transportadora || '',
+            truckPlate: sanitizePlate(driverData.truckPlate || ''),
+            trailerPlate: sanitizePlate(driverData.trailerPlate || ''),
+            vehicleType: driverData.vehicleType || ''
+          } : {
+            // No fluxo completo, o formulário principal representa o motorista viagem.
+            nome: driverData.name || dropHookManeuverDriver?.name || '',
+            cpf: normalizeDigits(driverData.cpf || dropHookManeuverCpf || ''),
+            telefone: normalizeDigits(driverData.phone || dropHookManeuverDriver?.phone || ''),
+            cnh: driverData.cnh || dropHookManeuverDriver?.cnh || '',
+            cnhExpiry: driverData.cnhExpiry || dropHookManeuverDriver?.cnhExpiry || '',
+            transportadora: driverData.transportadora || dropHookManeuverDriver?.transportadora || '',
+            truckPlate: sanitizePlate(driverData.truckPlate || dropHookManeuverDriver?.truckPlate || ''),
+            trailerPlate: sanitizePlate(driverData.trailerPlate || dropHookManeuverDriver?.trailerPlate || ''),
+            vehicleType: driverData.vehicleType || dropHookManeuverDriver?.vehicleType || ''
+          })
+        : null;
 
       driverData.dropHookManeuverCpf = dropHookManeuverCpf || '';
       driverData.dropHookManeuverDriver = dropHookManeuverDriver || null;
