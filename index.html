@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HEILOG - Assistente Drop Rápido</title>
+  <title>HEILOG - Assistente de Fluxos Rápidos</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -1976,12 +1976,25 @@
     let dropHookManeuverPlate = '';
     let dropHookAlsoUnload = false;
     let dropHookQuickMode = false;
+    let baldeioQuickMode = false;
+
+    function isQuickPlateMode() {
+      return dropHookQuickMode || baldeioQuickMode;
+    }
 
     function isDropDriverAuthorized(driver = sessionDriver) {
       return !!driver && (
         driver.dropAutorizado === true ||
         driver.motoristaDrop === true ||
         driver.dropHookAutorizado === true
+      );
+    }
+
+    function isRitmoDriverAuthorized(driver = sessionDriver) {
+      return !!driver && (
+        driver.baldeioRitmoAutorizado === true ||
+        driver.motoristaRitmo === true ||
+        driver.ritmoBaldeioAutorizado === true
       );
     }
 
@@ -2014,6 +2027,7 @@
       dropHookManeuverPlate = '';
       dropHookAlsoUnload = false;
       dropHookQuickMode = false;
+      baldeioQuickMode = false;
     }
 
     function updateReturnInitialButtonVisibility() {
@@ -2767,7 +2781,9 @@
       }
 
       if (mode === 'RITMO') {
-        return transp ? `Baldeio - ${transp}` : 'Baldeio';
+        const base = transp ? `Baldeio - ${transp}` : 'Baldeio';
+        if (baldeioQuickMode) return `${base} - ${loadAlsoUnload ? 'Carga e Descarga' : 'Carga'}`;
+        return base;
       }
 
       if (mode === 'HIDROMAN') return 'Hidroman';
@@ -3275,6 +3291,7 @@
       dropHookManeuverPlate = '';
       dropHookAlsoUnload = false;
       dropHookQuickMode = false;
+      baldeioQuickMode = false;
       const dropDriverAuthorized = isDropDriverAuthorized(sessionDriver);
 
       actionArea.innerHTML = `
@@ -3463,6 +3480,7 @@
         return;
       }
       dropHookQuickMode = false;
+      baldeioQuickMode = false;
       resultsArea.innerHTML = '';
       pendingUnloadDt = '';
       requireUnloadDtInForm = false;
@@ -3874,6 +3892,79 @@
       }
 
       if (mode === 'RITMO') {
+        const goRitmoQuickChoice = () => {
+          const backBtnB = `<button id="back-to-baldeio-transp" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">⬅ Voltar</button>`;
+          actionArea.innerHTML = `
+            ${renderProgressBar(2, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
+            <div class="section space-y-3">
+              <div class="step">BALDEIO RITMO</div>
+              <div class="big-title text-white">Escolha a operação</div>
+              <div class="form-hint-box text-sm text-gray-200">
+                ⚡ CPF autorizado para Baldeio Ritmo: depois, confira somente as placas do cavalo e da carreta.
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button id="baldeio-ritmo-load-only" class="btn-ghost w-full py-5 rounded-xl text-xl font-extrabold">
+                  CARGA
+                  <span style="display:block;font-size:.78rem;font-weight:700;opacity:.8;">Somente carga</span>
+                </button>
+                <button id="baldeio-ritmo-load-unload" class="btn-green w-full py-5 rounded-xl text-xl font-extrabold">
+                  CARGA E DESCARGA
+                  <span style="display:block;font-size:.78rem;font-weight:700;opacity:.9;">Contar as duas operações</span>
+                </button>
+              </div>
+
+              ${backBtnB}
+            </div>
+          `;
+
+          document.getElementById('back-to-baldeio-transp')?.addEventListener('click', () => {
+            renderModeForm('RITMO');
+          });
+
+          const beginQuickBaldeio = async (willUnload) => {
+            await unlockAudio();
+            if (!isRitmoDriverAuthorized(sessionDriver)) {
+              baldeioQuickMode = false;
+              displayError('Seu CPF não está autorizado para o fluxo rápido de Baldeio Ritmo. Solicite a liberação no Painel do Analista.', 7000);
+              return;
+            }
+            baldeioQuickMode = true;
+            loadAlsoUnload = !!willUnload;
+            baldeioDtCarga = '';
+            baldeioDtDescarga = '';
+            manualPresetType = 'Baldeio';
+            hideManualExtras = true;
+            showUnloadInputs = false;
+            requireUnloadDtInForm = false;
+            pendingUnloadDt = '';
+            manualDtIdOverride = generateInternalId(willUnload ? 'BAL_RITMO_CD' : 'BAL_RITMO_CARGA');
+
+            setFlowSelection(
+              'BALDEIO_RITMO',
+              willUnload ? 'Baldeio Ritmo - Carga e Descarga' : 'Baldeio Ritmo - Carga',
+              'BALDEIO',
+              willUnload ? 'RITMO_CARGA_E_DESCARGA' : 'RITMO_CARGA'
+            );
+            await registerFlowClick({
+              baldeioQuickMode: true,
+              contabilizarCarga: true,
+              contabilizarDescarga: !!willUnload
+            });
+
+            showDriverForm(
+              [{ [headerMap.dts]: manualDtIdOverride }],
+              {
+                modeLabel: willUnload ? 'Baldeio Ritmo - Carga e Descarga' : 'Baldeio Ritmo - Carga',
+                isManualOverride: true
+              }
+            );
+          };
+
+          document.getElementById('baldeio-ritmo-load-only')?.addEventListener('click', () => beginQuickBaldeio(false));
+          document.getElementById('baldeio-ritmo-load-unload')?.addEventListener('click', () => beginQuickBaldeio(true));
+        };
+
         const goBaldeioStep2 = () => {
           const backBtnB = `<button id="back-to-baldeio-transp" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">⬅ Voltar</button>`;
           actionArea.innerHTML = `
@@ -3934,12 +4025,15 @@
 
           if (presetTransportadora === 'JSL') {
             setFlowSelection('BALDEIO_JSL', 'Baldeio - JSL', 'BALDEIO', 'JSL');
+            await registerFlowClick();
+            goBaldeioStep2();
+          } else if (isRitmoDriverAuthorized(sessionDriver)) {
+            goRitmoQuickChoice();
           } else {
             setFlowSelection('BALDEIO_RITMO', 'Baldeio - Ritmo', 'BALDEIO', 'RITMO');
+            await registerFlowClick();
+            goBaldeioStep2();
           }
-
-          await registerFlowClick();
-          goBaldeioStep2();
         };
 
         document.getElementById('baldeio-ritmo')?.addEventListener('click', () => chooseTransp('RITMO'));
@@ -4511,7 +4605,7 @@
       }
       if (sessionDriver) fillFormFields(sessionDriver);
 
-      if (isDropHookFlow && dropHookQuickMode) {
+      if ((isDropHookFlow && dropHookQuickMode) || baldeioQuickMode) {
         document.getElementById('driver-cpf')?.closest('.section')?.classList.add('hidden');
         document.getElementById('driver-name')?.closest('.section')?.classList.add('hidden');
         document.getElementById('manual-type')?.closest('details')?.classList.add('hidden');
@@ -4965,16 +5059,16 @@
         return;
       }
 
-      if (!dropHookQuickMode && !validateField(phoneEl, "Telefone é obrigatório.", () => (phoneMask?.unmaskedValue?.length || 0) >= 10)) return;
+      if (!isQuickPlateMode() && !validateField(phoneEl, "Telefone é obrigatório.", () => (phoneMask?.unmaskedValue?.length || 0) >= 10)) return;
       if (!validateField(plateEl, "Placa do cavalo é obrigatória.", () => isValidBrazilianPlate(plateEl?.value || ''))) return;
       const trailerEl = document.getElementById('trailer-plate');
       if (trailerEl?.value?.trim() && !validateField(trailerEl, "Placa da carreta inválida.", () => isValidBrazilianPlate(trailerEl?.value || ''))) return;
       const vehicleTypeEl = document.getElementById('vehicle-type');
-      if (!dropHookQuickMode && vehicleTypeEl && !validateField(vehicleTypeEl, "Tipo de veículo é obrigatório.")) return;
+      if (!isQuickPlateMode() && vehicleTypeEl && !validateField(vehicleTypeEl, "Tipo de veículo é obrigatório.")) return;
       const cnhEl = document.getElementById('driver-cnh');
-      if (!dropHookQuickMode && cnhEl && !validateField(cnhEl, "CNH é obrigatória.", () => isValidCnh(cnhEl.value))) return;
+      if (!isQuickPlateMode() && cnhEl && !validateField(cnhEl, "CNH é obrigatória.", () => isValidCnh(cnhEl.value))) return;
       const cnhExpiryEl = document.getElementById('cnh-expiry');
-      if (!dropHookQuickMode && cnhExpiryEl?.value?.trim() && !validateField(cnhExpiryEl, "Validade da CNH inválida.", () => isValidDateBR(cnhExpiryEl.value))) return;
+      if (!isQuickPlateMode() && cnhExpiryEl?.value?.trim() && !validateField(cnhExpiryEl, "Validade da CNH inválida.", () => isValidDateBR(cnhExpiryEl.value))) return;
 
       const unloadDtEl = document.getElementById('unload-dt');
       if (requireUnloadDtInForm && unloadDtEl) {
@@ -5099,9 +5193,14 @@
       driverData.dropHookManeuverDriver = dropHookManeuverDriver || null;
       driverData.dropHookManeuverPlate = driverData.maneuverPlate || '';
       driverData.dropHookAlsoUnload = !!dropHookAlsoUnload;
-      driverData.contabilizarCarga = driverData.isDropHook ? 1 : 0;
-      driverData.contabilizarDescarga = driverData.isDropHook && dropHookAlsoUnload ? 1 : 0;
-      driverData.controleIdaRetorno = driverData.isDropHook ? (dropHookAlsoUnload ? 'CARGA_E_DESCARGA' : 'CARGA') : '';
+      driverData.baldeioQuickMode = currentMode === 'RITMO' && baldeioQuickMode;
+      driverData.contabilizarCarga = (driverData.isDropHook || driverData.baldeioQuickMode) ? 1 : 0;
+      driverData.contabilizarDescarga = driverData.isDropHook
+        ? (dropHookAlsoUnload ? 1 : 0)
+        : (driverData.baldeioQuickMode && loadAlsoUnload ? 1 : 0);
+      driverData.controleIdaRetorno = driverData.isDropHook
+        ? (dropHookAlsoUnload ? 'CARGA_E_DESCARGA' : 'CARGA')
+        : (driverData.baldeioQuickMode ? (loadAlsoUnload ? 'CARGA_E_DESCARGA' : 'CARGA') : '');
 
       driverData.operacao = computeTransportOperationLabel();
       driverData.flowKey = selectedFlowKey || '';
@@ -6156,6 +6255,8 @@ function showCallPanel(driverName, isAlert) {
       dropHookManeuverDriver = null;
       dropHookManeuverPlate = '';
       dropHookAlsoUnload = false;
+      dropHookQuickMode = false;
+      baldeioQuickMode = false;
 
       renderCpfGate();
       clearTimeout(panelTimeout);
