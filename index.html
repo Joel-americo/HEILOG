@@ -1878,7 +1878,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, getDocs, collection, runTransaction, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where, limit, runTransaction, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- Constantes ---
     const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHLJspPB5rUhpKWTUFGrtMeksd24eu1-I_l5S2qkhgFsie6cn1hITIUmr3k-ZuL4stm1x8MT0mC30s/pub?output=csv';
@@ -1981,6 +1981,8 @@
 
     const CONTROLE_DT_FIXED_LOCAL = 'Fábrica';
     const CONTROLE_DT_COLLECTION = 'controle_dt_dts';
+    const CONTROLE_DT_QUOTA_COOLDOWN_MS = 10 * 60 * 1000;
+    const CONTROLE_DT_QUOTA_COOLDOWN_KEY = 'heilog_controle_dt_quota_cooldown_until';
 
     function isQuickPlateMode() {
       return dropHookQuickMode || baldeioQuickMode;
@@ -2160,24 +2162,6 @@
         .replace(/[\u0300-\u036f]/g, '');
     }
 
-    function controleDtPriorityWeight(value = '') {
-      const priority = controleDtNormalize(value);
-      if (priority.includes('ALTA')) return 0;
-      if (priority.includes('NORMAL')) return 1;
-      if (priority.includes('BAIXA')) return 2;
-      return 3;
-    }
-
-    function controleDtTimeMs(value) {
-      if (!value) return 0;
-      if (typeof value?.toMillis === 'function') return Number(value.toMillis()) || 0;
-      if (typeof value?.seconds === 'number') return Number(value.seconds) * 1000;
-      const numeric = Number(value);
-      if (Number.isFinite(numeric) && numeric > 0) return numeric;
-      const parsed = new Date(value).getTime();
-      return Number.isFinite(parsed) ? parsed : 0;
-    }
-
     function isControleDtFactory(value = '') {
       return controleDtNormalize(value || CONTROLE_DT_FIXED_LOCAL) === 'FABRICA';
     }
@@ -2190,28 +2174,65 @@
       return collection(db, 'artifacts', appId, 'public', 'data', CONTROLE_DT_COLLECTION);
     }
 
+    function isControleDtQuotaError(error) {
+      const details = `${error?.code || ''} ${error?.message || ''} ${error?.name || ''}`.toLowerCase();
+      return details.includes('resource-exhausted')
+        || details.includes('quota')
+        || details.includes('429')
+        || details.includes('too many requests');
+    }
+
+    function getControleDtCooldownUntil() {
+      try {
+        return Number(sessionStorage.getItem(CONTROLE_DT_QUOTA_COOLDOWN_KEY) || 0) || 0;
+      } catch (_) {
+        return 0;
+      }
+    }
+
+    function startControleDtQuotaCooldown() {
+      const until = Date.now() + CONTROLE_DT_QUOTA_COOLDOWN_MS;
+      try {
+        sessionStorage.setItem(CONTROLE_DT_QUOTA_COOLDOWN_KEY, String(until));
+      } catch (_) {
+        // A marcação continua normalmente mesmo quando o armazenamento do navegador está indisponível.
+      }
+    }
+
     async function reservePriorityControleDt({ truckPlate = '', trailerPlate = '', operationType = '' } = {}) {
       if (!shouldAutoReserveControleDt()) return null;
       if (!isAuthReady || !db || !appId) throw new Error('Controle de DT indisponível no momento.');
-
-      const snapshot = await getDocs(controleDtCollectionRef());
-      const candidates = snapshot.docs
-        .map(item => ({ id: item.id, ref: item.ref, ...item.data() }))
-        .filter(item => (item.status || 'Pendente') === 'Pendente')
-        .filter(item => isControleDtFactory(item.local))
-        .sort((a, b) => {
-          const priorityDiff = controleDtPriorityWeight(a.prioritySnapshot || a.priority)
-            - controleDtPriorityWeight(b.prioritySnapshot || b.priority);
-          return priorityDiff
-            || controleDtTimeMs(a.createdAt) - controleDtTimeMs(b.createdAt)
-            || String(a.code || '').localeCompare(String(b.code || ''), 'pt-BR');
-        });
+      if (Date.now() < getControleDtCooldownUntil()) return null;
 
       const cleanTruck = sanitizePlate(truckPlate);
       const cleanTrailer = sanitizePlate(trailerPlate);
       const plateForLink = cleanTrailer || cleanTruck;
 
-      for (const candidate of candidates) {
+      // Busca apenas uma DT disponível por vez, sem ordenar ou filtrar por prioridade.
+      // Uma segunda consulta só ocorre quando dois motoristas disputam a mesma DT.
+      for (let claimAttempt = 0; claimAttempt < 2; claimAttempt += 1) {
+        let snapshot;
+        try {
+          const availableDtQuery = query(
+            controleDtCollectionRef(),
+            where('status', '==', 'Pendente'),
+            where('local', '==', CONTROLE_DT_FIXED_LOCAL),
+            limit(1)
+          );
+          snapshot = await getDocs(availableDtQuery);
+        } catch (error) {
+          if (isControleDtQuotaError(error)) {
+            startControleDtQuotaCooldown();
+            console.warn('Limite temporário do Firebase atingido. A marcação seguirá sem DT automática.');
+            return null;
+          }
+          throw error;
+        }
+
+        const candidateSnapshot = snapshot.docs[0];
+        if (!candidateSnapshot) return null;
+        const candidate = { id: candidateSnapshot.id, ref: candidateSnapshot.ref, ...candidateSnapshot.data() };
+
         try {
           let claimed = null;
           await runTransaction(db, async transaction => {
@@ -2247,7 +2268,7 @@
               truckPlate: cleanTruck,
               trailerPlate: cleanTrailer
             };
-          });
+          }, { maxAttempts: 1 });
           if (claimed) {
             try {
               const movementId = generateInternalId('AUTO_DT');
@@ -2265,13 +2286,20 @@
                 }
               );
             } catch (movementError) {
+              if (isControleDtQuotaError(movementError)) startControleDtQuotaCooldown();
               console.warn('A DT foi reservada, mas o histórico rápido não pôde ser gravado.', movementError);
             }
             return claimed;
           }
         } catch (error) {
           if (['DT_REMOVED', 'DT_ALREADY_RESERVED'].includes(error?.message)) continue;
-          console.warn('Não foi possível reservar esta DT; tentando a próxima.', error);
+          if (isControleDtQuotaError(error)) {
+            startControleDtQuotaCooldown();
+            console.warn('Limite temporário do Firebase atingido. Novas tentativas de DT foram pausadas.', error);
+          } else {
+            console.warn('Não foi possível reservar a DT automática. A marcação seguirá sem DT.', error);
+          }
+          break;
         }
       }
 
@@ -2302,7 +2330,7 @@
             reservationReleaseReason: reason,
             updatedAt: Date.now()
           });
-        });
+        }, { maxAttempts: 1 });
       } catch (error) {
         console.warn('Não foi possível devolver a DT automaticamente para Pendente.', error);
       }
@@ -5312,7 +5340,7 @@
           manualDtIdOverride = assignedControleDt.code;
           if (isDropHookFlow || currentMode === 'DROP_HOOK') dropHookDtCarga = assignedControleDt.code;
           if (currentMode === 'RITMO') baldeioDtCarga = assignedControleDt.code;
-          if (fileStatus) fileStatus.textContent = `DT ${assignedControleDt.code} reservada automaticamente por prioridade.`;
+          if (fileStatus) fileStatus.textContent = `DT ${assignedControleDt.code} reservada automaticamente.`;
         }
       }
 
