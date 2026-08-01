@@ -1878,7 +1878,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, getDocs, collection, runTransaction, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- Constantes ---
     const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHLJspPB5rUhpKWTUFGrtMeksd24eu1-I_l5S2qkhgFsie6cn1hITIUmr3k-ZuL4stm1x8MT0mC30s/pub?output=csv';
@@ -1977,6 +1977,10 @@
     let dropHookAlsoUnload = false;
     let dropHookQuickMode = false;
     let baldeioQuickMode = false;
+    let controleDtAutoReservation = null;
+
+    const CONTROLE_DT_FIXED_LOCAL = 'Fábrica';
+    const CONTROLE_DT_COLLECTION = 'controle_dt_dts';
 
     function isQuickPlateMode() {
       return dropHookQuickMode || baldeioQuickMode;
@@ -2028,6 +2032,7 @@
       dropHookAlsoUnload = false;
       dropHookQuickMode = false;
       baldeioQuickMode = false;
+      controleDtAutoReservation = null;
     }
 
     function updateReturnInitialButtonVisibility() {
@@ -2144,6 +2149,162 @@
         await setDoc(ref, payload, { merge: true });
       } catch (e) {
         console.warn('Falha ao registrar clique de fluxo:', e);
+      }
+    }
+
+    function controleDtNormalize(value = '') {
+      return String(value || '')
+        .trim()
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function controleDtPriorityWeight(value = '') {
+      const priority = controleDtNormalize(value);
+      if (priority.includes('ALTA')) return 0;
+      if (priority.includes('NORMAL')) return 1;
+      if (priority.includes('BAIXA')) return 2;
+      return 3;
+    }
+
+    function controleDtTimeMs(value) {
+      if (!value) return 0;
+      if (typeof value?.toMillis === 'function') return Number(value.toMillis()) || 0;
+      if (typeof value?.seconds === 'number') return Number(value.seconds) * 1000;
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric > 0) return numeric;
+      const parsed = new Date(value).getTime();
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function isControleDtFactory(value = '') {
+      return controleDtNormalize(value || CONTROLE_DT_FIXED_LOCAL) === 'FABRICA';
+    }
+
+    function shouldAutoReserveControleDt() {
+      return currentMode === 'RITMO' || currentMode === 'DROP_HOOK' || isDropHookFlow;
+    }
+
+    function controleDtCollectionRef() {
+      return collection(db, 'artifacts', appId, 'public', 'data', CONTROLE_DT_COLLECTION);
+    }
+
+    async function reservePriorityControleDt({ truckPlate = '', trailerPlate = '', operationType = '' } = {}) {
+      if (!shouldAutoReserveControleDt()) return null;
+      if (!isAuthReady || !db || !appId) throw new Error('Controle de DT indisponível no momento.');
+
+      const snapshot = await getDocs(controleDtCollectionRef());
+      const candidates = snapshot.docs
+        .map(item => ({ id: item.id, ref: item.ref, ...item.data() }))
+        .filter(item => (item.status || 'Pendente') === 'Pendente')
+        .filter(item => isControleDtFactory(item.local))
+        .sort((a, b) => {
+          const priorityDiff = controleDtPriorityWeight(a.prioritySnapshot || a.priority)
+            - controleDtPriorityWeight(b.prioritySnapshot || b.priority);
+          return priorityDiff
+            || controleDtTimeMs(a.createdAt) - controleDtTimeMs(b.createdAt)
+            || String(a.code || '').localeCompare(String(b.code || ''), 'pt-BR');
+        });
+
+      const cleanTruck = sanitizePlate(truckPlate);
+      const cleanTrailer = sanitizePlate(trailerPlate);
+      const plateForLink = cleanTrailer || cleanTruck;
+
+      for (const candidate of candidates) {
+        try {
+          let claimed = null;
+          await runTransaction(db, async transaction => {
+            const latestSnapshot = await transaction.get(candidate.ref);
+            if (!latestSnapshot.exists()) throw new Error('DT_REMOVED');
+            const latest = latestSnapshot.data() || {};
+            if ((latest.status || 'Pendente') !== 'Pendente' || !isControleDtFactory(latest.local)) {
+              throw new Error('DT_ALREADY_RESERVED');
+            }
+
+            const code = String(latest.code || candidate.code || latestSnapshot.id).trim();
+            const nowMs = Date.now();
+            transaction.update(candidate.ref, {
+              status: 'Reservada',
+              reservedAt: nowMs,
+              reservedForPlate: plateForLink,
+              reservedTrailerPlate: cleanTrailer,
+              reservedTruckPlate: cleanTruck,
+              reservedSourceId: code,
+              reservedSource: 'assistente',
+              reservedMode: 'automatico',
+              reservedOperation: operationType || (isDropHookFlow ? 'Drop & Hook' : 'Baldeio'),
+              updatedAt: nowMs
+            });
+            claimed = {
+              id: latestSnapshot.id,
+              code,
+              productId: latest.productId || '',
+              productName: latest.productNameSnapshot || latest.productName || latest.produto || '',
+              pallets: Number(latest.pallets || latest.paletes || 0) || 0,
+              priority: latest.prioritySnapshot || latest.priority || 'Normal',
+              local: CONTROLE_DT_FIXED_LOCAL,
+              truckPlate: cleanTruck,
+              trailerPlate: cleanTrailer
+            };
+          });
+          if (claimed) {
+            try {
+              const movementId = generateInternalId('AUTO_DT');
+              await setDoc(
+                doc(db, 'artifacts', appId, 'public', 'data', 'controle_dt_movimentos', movementId),
+                {
+                  type: 'Automação',
+                  text: `DT ${claimed.code} reservada automaticamente para ${operationType || 'Baldeio/Drop'} • ${plateForLink || 'sem placa'}`,
+                  dt: claimed.code,
+                  product: claimed.productName,
+                  pallets: claimed.pallets,
+                  priority: claimed.priority,
+                  local: CONTROLE_DT_FIXED_LOCAL,
+                  createdAt: Date.now()
+                }
+              );
+            } catch (movementError) {
+              console.warn('A DT foi reservada, mas o histórico rápido não pôde ser gravado.', movementError);
+            }
+            return claimed;
+          }
+        } catch (error) {
+          if (['DT_REMOVED', 'DT_ALREADY_RESERVED'].includes(error?.message)) continue;
+          console.warn('Não foi possível reservar esta DT; tentando a próxima.', error);
+        }
+      }
+
+      return null;
+    }
+
+    async function releaseControleDtReservation(reservation, reason = 'marcação não concluída') {
+      if (!reservation?.id || !db) return;
+      const dtRef = doc(db, 'artifacts', appId, 'public', 'data', CONTROLE_DT_COLLECTION, reservation.id);
+      try {
+        await runTransaction(db, async transaction => {
+          const latestSnapshot = await transaction.get(dtRef);
+          if (!latestSnapshot.exists()) return;
+          const latest = latestSnapshot.data() || {};
+          if (latest.status !== 'Reservada' || latest.reservedMode !== 'automatico') return;
+          if (String(latest.reservedForPlate || '') !== String(reservation.trailerPlate || reservation.truckPlate || '')) return;
+          transaction.update(dtRef, {
+            status: 'Pendente',
+            reservedAt: null,
+            reservedForPlate: '',
+            reservedTrailerPlate: '',
+            reservedTruckPlate: '',
+            reservedSourceId: '',
+            reservedSource: '',
+            reservedMode: '',
+            reservedOperation: '',
+            reservationReleasedAt: Date.now(),
+            reservationReleaseReason: reason,
+            updatedAt: Date.now()
+          });
+        });
+      } catch (error) {
+        console.warn('Não foi possível devolver a DT automaticamente para Pendente.', error);
       }
     }
 
@@ -2829,6 +2990,9 @@
           renavam: driverData.renavam,
           transportadora: driverData.transportadora,
           lastDts: driverData.dts || "",
+          lastControleDtCode: driverData.controleDtCode || '',
+          lastControleDtProduct: driverData.controleDtProduct || '',
+          lastControleDtPallets: driverData.controleDtPallets || 0,
           lastOperacao: driverData.operacao || '',
           lastFlowKey: driverData.flowKey || '',
           lastFlowLabel: driverData.flowLabel || '',
@@ -2877,6 +3041,18 @@
 
         const patioDataToSave = {
           dt: dtId,
+          controleDtAuto: !!driverData.controleDtAuto,
+          controleDtId: driverData.controleDtId || '',
+          controleDtCode: driverData.controleDtCode || driverData.dts || '',
+          controleDtProductId: driverData.controleDtProductId || '',
+          controleDtProduct: driverData.controleDtProduct || '',
+          controleDtPallets: driverData.controleDtPallets || 0,
+          controleDtPriority: driverData.controleDtPriority || '',
+          controleDtLocal: driverData.controleDtLocal || '',
+          produto: driverData.controleDtProduct || '',
+          produtoNome: driverData.controleDtProduct || '',
+          pallets: driverData.controleDtPallets || 0,
+          paletes: driverData.controleDtPallets || 0,
           motorista: driverData.name,
           transportadora: driverData.transportadora,
           tipoVeiculo: driverData.vehicleType || '',
@@ -2951,6 +3127,16 @@
           await setDoc(dropRef, {
             id: dtId,
             dt: dtId,
+            controleDtAuto: !!driverData.controleDtAuto,
+            controleDtId: driverData.controleDtId || '',
+            controleDtCode: driverData.controleDtCode || driverData.dts || '',
+            controleDtProductId: driverData.controleDtProductId || '',
+            controleDtProduct: driverData.controleDtProduct || '',
+            controleDtPallets: driverData.controleDtPallets || 0,
+            controleDtPriority: driverData.controleDtPriority || '',
+            controleDtLocal: driverData.controleDtLocal || '',
+            produto: driverData.controleDtProduct || '',
+            pallets: driverData.controleDtPallets || 0,
             tipo: 'DROP',
             isDrop: true,
             isDropHook: true,
@@ -5103,9 +5289,36 @@
       if (trailerEl) trailerEl.value = confirmedPlates.trailerPlate || '';
       if (isDropHookFlow) dropHookManeuverPlate = sanitizePlate(confirmedPlates.maneuverPlate || dropHookManeuverPlate || dropHookTripDriver?.truckPlate || sessionDriver?.truckPlate || '');
 
+      let assignedControleDt = null;
+      if (shouldAutoReserveControleDt()) {
+        try {
+          assignedControleDt = await reservePriorityControleDt({
+            truckPlate: confirmedPlates.truckPlate || plateEl.value,
+            trailerPlate: confirmedPlates.trailerPlate || trailerEl?.value || '',
+            operationType: isDropHookFlow ? 'Drop & Hook' : 'Baldeio'
+          });
+        } catch (error) {
+          console.error('Falha ao consultar o Controle de DT:', error);
+        }
+
+        if (!assignedControleDt) {
+          controleDtAutoReservation = null;
+          manualDtIdOverride = '';
+          if (isDropHookFlow || currentMode === 'DROP_HOOK') dropHookDtCarga = '';
+          if (currentMode === 'RITMO') baldeioDtCarga = '';
+          if (fileStatus) fileStatus.textContent = 'Nenhuma DT disponível na Fábrica. Seguindo a marcação normalmente sem DT.';
+        } else {
+          controleDtAutoReservation = assignedControleDt;
+          manualDtIdOverride = assignedControleDt.code;
+          if (isDropHookFlow || currentMode === 'DROP_HOOK') dropHookDtCarga = assignedControleDt.code;
+          if (currentMode === 'RITMO') baldeioDtCarga = assignedControleDt.code;
+          if (fileStatus) fileStatus.textContent = `DT ${assignedControleDt.code} reservada automaticamente por prioridade.`;
+        }
+      }
+
       const firstOriginal = originalDataArray[0] || {};
       const baseDt = String(firstOriginal[headerMap.dts] || '').trim();
-      const dtFromOverride = String(manualDtIdOverride || '').trim();
+      const dtFromOverride = String(assignedControleDt?.code || manualDtIdOverride || '').trim();
       const dtToUse = dtFromOverride || baseDt || generateInternalId('SEM_DT');
       const formUnloadDt = (document.getElementById('unload-dt')?.value || pendingUnloadDt || baldeioDtDescarga || '').trim();
 
@@ -5113,10 +5326,10 @@
       let printableUnloadDt = '';
 
       if (currentMode === 'LOAD' || currentMode === 'DROP_HOOK') {
-        printableDt = baseDt || (/^\d+$/.test(dtFromOverride) ? dtFromOverride : '');
+        printableDt = assignedControleDt?.code || baseDt || (/^\d+$/.test(dtFromOverride) ? dtFromOverride : '');
         printableUnloadDt = formUnloadDt;
       } else if (currentMode === 'RITMO') {
-        printableDt = (baldeioDtCarga || '').trim();
+        printableDt = assignedControleDt?.code || (baldeioDtCarga || '').trim();
         printableUnloadDt = (baldeioDtDescarga || '').trim();
       }
 
@@ -5142,7 +5355,15 @@
         dropHookTripCpf: dropHookTripCpf || '',
         dropHookTripDriver: dropHookTripDriver || null,
         maneuverPlate: sanitizePlate(dropHookManeuverPlate || dropHookTripDriver?.truckPlate || sessionDriver?.truckPlate || ''),
-        dropHookManeuverPlate: sanitizePlate(dropHookManeuverPlate || dropHookTripDriver?.truckPlate || sessionDriver?.truckPlate || '')
+        dropHookManeuverPlate: sanitizePlate(dropHookManeuverPlate || dropHookTripDriver?.truckPlate || sessionDriver?.truckPlate || ''),
+        controleDtAuto: !!assignedControleDt,
+        controleDtId: assignedControleDt?.id || '',
+        controleDtCode: assignedControleDt?.code || '',
+        controleDtProductId: assignedControleDt?.productId || '',
+        controleDtProduct: assignedControleDt?.productName || '',
+        controleDtPallets: assignedControleDt?.pallets || 0,
+        controleDtPriority: assignedControleDt?.priority || '',
+        controleDtLocal: assignedControleDt ? CONTROLE_DT_FIXED_LOCAL : ''
       };
 
       driverData.motoristaManobra = driverData.isDropHook ? {
@@ -5221,19 +5442,21 @@
       }
 
       ensureHeaderMapDefaults();
+      const automaticProduct = assignedControleDt?.productName || '';
+      const automaticPallets = assignedControleDt?.pallets || '';
       const sheetData = isManual ? [{
         ...firstOriginal,
         [headerMap.dts]: dtToUse,
         [headerMap.cliente]: (document.getElementById('manual-client')?.value || ''),
-        [headerMap.produto]: driverData.isDropHook ? '' : (document.getElementById('manual-type')?.value || manualPresetType || ''),
-        [headerMap.plt]: driverData.isDropHook ? '' : (document.getElementById('manual-plt')?.value || ''),
+        [headerMap.produto]: automaticProduct || (document.getElementById('manual-type')?.value || manualPresetType || ''),
+        [headerMap.plt]: automaticPallets || (document.getElementById('manual-plt')?.value || ''),
         [headerMap.transportadora]: (document.getElementById('driver-transportadora')?.value || ''),
         [headerMap.canal]: (document.getElementById('manual-canal')?.value || ''),
         [headerMap.deposito]: 'FÁBRICA',
         DTS: dtToUse,
         CLIENTE: driverData.isDropHook ? 'DROP & HOOK' : (document.getElementById('manual-client')?.value || ''),
-        PRODUTO: driverData.isDropHook ? '' : (document.getElementById('manual-type')?.value || manualPresetType || ''),
-        PLT: driverData.isDropHook ? '' : (document.getElementById('manual-plt')?.value || ''),
+        PRODUTO: automaticProduct || (document.getElementById('manual-type')?.value || manualPresetType || ''),
+        PLT: automaticPallets || (document.getElementById('manual-plt')?.value || ''),
         TRANSPORTADORA: (document.getElementById('driver-transportadora')?.value || ''),
         CANAL: (document.getElementById('manual-canal')?.value || ''),
         DEPOSITO: 'FÁBRICA'
@@ -5260,7 +5483,11 @@
         afterPrintFired = true;
 
         const isSaved = await saveDriverData(driverData, firstRowForPriority, priorityInfo);
-        if (!isSaved) displayError('Não consegui salvar no painel agora, mas a folha foi impressa.', 7000);
+        if (!isSaved) {
+          await releaseControleDtReservation(assignedControleDt, 'falha ao salvar a marcação');
+          controleDtAutoReservation = null;
+          displayError('Não consegui salvar no painel agora. A DT voltou para Pendente no Controle de DTs.', 8000);
+        }
         showCallPanel(driverData.name, priorityInfo.isPriority || priorityInfo.isGradeQueimada || priorityInfo.isAtrasado);
 
         try { document.getElementById('printable-area').innerHTML = ''; } catch {}
@@ -5728,7 +5955,7 @@
       const isDropHookPrint = !!driverData?.isDropHook || dropHookDetectText.includes('DROP');
       if (isDropHookPrint) driverData.isDropHook = true;
 
-      const productRaw = (isDropHookPrint ? '' : (firstResult[headerMap.produto] || '')).toString().toUpperCase();
+      const productRaw = (firstResult[headerMap.produto] || driverData.controleDtProduct || '').toString().toUpperCase();
       let operationTag = '';
       const transpUpper = ((driverData.transportadora || '') + '').toString().trim().toUpperCase();
       if (isDropHookPrint) operationTag = driverData.dropHookAlsoUnload ? 'DROP & HOOK - CARGA E DESCARGA' : 'DROP & HOOK - CARGA';
@@ -5760,8 +5987,8 @@
       const mainVehicleTypePrint = isDropHookPrint ? (mainDriverPrint.vehicleType || vehicleTypePrint || '') : vehicleTypePrint;
       const manobraPlatePrint = sanitizePlate(driverData.maneuverPlate || driverData.dropHookManeuverPlate || manobraDriverPrint.truckPlate || '');
       const rawTransport = (driverData.printableDt || '').toString().trim();
-      // Drop & Hook: manter o campo Nº Transporte em branco para preencher na caneta.
-      const transportNumberPrint = isDropHookPrint ? '' : rawTransport;
+      // Baldeio e Drop automáticos recebem a DT diretamente do Controle de DTs.
+      const transportNumberPrint = rawTransport;
 
       const unloadDtRaw = (driverData.printableUnloadDt || '').toString().trim();
       const unloadDtPrint = unloadDtRaw ? unloadDtRaw : '';
@@ -5808,12 +6035,14 @@
                 <p><strong>CNH:</strong> ${escapeHtml(manobraDriverPrint.cnh || '')}</p>
                 <p><strong>PLACA DO MANOBRA:</strong> ${escapeHtml(manobraPlatePrint || '')}</p>
                 <p><strong>OPERAÇÃO:</strong> ${escapeHtml(operationTag || '---')}</p>
+                <p><strong>LOCAL:</strong> FÁBRICA</p>
               ` : `
                 <p><strong>DATA AGENDA:</strong> ${escapeHtml(agendaDatePrint)}</p>
                 <p><strong>HORA AGENDA:</strong> ${escapeHtml(agendaTimePrint)}</p>
                 <p><strong>OPERAÇÃO:</strong> ${escapeHtml(operationTag || '---')}</p>
                 <p><strong>CLIENTE:</strong> ${escapeHtml(firstResult[headerMap.cliente] || 'N/A')}</p>
                 <p><strong>TRANSPORTADORA:</strong> ${escapeHtml(companyPrint || '---')}</p>
+                <p><strong>LOCAL:</strong> FÁBRICA</p>
               `;
       let priorityHtml = '';
       if (isGradeQueimada) {
@@ -5866,17 +6095,11 @@
 
       const safeRows = sheetDataArray.length ? sheetDataArray : [{}];
       const rowsHtml = safeRows.map(item => {
-        const prod = isDropHookPrint
-          ? ''
-          : (isManual
-            ? (isBaldeio ? '' : ((item[headerMap.produto] || '') || (operationTag || '')))
-            : (item[headerMap.produto] || ''));
+        const prod = isManual
+          ? ((item[headerMap.produto] || driverData.controleDtProduct || '') || (operationTag || ''))
+          : (item[headerMap.produto] || driverData.controleDtProduct || '');
 
-        const qtd = isDropHookPrint
-          ? ''
-          : (isManual
-            ? (item[headerMap.plt] || '')
-            : (item[headerMap.plt] || ''));
+        const qtd = item[headerMap.plt] || driverData.controleDtPallets || '';
 
         return `
           <tr>
@@ -6257,6 +6480,7 @@ function showCallPanel(driverName, isAlert) {
       dropHookAlsoUnload = false;
       dropHookQuickMode = false;
       baldeioQuickMode = false;
+      controleDtAutoReservation = null;
 
       renderCpfGate();
       clearTimeout(panelTimeout);
