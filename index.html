@@ -1982,8 +1982,24 @@
       return dropHookQuickMode || baldeioQuickMode;
     }
 
+    function normalizeCarrierName(value = '') {
+      return (value || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, ' ')
+        .trim();
+    }
+
+    function isRitmoOrJslDriver(driver = sessionDriver) {
+      if (!driver) return false;
+      const carrier = normalizeCarrierName(driver.transportadora || '');
+      return carrier.includes('RITMO') || /(^|\s)JSL($|\s)/.test(carrier);
+    }
+
     function isDropDriverAuthorized(driver = sessionDriver) {
-      return !!driver && (
+      return !!driver && isRitmoOrJslDriver(driver) && (
         driver.dropAutorizado === true ||
         driver.motoristaDrop === true ||
         driver.dropHookAutorizado === true
@@ -2613,22 +2629,67 @@
     }
 
     // --- PRIORIDADE ---
+    // Matriz operacional oficial (1 = maior prioridade):
+    // 1 TOP18 aderente | 2 FOB aderente | 3 Dedicada Vendas aderente
+    // 4 Vendas/HUB aderentes | 5 TOP18 não aderente | 6 Dedicada aderente Transf
+    // 7 Transf aderente | 8 Dedicada não aderente | 9 FOB não aderente
+    // 10 Vendas/HUB não aderentes | 11 Transf não aderente
     function getPriorityInfo(sheetRow) {
       let isPriority = false;
       let isOtif = false;
       let isTop18 = false;
       let isAderente = false;
+      let isNonAdherent = false;
       let isAntecipacao = false;
       let isGradeQueimada = false;
       let isAtrasado = false;
 
-      if (!sheetRow) return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      const emptyResult = (statusLabel = 'NORMAL') => ({
+        label: 'NORMAL',
+        matrixLabel: 'NORMAL',
+        code: 'sem_matriz',
+        rank: 99,
+        level: 99,
+        statusLabel,
+        isPriority,
+        isOtif,
+        isTop18,
+        isAderente,
+        isNonAdherent,
+        isAntecipacao,
+        isGradeQueimada,
+        isAtrasado
+      });
+
+      if (!sheetRow) return emptyResult();
 
       const canal = (sheetRow[headerMap.canal] || '').toString().trim().toUpperCase();
       const dateStr = (sheetRow[headerMap.data] || '').toString().trim();
       const timeStr = (sheetRow[headerMap.agenda] || '').toString().trim();
-      const segmento = (sheetRow[headerMap.xtAdicional] || '').toString().toUpperCase();
-      isTop18 = segmento.includes('TOP18') || segmento.includes('TOP 18');
+      const segmento = (sheetRow[headerMap.xtAdicional] || '').toString();
+      const cliente = (sheetRow[headerMap.cliente] || '').toString();
+      const transportadora = (sheetRow[headerMap.transportadora] || '').toString();
+      const deposito = (sheetRow[headerMap.deposito] || '').toString();
+      const produto = (sheetRow[headerMap.produto] || '').toString();
+      const descricao = (sheetRow[headerMap.descricao] || '').toString();
+
+      const normalizePriorityText = (value) => (value || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+      const ctx = normalizePriorityText([segmento, cliente, transportadora, deposito, produto, descricao].filter(Boolean).join(' '));
+      const segmentoNorm = normalizePriorityText(segmento);
+      const clienteNorm = normalizePriorityText(cliente);
+      const transpNorm = normalizePriorityText(transportadora);
+
+      const SALES_HUB_CHANNELS = new Set(['Y001', 'Y002', 'Y055']);
+      isOtif = SALES_HUB_CHANNELS.has(canal);
+      // TOP18 é uma marcação adicional apenas para Vendas/HUB.
+      isTop18 = isOtif && (segmentoNorm.includes('TOP18') || segmentoNorm.includes('TOP_18'));
 
       const extractDateTime = (dStr, tStr) => {
         let d = (dStr || '').toString().trim();
@@ -2641,7 +2702,7 @@
         }
 
         t = t.replace(/\s+/g, '');
-        if (t.includes('h')) t = t.replace('h', ':');
+        if (t.toLowerCase().includes('h')) t = t.toLowerCase().replace('h', ':');
 
         const parseDate = (x) => {
           if (!x) return null;
@@ -2684,64 +2745,97 @@
       };
 
       const scheduledDateTime = extractDateTime(dateStr, timeStr);
-      if (!scheduledDateTime) {
-        return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
-      }
+      let statusLabel = 'NO PRAZO';
 
-      const OTIF_CANAIS = new Set(['Y001','Y002','Y055']);
-      const ADERENTE_CANAIS = new Set(['Y004','Y006']);
+      if (scheduledDateTime) {
+        const now = new Date();
+        const today = new Date(now); today.setHours(0, 0, 0, 0);
+        const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
 
-      isOtif = OTIF_CANAIS.has(canal);
-      isAderente = ADERENTE_CANAIS.has(canal);
-
-      const now = new Date();
-      const today = new Date(now); today.setHours(0, 0, 0, 0);
-      const scheduledDay = new Date(scheduledDateTime); scheduledDay.setHours(0, 0, 0, 0);
-
-      if (today.getTime() > scheduledDay.getTime()) {
-        isGradeQueimada = true;
-        return { label: 'GRADE QUEIMADA', level: 3, isPriority: true, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
-      }
-
-      if (today.getTime() < scheduledDay.getTime()) {
-        if (isOtif) {
-          isPriority = true;
-          if (isTop18) return { label: 'OTIF/TOP 18', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
-          return { label: 'OTIF', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+        if (today.getTime() > scheduledDay.getTime()) {
+          isGradeQueimada = true;
+          isNonAdherent = true;
+          statusLabel = 'GRADE QUEIMADA';
+        } else if (today.getTime() === scheduledDay.getTime()) {
+          const diffMs = now.getTime() - scheduledDateTime.getTime();
+          if (diffMs > (60 * 60 * 1000)) {
+            isAtrasado = true;
+            isNonAdherent = true;
+            statusLabel = 'PERDA DE AGENDA';
+          } else {
+            const plannedHour = scheduledDateTime.getHours();
+            if ([21, 22, 23].includes(plannedHour) && now.getTime() < scheduledDateTime.getTime()) {
+              isAntecipacao = true;
+              statusLabel = 'ANTECIPAÇÃO';
+            }
+          }
         }
-        if (isAderente) {
-          isPriority = true;
-          return { label: 'ADERENTE', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
-        }
-        return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      } else {
+        // Sem agenda não há como afirmar aderência. Mantém fora da matriz para não inventar prioridade.
+        return emptyResult('SEM AGENDA');
       }
 
-      const plannedHour = scheduledDateTime.getHours();
-      if (plannedHour >= 20 && plannedHour <= 23) {
-        isAntecipacao = true;
-        isPriority = true;
-        return { label: 'ANTECIPAÇÃO', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      isAderente = !isNonAdherent;
+
+      // Y006 pode representar Transferência ou Dedicada. O contexto da DT define o perfil.
+      const explicitDedicated = ctx.includes('DEDICAD');
+      const explicitTransfer = ctx.includes('TRANSF') || ctx.includes('TRANSFER');
+      const explicitSales = ctx.includes('VENDA') || ctx.includes('SALES');
+      const internalClient = clienteNorm.includes('HNK_BR') || clienteNorm.includes('HEINEKEN_BRASIL') || clienteNorm.includes('INDUSTRIA_DE_BEBIDAS');
+      const dedicated = explicitDedicated || transpNorm.includes('JSL');
+      const sales = explicitSales || (dedicated && !explicitTransfer && !internalClient);
+
+      const make = (rank, code, label) => ({
+        label,
+        matrixLabel: label,
+        code,
+        rank,
+        level: rank,
+        statusLabel,
+        isPriority: true,
+        isOtif,
+        isTop18,
+        isAderente,
+        isNonAdherent,
+        isAntecipacao,
+        isGradeQueimada,
+        isAtrasado,
+        isDedicated: dedicated,
+        isSales: sales,
+        isTransfer: canal === 'Y006' && !sales
+      });
+
+      // 1 e 5 — TOP18 (sempre acima das demais classificações do mesmo grupo).
+      if (isTop18) {
+        return isAderente
+          ? make(1, 'top18_aderente', 'TOP18 aderente')
+          : make(5, 'top18_nao_aderente', 'TOP18 não aderente');
       }
 
-      const diffMs = now.getTime() - scheduledDateTime.getTime();
-
-      if (diffMs > (60 * 60 * 1000)) {
-        isAtrasado = true;
-        return { label: 'PERDA DE AGENDA', level: 2, isPriority: true, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      // 2 e 9 — Y004 = FOB.
+      if (canal === 'Y004') {
+        return isAderente
+          ? make(2, 'fob_aderente', 'FOB aderente')
+          : make(9, 'fob_nao_aderente', 'FOB não aderente');
       }
 
-      if (isOtif) {
-        isPriority = true;
-        if (isTop18) return { label: 'OTIF/TOP 18', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
-        return { label: 'OTIF', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      // 3, 6, 7, 8 e 11 — Y006 = Dedicada/Transferência.
+      if (canal === 'Y006') {
+        if (isAderente && dedicated && sales) return make(3, 'dedicada_vendas_aderente', 'Dedicada Vendas aderente');
+        if (isAderente && dedicated) return make(6, 'dedicada_transf_aderente', 'Dedicada aderente Transf');
+        if (isAderente) return make(7, 'transf_aderente', 'Transf aderente');
+        if (dedicated) return make(8, 'dedicada_nao_aderente', 'Dedicada não aderente');
+        return make(11, 'transf_nao_aderente', 'Transf não aderente');
       }
 
-      if (isAderente) {
-        isPriority = true;
-        return { label: 'ADERENTE', level: 1, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      // 4 e 10 — Y001/Y002 = Vendas | Y055 = HUB.
+      if (SALES_HUB_CHANNELS.has(canal)) {
+        return isAderente
+          ? make(4, 'vendas_hub_aderentes', 'Vendas/HUB aderentes')
+          : make(10, 'vendas_hub_nao_aderentes', 'Vendas/HUB não aderentes');
       }
 
-      return { label: 'NORMAL', level: 0, isPriority, isOtif, isTop18, isAderente, isAntecipacao, isGradeQueimada, isAtrasado };
+      return emptyResult(statusLabel);
     }
 
     // --- Operação/Movimento (para salvar no Firestore) ---
@@ -2840,9 +2934,16 @@
           lastDropHookMotoristaViagemCpf: driverData.motoristaViagem?.cpf || driverData.dropHookTripCpf || '',
           lastDropHookMotoristaViagem: driverData.motoristaViagem?.nome || driverData.dropHookTripDriver?.name || '',
           lastPriority: {
+            label: pInfoForDriver.label || 'NORMAL',
+            code: pInfoForDriver.code || 'sem_matriz',
+            rank: Number.isFinite(pInfoForDriver.rank) ? pInfoForDriver.rank : 99,
+            level: Number.isFinite(pInfoForDriver.level) ? pInfoForDriver.level : 99,
+            statusLabel: pInfoForDriver.statusLabel || '',
             isPriority: !!pInfoForDriver.isPriority,
             isOtif: !!pInfoForDriver.isOtif,
             isTop18: !!pInfoForDriver.isTop18,
+            isAderente: !!pInfoForDriver.isAderente,
+            isNonAdherent: !!pInfoForDriver.isNonAdherent,
             isAntecipacao: !!pInfoForDriver.isAntecipacao,
             isGradeQueimada: !!pInfoForDriver.isGradeQueimada,
             isAtrasado: !!pInfoForDriver.isAtrasado,
@@ -2862,15 +2963,12 @@
         const pInfo = priorityInfo || getPriorityInfo(originalSheetData || {});
 
         const reasons = [];
-        if (pInfo.label === 'OTIF/TOP 18') reasons.push('OTIF', 'TOP 18');
-        else if (pInfo.label === 'OTIF') reasons.push('OTIF');
-        else if (pInfo.label === 'ADERENTE') reasons.push('ADERENTE');
-        else if (pInfo.label === 'ANTECIPAÇÃO') reasons.push('ANTECIPAÇÃO');
-        else if (pInfo.label === 'PERDA DE AGENDA') reasons.push('PERDA DE AGENDA');
-        else if (pInfo.label === 'GRADE QUEIMADA') reasons.push('GRADE QUEIMADA');
+        if (Number.isFinite(pInfo.rank) && pInfo.rank < 99) reasons.push(`P${pInfo.rank}`, pInfo.label);
+        if (pInfo.isTop18) reasons.push('TOP 18');
+        if (pInfo.statusLabel && pInfo.statusLabel !== 'NO PRAZO') reasons.push(pInfo.statusLabel);
 
         const label = pInfo.label || 'NORMAL';
-        const level = (typeof pInfo.level === 'number') ? pInfo.level : (label === 'NORMAL' ? 0 : 1);
+        const level = Number.isFinite(pInfo.rank) ? pInfo.rank : 99;
 
         const canalValue = (originalSheetData?.[headerMap.canal] || '').toString().trim().toUpperCase();
         const segmentoValue = (originalSheetData?.[headerMap.xtAdicional] || '').toString();
@@ -2931,15 +3029,23 @@
           segmento: segmentoValue,
           prioridade: {
             label,
+            matrixLabel: pInfo.matrixLabel || label,
+            code: pInfo.code || 'sem_matriz',
+            rank: Number.isFinite(pInfo.rank) ? pInfo.rank : 99,
             level,
+            statusLabel: pInfo.statusLabel || '',
             reasons,
             isPriority: !!pInfo.isPriority,
             isOtif: !!pInfo.isOtif,
             isTop18: !!pInfo.isTop18,
             isAderente: !!pInfo.isAderente,
+            isNonAdherent: !!pInfo.isNonAdherent,
             isAntecipacao: !!pInfo.isAntecipacao,
             isGradeQueimada: !!pInfo.isGradeQueimada,
             isAtrasado: !!pInfo.isAtrasado,
+            isDedicated: !!pInfo.isDedicated,
+            isSales: !!pInfo.isSales,
+            isTransfer: !!pInfo.isTransfer,
             updatedAt: new Date().toISOString(),
           }
         };
@@ -3074,7 +3180,7 @@
     }
 
     function continueAfterDriverReady() {
-      if (isDropDriverAuthorized(sessionDriver)) {
+      if (isRitmoOrJslDriver(sessionDriver) && isDropDriverAuthorized(sessionDriver)) {
         fileStatus.textContent = 'Motorista Drop autorizado. Abrindo acesso rápido...';
         currentMode = 'DROP_HOOK';
         isDropHookFlow = true;
@@ -3292,6 +3398,7 @@
       dropHookAlsoUnload = false;
       dropHookQuickMode = false;
       baldeioQuickMode = false;
+      const specialCarrierDriver = isRitmoOrJslDriver(sessionDriver);
       const dropDriverAuthorized = isDropDriverAuthorized(sessionDriver);
 
       actionArea.innerHTML = `
@@ -3340,15 +3447,16 @@
             </div>
           </div>
 
+          ${specialCarrierDriver ? `
           <div class="flow-group transportadora-ritmo-group">
-            <div class="flow-group-title">Operações Transportadora Ritmo</div>
-            <div class="ritmo-exclusive-alert" role="note" aria-label="Aviso importante sobre Drop & Hook">
+            <div class="flow-group-title">Operações Ritmo / JSL</div>
+            <div class="ritmo-exclusive-alert" role="note" aria-label="Aviso importante sobre Drop & Hook e Baldeio">
               <div class="ritmo-exclusive-alert-icon" aria-hidden="true">⚠️</div>
               <div>
-                <div class="ritmo-exclusive-alert-title">Aviso importante</div>
-                <div class="ritmo-exclusive-alert-text">${dropDriverAuthorized
+                <div class="ritmo-exclusive-alert-title">Acesso por transportadora</div>
+                <div class="ritmo-exclusive-alert-text"><b>Baldeio e Drop &amp; Hook</b> são exibidos somente para motoristas da <b>Ritmo</b> ou <b>JSL</b>. ${dropDriverAuthorized
                   ? '<b>Motorista Drop autorizado.</b> Este CPF está liberado para executar o Drop &amp; Hook.'
-                  : '<b>Bloqueado:</b> o Drop &amp; Hook exige autorização do ADMIN no cadastro do motorista.'}</div>
+                  : 'Para usar o <b>Drop &amp; Hook</b>, o CPF também precisa estar autorizado pelo ADMIN.'}</div>
               </div>
             </div>
             <div class="flow-grid">
@@ -3377,6 +3485,7 @@
               </button>
             </div>
           </div>
+          ` : ''}
 
           <div class="flow-group">
             <div class="flow-group-title">Operações especiais</div>
@@ -3415,6 +3524,10 @@
         btn.addEventListener('click', async () => {
           await unlockAudio();
           const requestedMode = btn.dataset.mode;
+          if ((requestedMode === 'RITMO' || requestedMode === 'DROP_HOOK') && !isRitmoOrJslDriver(sessionDriver)) {
+            displayError('Baldeio e Drop & Hook são exclusivos para motoristas Ritmo ou JSL.', 7000);
+            return;
+          }
           if (requestedMode === 'DROP_HOOK' && !isDropDriverAuthorized(sessionDriver)) {
             displayError('Seu CPF não está autorizado para Drop & Hook. Procure o administrador Joel.', 7000);
             return;
@@ -3472,6 +3585,13 @@
     }
 
     function renderModeForm(mode) {
+      if ((mode === 'RITMO' || mode === 'DROP_HOOK') && !isRitmoOrJslDriver(sessionDriver)) {
+        currentMode = null;
+        isDropHookFlow = false;
+        renderActionSelector();
+        displayError('Baldeio e Drop & Hook são exclusivos para motoristas Ritmo ou JSL.', 7000);
+        return;
+      }
       if (mode === 'DROP_HOOK' && !isDropDriverAuthorized(sessionDriver)) {
         currentMode = null;
         isDropHookFlow = false;
@@ -3591,7 +3711,7 @@
               <div class="ritmo-exclusive-alert-icon" aria-hidden="true">⚠️</div>
               <div>
                 <div class="ritmo-exclusive-alert-title">Uso exclusivo</div>
-                <div class="ritmo-exclusive-alert-text">O <b>Drop &amp; Hook</b> é <b>exclusivo para motorista manobra Ritmo</b>.</div>
+                <div class="ritmo-exclusive-alert-text">O <b>Drop &amp; Hook</b> fica disponível somente para motoristas da <b>Ritmo</b> ou <b>JSL</b> com CPF autorizado.</div>
               </div>
             </div>
 
@@ -5815,8 +5935,22 @@
                 <p><strong>CLIENTE:</strong> ${escapeHtml(firstResult[headerMap.cliente] || 'N/A')}</p>
                 <p><strong>TRANSPORTADORA:</strong> ${escapeHtml(companyPrint || '---')}</p>
               `;
+      const printPriorityInfo = getPriorityInfo(firstResult);
+      const matrixRank = Number.isFinite(printPriorityInfo.rank) ? printPriorityInfo.rank : 99;
+      const matrixLabel = printPriorityInfo.label || 'NORMAL';
+      const operationalStatus = printPriorityInfo.statusLabel || '';
       let priorityHtml = '';
-      if (isGradeQueimada) {
+
+      if (matrixRank < 99) {
+        const statusLine = operationalStatus && operationalStatus !== 'NO PRAZO'
+          ? `<div style="font-size:10px;font-weight:800;margin-top:4px;">${escapeHtml(operationalStatus)}</div>`
+          : '';
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:7px 9px; background:${matrixRank <= 5 ? '#FDE68A' : '#DCFCE7'}; border-radius:0; color:#111;">
+                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">PRIORIDADE P${matrixRank}</div>
+                          <div style="font-size:18px; font-weight:900; letter-spacing:.02em;">${escapeHtml(matrixLabel)}</div>
+                          ${statusLine}
+                        </div>`;
+      } else if (isGradeQueimada) {
         priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#FBBF24; border-radius:0;">
                           <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
                           <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">GRADE QUEIMADA</div>
@@ -5830,21 +5964,6 @@
         priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#F87171; border-radius:0; color:#111;">
                           <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
                           <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">ANTECIPAÇÃO</div>
-                        </div>`;
-      } else if (isOtif && isTop18) {
-        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#F87171; border-radius:0; color:#111;">
-                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
-                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">OTIF / TOP 18</div>
-                        </div>`;
-      } else if (isOtif) {
-        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#F87171; border-radius:0; color:#111;">
-                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
-                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">OTIF</div>
-                        </div>`;
-      } else if (isPriority) {
-        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#BBF7D0; border-radius:0; color:#111;">
-                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
-                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">ADERENTE</div>
                         </div>`;
       } else {
         priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:10px 10px; background:#fff; border-radius:0;">
