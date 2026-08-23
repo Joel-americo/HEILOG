@@ -5945,9 +5945,9 @@
       const unloadDtPrint = unloadDtRaw ? unloadDtRaw : '';
 
       const dropHookSimpleTermHtml = isDropHookPrint ? `
-          <section style="border:2px solid #111; margin-bottom:6px; background:#fffdf5; ">
+          <section style="border:2px solid #111; margin-bottom:6px; background:#ffffff; ">
             <div style="
-              background:#fde68a !important;
+              background:#e5e5e5 !important;
               color:#111 !important;
               border-bottom:2px solid #111;
               padding:6px 9px;
@@ -6002,23 +6002,23 @@
         const statusLine = operationalStatus && operationalStatus !== 'NO PRAZO'
           ? `<div style="font-size:10px;font-weight:800;margin-top:4px;">${escapeHtml(operationalStatus)}</div>`
           : '';
-        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:7px 9px; background:${matrixRank <= 5 ? '#FDE68A' : '#DCFCE7'}; border-radius:0; color:#111;">
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:7px 9px; background:${matrixRank <= 5 ? '#e5e5e5' : '#f0f0f0'}; border-radius:0; color:#111;">
                           <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">PRIORIDADE P${matrixRank}</div>
                           <div style="font-size:18px; font-weight:900; letter-spacing:.02em;">${escapeHtml(matrixLabel)}</div>
                           ${statusLine}
                         </div>`;
       } else if (isGradeQueimada) {
-        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#FBBF24; border-radius:0;">
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#e5e5e5; border-radius:0;">
                           <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
                           <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">GRADE QUEIMADA</div>
                         </div>`;
       } else if (isAtrasado) {
-        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#FACC15; border-radius:0;">
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#e5e5e5; border-radius:0;">
                           <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
                           <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">PERDA DE AGENDA</div>
                         </div>`;
       } else if (isAntecipacao) {
-        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#F87171; border-radius:0; color:#111;">
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#e5e5e5; border-radius:0; color:#111;">
                           <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
                           <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">ANTECIPAÇÃO</div>
                         </div>`;
@@ -6174,7 +6174,7 @@
             <div style="display:flex; align-items:center; min-height:66px; padding:5px 3px;">
               <div style="display:flex; align-items:center; gap:8px; min-height:58px; white-space:nowrap;">
                 <span style="font-size:10px; font-weight:900; letter-spacing:.02em;">EST.</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="#4b5563" style="flex:0 0 auto;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="#000000" style="flex:0 0 auto;">
                   <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z"/>
                 </svg>
                 <span style="font-size:10px; font-weight:900;">1873</span>
@@ -6490,196 +6490,3 @@ function showCallPanel(driverName, isAlert) {
   </script>
 </body>
 </html>
-HEILOG_Checklist_Preto_Branco_Layout_Original.html
-HTML
-Chat para o bulk deu certo, agora para baldeio e Drop não
-Analisado
-from pathlib import Path
-import re
-
-src = Path("/mnt/data/HEILOG_Checklist_Preto_Branco_Layout_Original.html")
-dst = Path("/mnt/data/HEILOG_Checklist_PB_Bulk_Baldeio_Drop.html")
-
-html = src.read_text(encoding="utf-8")
-
-# Acrescenta uma flag apenas para impressão de BALDEIO e DROP & HOOK.
-needle = "const isBaldeio = !!isManual && (productRaw.includes('BALDEIO') || transpUpper === 'RITMO' || transpUpper === 'JSL');"
-if needle not in html:
-    raise RuntimeError("Não encontrei a identificação de Baldeio no arquivo.")
-
-replacement = needle + """
-      // Compatibilidade da impressora nova:
-      // Bulk já funciona com o checklist P&B. Para Baldeio e Drop & Hook,
-      // deixa também a PRIMEIRA folha de marcação estritamente monocromática,
-      // sem alterar o layout nem a lógica da marcação.
-      const forceMonoSpecialPrint = isDropHookPrint || isBaldeio;
-"""
-html = html.replace(needle, replacement, 1)
-
-# Insere CSS condicional dentro do HTML de impressão.
-style_needle = """          .hm-sheet strong { font-weight: 900; }
-          @media print {"""
-if style_needle not in html:
-    raise RuntimeError("Não encontrei o bloco de estilo da impressão.")
-
-style_replacement = """          .hm-sheet strong { font-weight: 900; }
-
-          ${forceMonoSpecialPrint ? `
-          /* BALDEIO / DROP & HOOK: folha de marcação em preto e branco puro.
-             O checklist permanece com o mesmo layout P&B que já funcionou no Bulk. */
-          .hm-main-sheet,
-          .hm-main-sheet * {
-            color: #000 !important;
-            border-color: #000 !important;
-            box-shadow: none !important;
-            text-shadow: none !important;
-          }
-          .hm-main-sheet {
-            background: #fff !important;
-          }
-          .hm-main-sheet div,
-          .hm-main-sheet section,
-          .hm-main-sheet header,
-          .hm-main-sheet table,
-          .hm-main-sheet thead,
-          .hm-main-sheet tbody,
-          .hm-main-sheet tr,
-          .hm-main-sheet th,
-          .hm-main-sheet td,
-          .hm-main-sheet p,
-          .hm-main-sheet span,
-          .hm-main-sheet ul,
-          .hm-main-sheet li {
-            background-color: #fff !important;
-            background-image: none !important;
-          }
-          .hm-main-sheet svg,
-          .hm-main-sheet svg * {
-            fill: #000 !important;
-            stroke: #000 !important;
-          }
-          ` : ''}
-
-          @media print {"""
-html = html.replace(style_needle, style_replacement, 1)
-
-# Garante que não restaram print-color-adjust.
-html = re.sub(r'(?im)^\s*-webkit-print-color-adjust\s*:\s*[^;]+;\s*$', '', html)
-html = re.sub(r'(?im)^\s*print-color-adjust\s*:\s*[^;]+;\s*$', '', html)
-html = re.sub(r'(?i)-webkit-print-color-adjust\s*:\s*[^;]+;\s*', '', html)
-html = re.sub(r'(?i)print-color-adjust\s*:\s*[^;]+;\s*', '', html)
-
-dst.write_text(html, encoding="utf-8")
-
-print(f"Arquivo criado: {dst}")
-print(f"Tamanho: {dst.stat().st_size:,} bytes")
-print("print-color-adjust restantes:", len(re.findall(r'print-color-adjust', html, re.I)))
-print("Flag especial inserida:", "forceMonoSpecialPrint" in html)
-
-STDOUT/STDERR
-Arquivo criado: /mnt/data/HEILOG_Checklist_PB_Bulk_Baldeio_Drop.html
-Tamanho: 314,684 bytes
-print-color-adjust restantes: 0
-Flag especial inserida: True
-
-
-Boa — isso ajuda a fechar o diagnóstico. Como Bulk já funcionou, mantive exatamente o Checklist P&B que deu certo nele. Para Baldeio e Drop & Hook, ajustei também a primeira folha de marcação para sair em preto e branco puro, porque esses dois fluxos têm elementos extras que o Bulk não usa, especialmente no Drop & Hook. O código original realmente tem blocos específicos para Drop e Baldeio na montagem da impressão.
-
-Não alterei gravação, DT, motorista, placas, Firebase nem a lógica dos fluxos. Foi só impressão.
-
-Baixar versão corrigida — Bulk + Baldeio + Drop P&B
-
-Agora eu testaria nessa ordem: Baldeio primeiro e depois Drop & Hook. 
-
-HEILOG_Checklist_PB_Bulk_Baldeio_Drop.html
-HTML
-Analisando
-from pathlib import Path
-import re, subprocess, textwrap, json, os, shutil
-
-src = Path("/mnt/data/HEILOG_Checklist_Preto_Branco_Layout_Original.html")
-dst = Path("/mnt/data/HEILOG_Checklist_PB_Corrigido_v2.html")
-
-html = src.read_text(encoding="utf-8")
-
-# 1) Cria a flag de Baldeio/Drop no ponto em que o HTML já sabe identificar a operação.
-needle = "const isBaldeio = !!isManual && (productRaw.includes('BALDEIO') || transpUpper === 'RITMO' || transpUpper === 'JSL');"
-if needle not in html:
-    raise RuntimeError("Não encontrei a identificação de Baldeio.")
-
-replacement = needle + """
-      const forceMonoSpecialPrint = isDropHookPrint || isBaldeio;
-"""
-html = html.replace(needle, replacement, 1)
-
-# 2) Adiciona uma classe condicional simples à PRIMEIRA folha.
-# Isso não cria template literal aninhado e não interfere no JavaScript.
-old_div = '<div class="bg-white text-black font-sans print-main-container hm-sheet hm-main-sheet" style="padding:12px; font-size:14px; color:#111; border:2.5px solid #111; background:#fff;">'
-new_div = '<div class="bg-white text-black font-sans print-main-container hm-sheet hm-main-sheet ${forceMonoSpecialPrint ? \'hm-mono-special\' : \'\'}" style="padding:12px; font-size:14px; color:#111; border:2.5px solid #111; background:#fff;">'
-if old_div not in html:
-    raise RuntimeError("Não encontrei a folha principal para adicionar a classe segura.")
-html = html.replace(old_div, new_div, 1)
-
-# 3) CSS estático seguro: só atua quando a classe hm-mono-special estiver presente.
-css = r"""
-    /* ===== IMPRESSÃO SEGURA P&B PARA BALDEIO / DROP & HOOK =====
-       Não altera lógica, dados, Firebase ou fluxo. Apenas aparência no papel. */
-    @media print {
-      .hm-main-sheet.hm-mono-special,
-      .hm-main-sheet.hm-mono-special * {
-        color: #000 !important;
-        border-color: #000 !important;
-        box-shadow: none !important;
-        text-shadow: none !important;
-      }
-
-      .hm-main-sheet.hm-mono-special {
-        background: #fff !important;
-      }
-
-      .hm-main-sheet.hm-mono-special div,
-      .hm-main-sheet.hm-mono-special section,
-      .hm-main-sheet.hm-mono-special header,
-      .hm-main-sheet.hm-mono-special table,
-      .hm-main-sheet.hm-mono-special thead,
-      .hm-main-sheet.hm-mono-special tbody,
-      .hm-main-sheet.hm-mono-special tr,
-      .hm-main-sheet.hm-mono-special th,
-      .hm-main-sheet.hm-mono-special td,
-      .hm-main-sheet.hm-mono-special p,
-      .hm-main-sheet.hm-mono-special span,
-      .hm-main-sheet.hm-mono-special ul,
-      .hm-main-sheet.hm-mono-special li {
-        background-color: #fff !important;
-        background-image: none !important;
-      }
-
-      .hm-main-sheet.hm-mono-special svg,
-      .hm-main-sheet.hm-mono-special svg * {
-        fill: #000 !important;
-        stroke: #000 !important;
-      }
-    }
-"""
-
-if "</style>" not in html:
-    raise RuntimeError("Não encontrei </style>.")
-html = html.replace("</style>", css + "\n</style>", 1)
-
-# 4) Garante que não há instruções print-color-adjust em nenhum lugar.
-html = re.sub(r'(?im)^\s*-webkit-print-color-adjust
-Deu position78
-
-A Position 78 muda bastante o diagnóstico.
-
-Quando o erro continua sendo PCL XL / IllegalAttributeValue / SetColorTreatment, mas agora aparece já na Position 78, significa que a impressora está rejeitando o comando quase no início do trabalho de impressão, antes mesmo de processar de verdade a Folha de Marcação ou o Checklist.
-
-Então eu não mexeria mais no HEILOG agora. A última tentativa inclusive mostrou que podemos acabar quebrando uma impressão que já funcionava sem resolver a causa.
-
-O caminho mais seguro é voltar para a versão em que Bulk + Folha de Marcação estavam funcionando e corrigir a impressora/driver. No Windows, entre em Configurações → Impressoras e scanners → impressora nova → Propriedades da impressora → Avançado e veja o campo Driver. Se aparecer PCL6, PCL XL ou Universal PCL6, esse é o principal suspeito.
-
-O ideal é trocar para PCL5/PCL5e, PostScript/PS ou, dependendo do modelo, outro driver oficial do fabricante. Depois disso você testa o mesmo HTML que já funcionou no Bulk, sem novas alterações.
-
-Se você me mandar o modelo exato da impressora nova — por exemplo HP LaserJet M428fdw, Lexmark MX..., Xerox... — eu consigo te dizer qual driver escolher e onde trocar, passo a passo.
-
-Eu não tenho autorização para alterar isso chat
