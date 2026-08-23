@@ -1778,7 +1778,82 @@
       .return-initial-floating { display: none !important; }
     }
 
-  </style>
+  
+    /* ===== CHECKLIST DE IMPRESSÃO: PRETO E BRANCO =====
+       Mantém a Folha de Marcação como está e remove cores do Checklist.
+       Também evita forçar tratamento de cor no driver da impressora. */
+    @media print {
+      .xl-check-page,
+      .xl-check-page *,
+      .checklist-page,
+      .checklist-page * {
+        color: #000 !important;
+        -webkit-print-color-adjust: economy !important;
+        print-color-adjust: economy !important;
+      }
+
+      .xl-check-page,
+      .xl-check-wrap,
+      .xl-header-brand,
+      .xl-transport,
+      .xl-check-groups,
+      .xl-two-col,
+      .xl-split-section,
+      .xl-comments-box,
+      .xl-signature-box,
+      .checklist-page,
+      .checklist-meta td,
+      .checklist-table td,
+      .checklist-signature-box {
+        background: #fff !important;
+      }
+
+      .xl-green-header,
+      .xl-gray-header,
+      .xl-section-title,
+      .xl-subhead,
+      .xl-subhead.red,
+      .checklist-section-title,
+      .checklist-table th,
+      .checklist-hint,
+      .checklist-priority-row div {
+        background: #e5e5e5 !important;
+        color: #000 !important;
+      }
+
+      .xl-red,
+      .xl-important-red,
+      .xl-subhead.red {
+        color: #000 !important;
+      }
+
+      .xl-brand-logo {
+        filter: grayscale(100%) contrast(1.15) !important;
+        background-color: #fff !important;
+        -webkit-print-color-adjust: economy !important;
+        print-color-adjust: economy !important;
+      }
+
+      .xl-check-table td,
+      .xl-check-table th,
+      .xl-header-grid td,
+      .xl-question-table td,
+      .xl-question-table th,
+      .xl-box,
+      .xl-comments-box,
+      .xl-subhead,
+      .xl-check-wrap,
+      .checklist-table td,
+      .checklist-table th,
+      .checklist-meta td,
+      .checklist-signature-box,
+      .checklist-section-title,
+      .checklist-hint {
+        border-color: #000 !important;
+      }
+    }
+
+</style>
 </head>
 
 <body class="antialiased simple-ui">
