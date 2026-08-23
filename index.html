@@ -1834,22 +1834,7 @@
 
 
     /* ===== IMPRESSÃO P&B PURO - COMPATIBILIDADE MÁXIMA PCL ===== */
-    .xl-brand-logo-text {
-      display:flex !important;
-      align-items:center !important;
-      justify-content:center !important;
-      width:100% !important;
-      max-width:390px !important;
-      height:50px !important;
-      background:none !important;
-      color:#000 !important;
-      font-family:Arial, Helvetica, sans-serif !important;
-      font-size:25px !important;
-      font-weight:900 !important;
-      letter-spacing:.08em !important;
-    }
-
-    @media print {
+@media print {
       .xl-check-page,
       .xl-check-page *,
       .checklist-page,
@@ -5719,7 +5704,7 @@
               <tr>
                 <td class="xl-header-brand" style="width:33%;">
                   <div class="xl-brand-flex">
-                    <div class="xl-brand-logo xl-brand-logo-text" aria-label="HEINEKEN">HEINEKEN</div>
+                    <div class="xl-brand-logo" style="background-image:url(data:image/png;base64,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); background-repeat:no-repeat; background-position:left center; background-size:contain; background-color:#fff;" aria-label="Heineken WOW"></div>
                   </div>
                 </td>
                 <td class="xl-header-title" style="width:45%;">CHECKLIST (DES) CARREGAMENTO</td>
@@ -6214,13 +6199,7 @@
           <header style="display:grid; grid-template-columns: 1.12fr 1.08fr .78fr; gap:8px; align-items:center; border-bottom:2px solid #000; padding-bottom:7px; margin-bottom:6px;">
             <div style="display:flex; align-items:center; min-height:66px; padding:5px 3px;">
               <div style="display:flex; align-items:center; gap:8px; min-height:58px; white-space:nowrap;">
-                <span style="font-size:10px; font-weight:900; letter-spacing:.02em;">EST.</span>
-                <span style="font-size:30px; line-height:1; color:#000; font-family:Arial,sans-serif;">★</span>
-                <span style="font-size:10px; font-weight:900;">1873</span>
-                <div style="margin-left:5px;">
-                  <div style="font-size:28px; font-weight:900; letter-spacing:.06em; line-height:.9;">HEINEKEN</div>
-                  <div style="font-size:8.5px; font-weight:900; letter-spacing:.08em; margin-top:4px;">UNIDADE JACAREÍ</div>
-                </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%;"><img src="data:image/png;base64,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" alt="Heineken" style="display:block; width:210px; max-width:100%; height:42px; object-fit:contain; object-position:left center; background:#fff; border:0;"><div style="font-size:8.5px; font-weight:900; letter-spacing:.08em;">UNIDADE JACAREÍ</div></div>
               </div>
             </div>
 
