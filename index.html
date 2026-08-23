@@ -6034,6 +6034,12 @@
       const canaisHtml = allCanais.map(c => `${c === canalPrint ? '[X]' : '[ ]'} ${c}`).join(' ');
 
       const isBaldeio = !!isManual && (productRaw.includes('BALDEIO') || transpUpper === 'RITMO' || transpUpper === 'JSL');
+      // Compatibilidade da impressora nova:
+      // Bulk já funciona com o checklist P&B. Para Baldeio e Drop & Hook,
+      // deixa também a PRIMEIRA folha de marcação estritamente monocromática,
+      // sem alterar o layout nem a lógica da marcação.
+      const forceMonoSpecialPrint = isDropHookPrint || isBaldeio;
+
       const isInsumoManual = !!isManual && !isBaldeio && productRaw.includes('INSUMO');
 
       const productHeader = isManual
@@ -6122,6 +6128,43 @@
         <style>
           .hm-sheet p { margin: 0 0 2px 0; }
           .hm-sheet strong { font-weight: 900; }
+
+          ${forceMonoSpecialPrint ? `
+          /* BALDEIO / DROP & HOOK: folha de marcação em preto e branco puro.
+             O checklist permanece com o mesmo layout P&B que já funcionou no Bulk. */
+          .hm-main-sheet,
+          .hm-main-sheet * {
+            color: #000 !important;
+            border-color: #000 !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+          .hm-main-sheet {
+            background: #fff !important;
+          }
+          .hm-main-sheet div,
+          .hm-main-sheet section,
+          .hm-main-sheet header,
+          .hm-main-sheet table,
+          .hm-main-sheet thead,
+          .hm-main-sheet tbody,
+          .hm-main-sheet tr,
+          .hm-main-sheet th,
+          .hm-main-sheet td,
+          .hm-main-sheet p,
+          .hm-main-sheet span,
+          .hm-main-sheet ul,
+          .hm-main-sheet li {
+            background-color: #fff !important;
+            background-image: none !important;
+          }
+          .hm-main-sheet svg,
+          .hm-main-sheet svg * {
+            fill: #000 !important;
+            stroke: #000 !important;
+          }
+          ` : ''}
+
           @media print {
             @page { size: A4 portrait; margin: 3mm; }
             .hm-sheet {
