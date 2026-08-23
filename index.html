@@ -587,6 +587,179 @@
       .xl-brand-logo { height: 44px; }
     }
 
+    /* Impressão segura para drivers PCL6 (Lexmark e compatíveis).
+       O checklist não envia imagens Base64, escala CSS ou efeitos ao spooler. */
+    @media print {
+      .xl-check-page {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 7px !important;
+        line-height: 1.04 !important;
+        zoom: 1 !important;
+        transform: none !important;
+        filter: none !important;
+        opacity: 1 !important;
+      }
+
+      .xl-check-page,
+      .xl-check-wrap {
+        box-sizing: border-box !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+      }
+
+      .xl-check-page *,
+      .xl-check-page *::before,
+      .xl-check-page *::after {
+        box-shadow: none !important;
+        text-shadow: none !important;
+        filter: none !important;
+        transform: none !important;
+      }
+
+      .xl-brand-logo {
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        height: 48px !important;
+        background: none !important;
+        color: #111 !important;
+        text-align: left !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        position: relative !important;
+      }
+
+      .xl-brand-logo::before {
+        content: none !important;
+      }
+
+      .xl-brand-logo::after {
+        content: none !important;
+      }
+
+      .pcl-logo-main {
+        display: inline-block !important;
+        height: 46px !important;
+        line-height: 46px !important;
+        vertical-align: top !important;
+      }
+
+      .pcl-logo-star {
+        display: inline-block !important;
+        color: #ed1c24 !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 36px !important;
+        line-height: 45px !important;
+        font-weight: 900 !important;
+        vertical-align: top !important;
+        margin-right: 3px !important;
+      }
+
+      .pcl-logo-name {
+        display: inline-block !important;
+        color: #004b23 !important;
+        font-family: Arial Black, Arial, Helvetica, sans-serif !important;
+        font-size: 22px !important;
+        line-height: 46px !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.85px !important;
+        vertical-align: top !important;
+      }
+
+      .pcl-logo-wow {
+        display: inline-block !important;
+        position: relative !important;
+        height: 48px !important;
+        margin-left: 0 !important;
+        vertical-align: top !important;
+        color: #08752e !important;
+        font-family: Arial Black, Arial, Helvetica, sans-serif !important;
+        font-size: 38px !important;
+        line-height: 48px !important;
+        font-weight: 900 !important;
+        letter-spacing: -2px !important;
+      }
+
+      .pcl-logo-wow-w {
+        display: inline-block !important;
+        color: #08752e !important;
+        vertical-align: top !important;
+      }
+
+      .pcl-logo-oo {
+        display: inline-block !important;
+        position: relative !important;
+        width: 60px !important;
+        height: 48px !important;
+        margin: 0 1px !important;
+        vertical-align: top !important;
+      }
+
+      .pcl-logo-o {
+        position: absolute !important;
+        top: 10px !important;
+        display: block !important;
+        width: 28px !important;
+        height: 24px !important;
+        border: 5px solid #f2c900 !important;
+        border-radius: 50% !important;
+        background: #fff !important;
+        box-sizing: border-box !important;
+      }
+
+      .pcl-logo-o.left {
+        left: 0 !important;
+      }
+
+      .pcl-logo-o.right {
+        left: 25px !important;
+        border-color: #45ad32 !important;
+      }
+
+      .pcl-logo-tpm {
+        position: absolute !important;
+        top: -1px !important;
+        left: 55px !important;
+        display: block !important;
+        width: 25px !important;
+        height: 17px !important;
+        padding-top: 2px !important;
+        border: 1.2px solid #0b6b2d !important;
+        border-radius: 50% !important;
+        background: #d7df00 !important;
+        color: #0b6b2d !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 4.8px !important;
+        line-height: 5px !important;
+        font-weight: 900 !important;
+        text-align: center !important;
+        letter-spacing: 0 !important;
+      }
+
+      .xl-header-brand { height: 54px !important; padding: 2px 7px !important; }
+      .xl-brand-flex { justify-content: center !important; }
+      .xl-header-title { font-size: 11.8px !important; }
+      .xl-header-datetime { width: 118px !important; font-size: 8px !important; }
+      .xl-section-title { font-size: 8.4px !important; padding: 1px 3px !important; }
+      .xl-question-table { font-size: 6.5px !important; }
+      .xl-question-table td,
+      .xl-question-table th { padding: 1px 2px !important; }
+      .xl-yncell { height: 14px !important; }
+      .xl-comments-box { min-height: 38px !important; margin-top: 4px !important; }
+      .xl-two-col,
+      .xl-split-section { gap: 4px !important; padding: 2px 3px 3px !important; }
+      .xl-sign-stack { padding-top: 10px !important; }
+      .xl-sign-line { margin-bottom: 6px !important; }
+      .xl-important-red { font-size: 5.7px !important; }
+      .xl-bottom-area { padding-top: 2px !important; }
+      .xl-priorities { padding-top: 3px !important; }
+    }
+
 
     @media print {
       @page {
@@ -1778,855 +1951,7 @@
       .return-initial-floating { display: none !important; }
     }
 
-  
-    /* ===== IMPRESSÃO RASTER A4 - SEM ALTERAR O LAYOUT ORIGINAL ===== */
-    .raster-a4-page {
-      width: 198mm;
-      height: 282mm;
-      margin: 0 auto;
-      background: #fff;
-      overflow: hidden;
-      page-break-after: always;
-      break-after: page;
-      page-break-inside: avoid;
-      break-inside: avoid-page;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-    }
-
-    .raster-a4-page:last-child {
-      page-break-after: auto;
-      break-after: auto;
-    }
-
-    .raster-a4-page img {
-      display: block;
-      width: 198mm;
-      height: 282mm;
-      object-fit: contain;
-      object-position: top center;
-      background: #fff;
-      border: 0;
-      margin: 0;
-      padding: 0;
-    }
-
-    @media print {
-      #rasterized-printable-area {
-        width: 198mm !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
-      }
-
-      #rasterized-printable-area .raster-a4-page {
-        width: 198mm !important;
-        height: 282mm !important;
-        max-width: 198mm !important;
-        max-height: 282mm !important;
-        margin: 0 auto !important;
-        overflow: hidden !important;
-      }
-
-      #rasterized-printable-area .raster-a4-page img {
-        width: 198mm !important;
-        height: 282mm !important;
-        max-width: 198mm !important;
-        max-height: 282mm !important;
-        object-fit: contain !important;
-        object-position: top center !important;
-      }
-    }
-
-
-    /* ===== AJUSTE FINO DOS CAMPOS DO CHECKLIST ===== */
-
-    /* Dados do transporte: valor fica levemente acima da linha */
-    .xl-check-page .xl-under-row {
-      align-items: flex-end !important;
-    }
-
-    .xl-check-page .xl-under-row .xl-line {
-      height: 12px !important;
-      line-height: 10px !important;
-      padding: 0 2px 2px !important;
-      vertical-align: bottom !important;
-      box-sizing: border-box !important;
-    }
-
-    /* Nome/assinaturas também apoiados corretamente na linha */
-    .xl-check-page .xl-sign-line .xl-line {
-      height: 12px !important;
-      line-height: 10px !important;
-      padding: 0 2px 2px !important;
-      vertical-align: bottom !important;
-      box-sizing: border-box !important;
-    }
-
-    .xl-check-page .xl-priority-item .xl-line {
-      height: 12px !important;
-      line-height: 10px !important;
-      padding-bottom: 2px !important;
-      box-sizing: border-box !important;
-    }
-
-    /* Mantém bordas delicadas na captura antes da rasterização */
-    .xl-check-page .xl-check-table td,
-    .xl-check-page .xl-check-table th,
-    .xl-check-page .xl-header-grid td,
-    .xl-check-page .xl-question-table td,
-    .xl-check-page .xl-question-table th,
-    .xl-check-page .xl-box,
-    .xl-check-page .xl-comments-box,
-    .xl-check-page .xl-subhead,
-    .xl-check-page .xl-check-wrap {
-      border-color: #555 !important;
-    }
-
-    .xl-check-page .xl-line {
-      border-bottom-color: #555 !important;
-    }
-
-    .xl-check-page .xl-section-title {
-      border-top-color: #555 !important;
-      border-bottom-color: #555 !important;
-    }
-
-    /* Fundos mais leves, sem verde/vermelho forte */
-    .xl-check-page .xl-green-header,
-    .xl-check-page .xl-gray-header,
-    .xl-check-page .xl-section-title,
-    .xl-check-page .xl-subhead {
-      background: #f3f3f3 !important;
-      color: #222 !important;
-    }
-
-    .xl-check-page .xl-red,
-    .xl-check-page .xl-important-red,
-    .xl-check-page .xl-subhead.red {
-      color: #333 !important;
-    }
-
-
-    /* ===== AJUSTE FINO DE POSIÇÃO DAS INFORMAÇÕES DO CHECKLIST ===== */
-    /* Cabeçalho do checklist */
-    .xl-check-page .xl-transport {
-      padding-top: 6px !important;
-      padding-bottom: 5px !important;
-    }
-
-    .xl-check-page .xl-transport-row {
-      align-items: end !important;
-      margin-bottom: 4px !important;
-    }
-
-    .xl-check-page .xl-under-row {
-      display: inline-flex !important;
-      align-items: flex-end !important;
-      gap: 4px !important;
-      line-height: 1 !important;
-      vertical-align: bottom !important;
-    }
-
-    .xl-check-page .xl-under-row .xl-bold {
-      display: inline-flex !important;
-      align-items: flex-end !important;
-      height: 12px !important;
-      padding-bottom: 1px !important;
-      line-height: 10px !important;
-    }
-
-    .xl-check-page .xl-under-row .xl-line,
-    .xl-check-page .xl-line.sm,
-    .xl-check-page .xl-line.md,
-    .xl-check-page .xl-line.lg,
-    .xl-check-page .xl-line.xl {
-      display: inline-flex !important;
-      align-items: flex-end !important;
-      justify-content: flex-start !important;
-      height: 12px !important;
-      min-height: 12px !important;
-      line-height: 10px !important;
-      padding: 0 2px 1px !important;
-      margin: 0 !important;
-      vertical-align: bottom !important;
-      box-sizing: border-box !important;
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Checkboxes e textos do tipo de veículo/operação */
-    .xl-check-page .xl-group-row {
-      align-items: center !important;
-      min-height: 14px !important;
-      margin-bottom: 3px !important;
-    }
-
-    .xl-check-page .xl-check-inline {
-      align-items: center !important;
-      line-height: 1 !important;
-    }
-
-    .xl-check-page .xl-box,
-    .xl-check-page .xl-box.big {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Blocos de assinatura e campos da metade/fim da folha */
-    .xl-check-page .xl-sign-stack {
-      padding-top: 8px !important;
-    }
-
-    .xl-check-page .xl-sign-line {
-      display: inline-flex !important;
-      align-items: flex-end !important;
-      gap: 4px !important;
-      line-height: 1 !important;
-      margin-bottom: 7px !important;
-      vertical-align: bottom !important;
-    }
-
-    .xl-check-page .xl-sign-line .xl-line {
-      display: inline-flex !important;
-      align-items: flex-end !important;
-      height: 12px !important;
-      line-height: 10px !important;
-      padding: 0 2px 1px !important;
-      box-sizing: border-box !important;
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Campos finais de horário */
-    .xl-check-page .xl-priority-item {
-      display: inline-flex !important;
-      align-items: flex-end !important;
-      gap: 4px !important;
-      line-height: 1 !important;
-    }
-
-    .xl-check-page .xl-priority-item .xl-line {
-      display: inline-flex !important;
-      align-items: flex-end !important;
-      height: 12px !important;
-      line-height: 10px !important;
-      padding: 0 2px 1px !important;
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Ajuste leve dos títulos e tabelas para manter equilíbrio visual */
-    .xl-check-page .xl-section-title {
-      padding-top: 2px !important;
-      padding-bottom: 2px !important;
-    }
-
-    .xl-check-page .xl-question-table td,
-    .xl-check-page .xl-question-table th {
-      vertical-align: middle !important;
-    }
-
-
-    /* ===== v16: subir o TEXTO dentro das linhas do checklist ===== */
-    .xl-check-page .xl-under-row .xl-line,
-    .xl-check-page .xl-line.sm,
-    .xl-check-page .xl-line.md,
-    .xl-check-page .xl-line.lg,
-    .xl-check-page .xl-line.xl {
-      top: 0 !important;                 /* não move a linha inteira */
-      height: 12px !important;
-      min-height: 12px !important;
-      line-height: 8px !important;
-      padding: 0 2px 3px !important;    /* sobe o texto dentro da linha */
-      align-items: flex-end !important;
-      vertical-align: bottom !important;
-      box-sizing: border-box !important;
-    }
-
-    .xl-check-page .xl-sign-line .xl-line {
-      top: 0 !important;
-      height: 12px !important;
-      line-height: 8px !important;
-      padding: 0 2px 3px !important;
-      align-items: flex-end !important;
-      box-sizing: border-box !important;
-    }
-
-    .xl-check-page .xl-priority-item .xl-line {
-      top: 0 !important;
-      height: 12px !important;
-      line-height: 8px !important;
-      padding: 0 2px 3px !important;
-      align-items: flex-end !important;
-      box-sizing: border-box !important;
-    }
-
-    /* Rótulos acompanham de forma sutil */
-    .xl-check-page .xl-under-row .xl-bold {
-      top: 0 !important;
-      padding-bottom: 2px !important;
-      line-height: 9px !important;
-    }
-
-    .xl-check-page .xl-sign-line,
-    .xl-check-page .xl-priority-item {
-      top: 0 !important;
-      line-height: 9px !important;
-    }
-
-    /* Checkboxes ficam neutros, sem puxar para baixo */
-    .xl-check-page .xl-box,
-    .xl-check-page .xl-box.big {
-      top: 0 !important;
-    }
-
-
-    /* ===== v17: microajuste final de alinhamento ===== */
-
-    /* Valores do cabeçalho: texto fica mais alto, linha permanece fixa */
-    .xl-check-page .xl-under-row .xl-line,
-    .xl-check-page .xl-line.sm,
-    .xl-check-page .xl-line.md,
-    .xl-check-page .xl-line.lg,
-    .xl-check-page .xl-line.xl {
-      top: 0 !important;
-      height: 13px !important;
-      min-height: 13px !important;
-      line-height: 8px !important;
-      padding: 0 2px 4px !important;
-      align-items: flex-end !important;
-      vertical-align: bottom !important;
-      box-sizing: border-box !important;
-    }
-
-    /* Rótulos acompanham o valor sem deslocar a linha */
-    .xl-check-page .xl-under-row .xl-bold {
-      padding-bottom: 3px !important;
-      line-height: 8px !important;
-    }
-
-    /* X perfeitamente dentro do checkbox */
-    .xl-check-page .xl-box,
-    .xl-check-page .xl-box.big {
-      position: relative !important;
-      top: 0 !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      width: 12px !important;
-      min-width: 12px !important;
-      height: 12px !important;
-      min-height: 12px !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      line-height: 12px !important;
-      font-size: 8px !important;
-      font-weight: 900 !important;
-      box-sizing: border-box !important;
-      vertical-align: middle !important;
-      overflow: hidden !important;
-    }
-
-    /* Texto dos itens acompanha o centro do checkbox */
-    .xl-check-page .xl-check-inline {
-      display: inline-flex !important;
-      align-items: center !important;
-      gap: 3px !important;
-      line-height: 12px !important;
-      vertical-align: middle !important;
-    }
-
-    /* Assinaturas/nomes também ficam acima das linhas */
-    .xl-check-page .xl-sign-line .xl-line {
-      top: 0 !important;
-      height: 13px !important;
-      line-height: 8px !important;
-      padding: 0 2px 4px !important;
-      align-items: flex-end !important;
-      box-sizing: border-box !important;
-    }
-
-    .xl-check-page .xl-sign-line {
-      align-items: flex-end !important;
-      line-height: 9px !important;
-    }
-
-    /* Horários finais */
-    .xl-check-page .xl-priority-item .xl-line {
-      top: 0 !important;
-      height: 13px !important;
-      line-height: 8px !important;
-      padding: 0 2px 4px !important;
-      align-items: flex-end !important;
-      box-sizing: border-box !important;
-    }
-
-
-    /* ===== v18: microajuste global da folha inteira do checklist ===== */
-
-    /* Sobe levemente o conteúdo interno sem mover as bordas/estrutura */
-    .xl-check-page {
-      position: relative !important;
-    }
-
-    /* Textos gerais dentro de células */
-    .xl-check-page td,
-    .xl-check-page th {
-      line-height: 1.02 !important;
-    }
-
-    .xl-check-page .xl-question-table td,
-    .xl-check-page .xl-question-table th {
-      padding-top: 0px !important;
-      padding-bottom: 2px !important;
-      vertical-align: middle !important;
-    }
-
-    /* Cabeçalhos/seções um pouco mais altos */
-    .xl-check-page .xl-section-title,
-    .xl-check-page .xl-subhead,
-    .xl-check-page .xl-green-header,
-    .xl-check-page .xl-gray-header {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Dados do transporte */
-    .xl-check-page .xl-under-row,
-    .xl-check-page .xl-under-row .xl-bold,
-    .xl-check-page .xl-under-row .xl-line {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Grupos de checkbox / tipo veículo / operação */
-    .xl-check-page .xl-check-groups {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    .xl-check-page .xl-check-inline,
-    .xl-check-page .xl-box,
-    .xl-check-page .xl-box.big {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Conteúdo dos checklists */
-    .xl-check-page .xl-question-table td,
-    .xl-check-page .xl-question-table th,
-    .xl-check-page .xl-qtext,
-    .xl-check-page .xl-yncell {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Comentários / liberado / reprovado */
-    .xl-check-page .xl-comments-title,
-    .xl-check-page .xl-decision-row,
-    .xl-check-page .xl-decision-item {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Avisos pequenos */
-    .xl-check-page .xl-important-red {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Assinaturas e nomes */
-    .xl-check-page .xl-sign-stack {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    .xl-check-page .xl-sign-line,
-    .xl-check-page .xl-sign-line .xl-line {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Rodapé e horários */
-    .xl-check-page .xl-bottom-area,
-    .xl-check-page .xl-doc-meta,
-    .xl-check-page .xl-priorities,
-    .xl-check-page .xl-priority-item,
-    .xl-check-page .xl-priority-item .xl-line {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-
-    /* ===== v19: subir mais 1px as informações sem mover as bordas ===== */
-
-    /* Dados do transporte / valores sobre linha */
-    .xl-check-page .xl-under-row .xl-line,
-    .xl-check-page .xl-line.sm,
-    .xl-check-page .xl-line.md,
-    .xl-check-page .xl-line.lg,
-    .xl-check-page .xl-line.xl {
-      padding-bottom: 5px !important;
-      line-height: 7px !important;
-    }
-
-    .xl-check-page .xl-under-row .xl-bold {
-      padding-bottom: 4px !important;
-      line-height: 7px !important;
-    }
-
-    /* Perguntas e colunas SIM / NÃO / N/A */
-    .xl-check-page .xl-question-table td,
-    .xl-check-page .xl-question-table th {
-      padding-top: 0 !important;
-      padding-bottom: 3px !important;
-      line-height: 0.98 !important;
-      vertical-align: middle !important;
-    }
-
-    /* Assinaturas / nomes */
-    .xl-check-page .xl-sign-line .xl-line {
-      padding-bottom: 5px !important;
-      line-height: 7px !important;
-    }
-
-    .xl-check-page .xl-sign-line {
-      line-height: 8px !important;
-    }
-
-    /* Horários finais */
-    .xl-check-page .xl-priority-item .xl-line {
-      padding-bottom: 5px !important;
-      line-height: 7px !important;
-    }
-
-    /* Checkbox e respectivo texto levemente mais altos */
-    .xl-check-page .xl-check-inline {
-      position: relative !important;
-      top: -2px !important;
-    }
-
-    .xl-check-page .xl-box,
-    .xl-check-page .xl-box.big {
-      position: relative !important;
-      top: -2px !important;
-    }
-
-
-    /* ===== v20: sobe mais um pouco as informações do checklist ===== */
-
-    /* Cabeçalho / dados do transporte */
-    .xl-check-page .xl-under-row .xl-line,
-    .xl-check-page .xl-line.sm,
-    .xl-check-page .xl-line.md,
-    .xl-check-page .xl-line.lg,
-    .xl-check-page .xl-line.xl {
-      padding: 0 2px 6px !important;
-      line-height: 6px !important;
-    }
-
-    .xl-check-page .xl-under-row .xl-bold {
-      padding-bottom: 5px !important;
-      line-height: 6px !important;
-    }
-
-    /* Perguntas e colunas das tabelas */
-    .xl-check-page .xl-question-table td,
-    .xl-check-page .xl-question-table th {
-      padding-top: 0 !important;
-      padding-bottom: 4px !important;
-      line-height: 0.96 !important;
-    }
-
-    .xl-check-page .xl-qtext,
-    .xl-check-page .xl-yncell {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-    /* Checkboxes e textos ao lado */
-    .xl-check-page .xl-check-inline {
-      top: -3px !important;
-      line-height: 10px !important;
-    }
-
-    .xl-check-page .xl-box,
-    .xl-check-page .xl-box.big {
-      top: -3px !important;
-    }
-
-    /* Assinaturas / nomes */
-    .xl-check-page .xl-sign-line .xl-line {
-      padding: 0 2px 6px !important;
-      line-height: 6px !important;
-    }
-
-    .xl-check-page .xl-sign-line {
-      line-height: 7px !important;
-    }
-
-    /* Horários finais */
-    .xl-check-page .xl-priority-item .xl-line {
-      padding: 0 2px 6px !important;
-      line-height: 6px !important;
-    }
-
-    /* Títulos e subtítulos sobem discretamente junto */
-    .xl-check-page .xl-section-title,
-    .xl-check-page .xl-subhead,
-    .xl-check-page .xl-green-header,
-    .xl-check-page .xl-gray-header,
-    .xl-check-page .xl-comments-title,
-    .xl-check-page .xl-decision-row,
-    .xl-check-page .xl-important-red {
-      position: relative !important;
-      top: -1px !important;
-    }
-
-
-    /* ===== v21: texto na frente das boxes + X centralizado ===== */
-
-    /* Coloca o texto antes da box, mantendo tudo alinhado */
-    .xl-check-page .xl-check-inline {
-      display: inline-flex !important;
-      flex-direction: row-reverse !important;
-      align-items: center !important;
-      justify-content: flex-start !important;
-      gap: 4px !important;
-      line-height: 12px !important;
-      vertical-align: middle !important;
-      white-space: nowrap !important;
-    }
-
-    /* X centralizado perfeitamente dentro da box */
-    .xl-check-page .xl-box,
-    .xl-check-page .xl-box.big {
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      width: 12px !important;
-      min-width: 12px !important;
-      height: 12px !important;
-      min-height: 12px !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      line-height: 1 !important;
-      font-size: 8px !important;
-      font-weight: 900 !important;
-      text-align: center !important;
-      vertical-align: middle !important;
-      box-sizing: border-box !important;
-      overflow: hidden !important;
-      top: 0 !important;
-    }
-
-    /* Linha dos grupos levemente mais alinhada visualmente */
-    .xl-check-page .xl-group-row {
-      align-items: center !important;
-    }
-
-
-    /* ===== v25: Checklist com a mesma configuração de impressão da Marcação ===== */
-    @media print {
-      /* Mesma página física da folha de marcação */
-      .xl-check-page {
-        width: 198mm !important;
-        max-width: 198mm !important;
-        min-height: 0 !important;
-        height: auto !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
-        background: #fff !important;
-        color: #000 !important;
-        box-shadow: none !important;
-        filter: none !important;
-        opacity: 1 !important;
-        transform: none !important;
-        isolation: auto !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid-page !important;
-      }
-
-      /* Remove qualquer tratamento especial de cor do checklist */
-      .xl-check-page,
-      .xl-check-page * {
-        color: #000 !important;
-        background-color: #fff !important;
-        background-image: none !important;
-        text-shadow: none !important;
-        box-shadow: none !important;
-        filter: none !important;
-        opacity: 1 !important;
-        -webkit-print-color-adjust: initial !important;
-        print-color-adjust: initial !important;
-      }
-
-      /* Mantém somente linhas/bordas pretas simples */
-      .xl-check-page table,
-      .xl-check-page tr,
-      .xl-check-page td,
-      .xl-check-page th,
-      .xl-check-page .xl-box,
-      .xl-check-page .xl-box.big,
-      .xl-check-page .xl-line,
-      .xl-check-page .xl-section-title,
-      .xl-check-page .xl-subhead,
-      .xl-check-page .xl-green-header,
-      .xl-check-page .xl-gray-header,
-      .xl-check-page .xl-bottom-area,
-      .xl-check-page .xl-priorities {
-        border-color: #000 !important;
-      }
-
-      /* Títulos que antes usavam preenchimentos passam a ser só texto/borda */
-      .xl-check-page .xl-section-title,
-      .xl-check-page .xl-subhead,
-      .xl-check-page .xl-green-header,
-      .xl-check-page .xl-gray-header {
-        background: #fff !important;
-        color: #000 !important;
-      }
-
-      /* Logo permanece, como na marcação */
-      .xl-check-page img {
-        filter: grayscale(1) !important;
-        opacity: 1 !important;
-      }
-    }
-
-
-    /* ===== v26: grade de tabela + logo WOOW 100% HTML/CSS ===== */
-
-    /* Logo em HTML: nenhum PNG/background-image */
-    .xl-brand-html {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      white-space: nowrap;
-      color: #000;
-      background: transparent !important;
-      font-family: Arial Black, Arial, Helvetica, sans-serif;
-      line-height: 1;
-    }
-
-    .xl-brand-star {
-      display: inline-block;
-      font-size: 19px;
-      font-weight: 900;
-      line-height: 1;
-      transform: translateY(-1px);
-      background: transparent !important;
-    }
-
-    .xl-brand-heineken {
-      display: inline-block;
-      font-size: 23px;
-      font-weight: 900;
-      letter-spacing: .4px;
-      line-height: 1;
-      background: transparent !important;
-    }
-
-    .xl-brand-woow {
-      display: inline-flex;
-      align-items: center;
-      gap: 0px;
-      font-family: Arial Black, Arial, Helvetica, sans-serif;
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: -3px;
-      line-height: 1;
-      transform: skew(-5deg);
-      background: transparent !important;
-    }
-
-    .xl-brand-woow > span {
-      display: inline-block;
-      background: transparent !important;
-    }
-
-    .xl-brand-o {
-      font-size: 25px;
-      transform: scaleX(.88);
-    }
-
-    /* Deixa a grade das perguntas realmente visível como tabela */
-    .xl-check-page .xl-question-table {
-      width: 100% !important;
-      border-collapse: collapse !important;
-      border-spacing: 0 !important;
-      border: 1px solid #000 !important;
-      background: transparent !important;
-    }
-
-    .xl-check-page .xl-question-table tr {
-      background: transparent !important;
-    }
-
-    .xl-check-page .xl-question-table td,
-    .xl-check-page .xl-question-table th {
-      position: static !important;
-      top: auto !important;
-      border: 1px solid #000 !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      padding: 2px 3px !important;
-      vertical-align: middle !important;
-    }
-
-    /* Cabeçalhos SIM / NÃO / N/A também com grade fechada */
-    .xl-check-page .xl-question-table th.xl-yn,
-    .xl-check-page .xl-question-table td.xl-yncell {
-      border-left: 1px solid #000 !important;
-      border-right: 1px solid #000 !important;
-      text-align: center !important;
-    }
-
-    /* Tabelas e divisões principais com linhas consistentes */
-    .xl-check-page .xl-header-grid,
-    .xl-check-page .xl-check-table {
-      border-collapse: collapse !important;
-      border-spacing: 0 !important;
-    }
-
-    .xl-check-page .xl-header-grid td,
-    .xl-check-page .xl-check-table td,
-    .xl-check-page .xl-check-table th {
-      border: 1px solid #000 !important;
-      background: transparent !important;
-    }
-
-    /* Evita que o modo simples da v25 apague o logo HTML */
-    @media print {
-      .xl-check-page .xl-brand-html,
-      .xl-check-page .xl-brand-html *,
-      .xl-check-page .xl-question-table,
-      .xl-check-page .xl-question-table tr,
-      .xl-check-page .xl-question-table td,
-      .xl-check-page .xl-question-table th {
-        background: transparent !important;
-        background-image: none !important;
-      }
-
-      .xl-check-page .xl-question-table,
-      .xl-check-page .xl-question-table td,
-      .xl-check-page .xl-question-table th,
-      .xl-check-page .xl-header-grid td,
-      .xl-check-page .xl-check-table td,
-      .xl-check-page .xl-check-table th {
-        border-color: #000 !important;
-        border-style: solid !important;
-        border-width: 1px !important;
-      }
-    }
-
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  </style>
 </head>
 
 <body class="antialiased simple-ui">
@@ -6236,14 +5561,10 @@
       };
 
       window.onafterprint = () => { afterPrint(); };
+      preparePcl6SafePrint();
       try { document.getElementById('printable-area').offsetHeight; } catch {}
 
-      try {
-        // v25: Folha de Marcação e Checklist seguem o MESMO fluxo:
-        // HTML normal -> window.print(), sem rasterização especial.
-        try { document.getElementById('printable-area').offsetHeight; } catch {}
-        window.print();
-      }
+      try { window.print(); }
       catch (e) {
         console.error('Falha ao abrir impressão:', e);
         displayError('Não consegui abrir a impressão. Verifique se o navegador está bloqueando a janela de impressão.', 8000);
@@ -6253,187 +5574,6 @@
     }
 
     
-    
-    async function waitForRasterAssets(root) {
-      if (!root) return;
-
-      const imgs = Array.from(root.querySelectorAll('img'));
-      await Promise.all(imgs.map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise(resolve => {
-          const done = () => resolve();
-          img.addEventListener('load', done, { once: true });
-          img.addEventListener('error', done, { once: true });
-        });
-      }));
-
-      await new Promise(resolve =>
-        requestAnimationFrame(() => requestAnimationFrame(resolve))
-      );
-    }
-
-    function makePureMonochromeCanvas(sourceCanvas) {
-      const output = document.createElement('canvas');
-      output.width = sourceCanvas.width;
-      output.height = sourceCanvas.height;
-
-      const ctx = output.getContext('2d', { willReadFrequently: true });
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, output.width, output.height);
-      ctx.drawImage(sourceCanvas, 0, 0);
-
-      const image = ctx.getImageData(0, 0, output.width, output.height);
-      const d = image.data;
-
-      for (let i = 0; i < d.length; i += 4) {
-        const a = d[i + 3] / 255;
-        const r = d[i] * a + 255 * (1 - a);
-        const g = d[i + 1] * a + 255 * (1 - a);
-        const b = d[i + 2] * a + 255 * (1 - a);
-
-        // Escala de cinza real, com contraste suavizado.
-        // Não usa cores e não "estoura" texto/bordas como o threshold 1-bit.
-        let gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-
-        // Suaviza os pretos muito fortes sem apagar linhas finas.
-        if (gray < 70) gray = 45;
-        else if (gray < 150) gray = Math.round(gray * 0.88 + 18);
-        else if (gray > 235) gray = 255;
-
-        d[i] = gray;
-        d[i + 1] = gray;
-        d[i + 2] = gray;
-        d[i + 3] = 255;
-      }
-
-      ctx.putImageData(image, 0, 0);
-      return output;
-    }
-
-    function fitCanvasIntoA4(sourceCanvas) {
-      // Proporção da área útil A4: 198 x 282 mm.
-      // Resolução interna suficiente para texto e linhas ficarem nítidos.
-      const TARGET_W = 1584;
-      const TARGET_H = 2256;
-
-      const target = document.createElement('canvas');
-      target.width = TARGET_W;
-      target.height = TARGET_H;
-
-      const ctx = target.getContext('2d');
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, TARGET_W, TARGET_H);
-
-      // Escala uniforme: NUNCA distorce largura/altura.
-      const scale = Math.min(
-        TARGET_W / sourceCanvas.width,
-        TARGET_H / sourceCanvas.height
-      ) * 0.985;
-
-      const drawW = Math.round(sourceCanvas.width * scale);
-      const drawH = Math.round(sourceCanvas.height * scale);
-      const x = Math.round((TARGET_W - drawW) / 2);
-      const y = 10;
-
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(sourceCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height,
-                    x, y, drawW, drawH);
-
-      return target;
-    }
-
-    async function rasterizePrintableAreaForLexmark() {
-      const printableArea = document.getElementById('printable-area');
-      if (!printableArea || !window.html2canvas) return false;
-
-      await waitForRasterAssets(printableArea);
-
-      // Considera como página todo filho que não seja apenas quebra de página.
-      const pages = Array.from(printableArea.children).filter(el =>
-        el.nodeType === 1 &&
-        !el.classList.contains('print-page-break') &&
-        getComputedStyle(el).display !== 'none'
-      );
-
-      if (!pages.length) return false;
-
-      const rasterContainer = document.createElement('div');
-      rasterContainer.id = 'rasterized-printable-area';
-
-      // Stage A4 fora da tela.
-      const stage = document.createElement('div');
-      stage.style.position = 'fixed';
-      stage.style.left = '-30000px';
-      stage.style.top = '0';
-      stage.style.width = '198mm';
-      stage.style.background = '#fff';
-      stage.style.color = '#000';
-      stage.style.pointerEvents = 'none';
-      stage.style.zIndex = '-99999';
-
-      document.body.appendChild(stage);
-
-      try {
-        for (const originalPage of pages) {
-          const clone = originalPage.cloneNode(true);
-
-          // Mantém todo o HTML/CSS original.
-          // Só neutraliza posicionamento externo para capturar.
-          clone.style.position = 'relative';
-          clone.style.left = '0';
-          clone.style.top = '0';
-          clone.style.margin = '0';
-          clone.style.width = '100%';
-          clone.style.maxWidth = 'none';
-
-          stage.innerHTML = '';
-          stage.appendChild(clone);
-
-          await waitForRasterAssets(stage);
-
-          const sourceCanvas = await html2canvas(clone, {
-            backgroundColor: '#ffffff',
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-            imageTimeout: 0,
-            removeContainer: true,
-            width: clone.scrollWidth,
-            height: clone.scrollHeight,
-            windowWidth: clone.scrollWidth,
-            windowHeight: clone.scrollHeight
-          });
-
-          // Primeiro preserva o layout inteiro e encaixa proporcionalmente em A4.
-          const fittedCanvas = fitCanvasIntoA4(sourceCanvas);
-
-          // Depois converte a página pronta para P&B puro.
-          const monoCanvas = makePureMonochromeCanvas(fittedCanvas);
-
-          const img = document.createElement('img');
-          img.src = monoCanvas.toDataURL('image/png');
-          img.alt = 'Página A4 para impressão';
-          img.decoding = 'sync';
-
-          const page = document.createElement('div');
-          page.className = 'raster-a4-page';
-          page.appendChild(img);
-          rasterContainer.appendChild(page);
-        }
-      } finally {
-        stage.remove();
-      }
-
-      printableArea.innerHTML = '';
-      printableArea.appendChild(rasterContainer);
-
-      await waitForRasterAssets(printableArea);
-      return true;
-    }
-
-
     function escapeHtml(value) {
       return String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -6469,6 +5609,18 @@
           <td class="xl-yncell"></td>
         </tr>
       `).join('');
+    }
+
+    function preparePcl6SafePrint() {
+      const printableArea = document.getElementById('printable-area');
+      if (!printableArea) return;
+
+      // Alguns drivers PCL6 falham ao receber imagens Base64 usadas como
+      // background. A identificação da marca permanece como texto via CSS.
+      printableArea.querySelectorAll('.xl-brand-logo').forEach(logo => {
+        logo.style.backgroundImage = 'none';
+        logo.style.background = 'none';
+      });
     }
 
     function buildDropHookResponsibilityPage(driverData, printDate, printTime, operationTag) {
@@ -6652,21 +5804,22 @@
           <div class="xl-check-wrap">
             <table class="xl-header-grid">
               <tr>
-                <td class="xl-header-brand" style="width:33%;">
+                <td class="xl-header-brand" style="width:34%;">
                   <div class="xl-brand-flex">
-                    <div class="xl-brand-html" aria-label="Heineken WOOW">
-                      <span class="xl-brand-star">★</span>
-                      <span class="xl-brand-heineken">HEINEKEN</span>
-                      <span class="xl-brand-woow">
-                        <span class="xl-brand-w">W</span>
-                        <span class="xl-brand-o">O</span>
-                        <span class="xl-brand-o">O</span>
-                        <span class="xl-brand-w">W</span>
+                    <div class="xl-brand-logo" style="background-image:none; text-align:center !important;" aria-label="WOOW TPM">
+                      <span class="pcl-logo-wow" aria-hidden="true">
+                        <span class="pcl-logo-wow-w">W</span>
+                        <span class="pcl-logo-oo">
+                          <span class="pcl-logo-o left"></span>
+                          <span class="pcl-logo-o right"></span>
+                        </span>
+                        <span class="pcl-logo-wow-w">W</span>
+                        <span class="pcl-logo-tpm">TPM<br>2WIN</span>
                       </span>
                     </div>
                   </div>
                 </td>
-                <td class="xl-header-title" style="width:45%;">CHECKLIST (DES) CARREGAMENTO</td>
+                <td class="xl-header-title" style="width:44%;">CHECKLIST (DES) CARREGAMENTO</td>
                 <td class="xl-header-datetime" style="width:22%;">
                   <div style="padding:6px 8px;">${escapeHtml(printDate)}</div>
                   <div style="padding:6px 8px; border-top:1px solid #000;">Hora</div>
