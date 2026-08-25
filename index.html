@@ -337,8 +337,6 @@
       background-repeat: no-repeat;
       background-position: left center;
       background-size: contain;
-      print-color-adjust: exact;
-      -webkit-print-color-adjust: exact;
     }
 
     .xl-header-title {
@@ -577,6 +575,22 @@
     }
 
     @media print {
+      #printable-area,
+      #printable-area *,
+      #printable-area *::before,
+      #printable-area *::after {
+        color: #000 !important;
+        background: #fff !important;
+        background-color: #fff !important;
+        border-color: #000 !important;
+      }
+
+      #printable-area svg,
+      #printable-area svg * {
+        fill: #000 !important;
+        stroke: #000 !important;
+      }
+
       .xl-check-page {
         font-size: 7.8px;
         zoom: 0.89;
@@ -822,6 +836,53 @@
         filter: none !important;
       }
 
+      .pcl-priority-text {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 2px !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+        padding: 2px !important;
+        border: 0 !important;
+        background: #fff !important;
+        color: #000 !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 9px !important;
+        line-height: 1.05 !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        letter-spacing: 0 !important;
+        white-space: normal !important;
+      }
+
+      .pcl-priority-chip {
+        display: inline-block !important;
+        max-width: 100% !important;
+        padding: 2px 5px !important;
+        border: 1px solid #000 !important;
+        border-radius: 2px !important;
+        background: #fff !important;
+        color: #000 !important;
+        box-shadow: none !important;
+        font-size: 9px !important;
+        line-height: 10px !important;
+        font-weight: 700 !important;
+        white-space: normal !important;
+      }
+
+      .pcl-priority-rank {
+        font-size: 12px !important;
+        line-height: 13px !important;
+        font-weight: 900 !important;
+      }
+
+      .pcl-priority-status {
+        font-size: 8px !important;
+        line-height: 9px !important;
+        font-weight: 700 !important;
+      }
+
       .xl-header-brand { height: 54px !important; padding: 2px 7px !important; }
       .xl-brand-flex { justify-content: center !important; }
       .xl-header-title { font-size: 11.8px !important; }
@@ -859,8 +920,6 @@
       .checklist-signature-box,
       .checklist-section-title,
       .checklist-hint {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
       }
     }
 
@@ -5696,11 +5755,35 @@
       const printableArea = document.getElementById('printable-area');
       if (!printableArea) return;
 
-      // Alguns drivers PCL6 falham ao receber imagens Base64 usadas como
-      // background. A identificação da marca permanece como texto via CSS.
-      printableArea.querySelectorAll('.xl-brand-logo').forEach(logo => {
-        logo.style.backgroundImage = 'none';
-        logo.style.background = 'none';
+      // Remove qualquer solicitação de tratamento de cor antes de enviar ao
+      // driver PCL6. A tela continua colorida; somente o DOM de impressão é alterado.
+      printableArea.querySelectorAll('*').forEach(element => {
+        element.style.removeProperty('print-color-adjust');
+        element.style.removeProperty('-webkit-print-color-adjust');
+        element.style.removeProperty('background-image');
+        element.style.removeProperty('filter');
+        element.style.removeProperty('box-shadow');
+        element.style.removeProperty('text-shadow');
+
+        element.style.setProperty('color', '#000', 'important');
+        element.style.setProperty('background', '#fff', 'important');
+        element.style.setProperty('background-color', '#fff', 'important');
+        element.style.setProperty('border-color', '#000', 'important');
+      });
+
+      // SVG colorido pode gerar o operador SetColorTreatment no spool PCL XL.
+      // Substitui por uma estrela de texto simples, compatível com impressão mono.
+      printableArea.querySelectorAll('svg').forEach(svg => {
+        const textMark = document.createElement('span');
+        textMark.textContent = '★';
+        textMark.style.setProperty('display', 'inline-block', 'important');
+        textMark.style.setProperty('font-family', 'Arial, sans-serif', 'important');
+        textMark.style.setProperty('font-size', '28px', 'important');
+        textMark.style.setProperty('font-weight', '900', 'important');
+        textMark.style.setProperty('line-height', '1', 'important');
+        textMark.style.setProperty('color', '#000', 'important');
+        textMark.style.setProperty('background-color', '#fff', 'important');
+        svg.replaceWith(textMark);
       });
     }
 
@@ -6163,7 +6246,7 @@
       const unloadDtPrint = unloadDtRaw ? unloadDtRaw : '';
 
       const dropHookSimpleTermHtml = isDropHookPrint ? `
-          <section style="border:2px solid #111; margin-bottom:6px; background:#fffdf5; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
+          <section style="border:2px solid #111; margin-bottom:6px; background:#fff;">
             <div style="
               background:#fde68a !important;
               color:#111 !important;
@@ -6174,8 +6257,6 @@
               text-align:center;
               letter-spacing:.08em;
               text-transform:uppercase;
-              -webkit-print-color-adjust:exact;
-              print-color-adjust:exact;
             ">TERMO SIMPLIFICADO DROP &amp; HOOK</div>
             <div style="padding:7px 10px; font-size:10.6px; line-height:1.28; text-align:justify;">
               Declaro ciência de que esta marcação pertence a uma operação <strong>Drop &amp; Hook</strong>. O <strong>Motorista Manobra</strong> está autorizado a realizar a entrada, posicionamento, manobra e acompanhamento operacional. O <strong>Motorista Viagem</strong> será o responsável pela retirada, condução e transporte do conjunto após liberação. As placas, DT e dados dos motoristas devem ser conferidos antes da continuidade do processo.
@@ -6215,37 +6296,35 @@
       const matrixRank = Number.isFinite(printPriorityInfo.rank) ? printPriorityInfo.rank : 99;
       const matrixLabel = printPriorityInfo.label || 'NORMAL';
       const operationalStatus = printPriorityInfo.statusLabel || '';
+      const compactPriorityLabels = {
+        top18_aderente: 'TOP18',
+        top18_nao_aderente: 'TOP18',
+        fob_aderente: 'FOB',
+        fob_nao_aderente: 'FOB',
+        dedicada_vendas_aderente: 'DEDICADA VENDAS',
+        vendas_hub_aderentes: 'VENDAS/HUB',
+        vendas_hub_nao_aderentes: 'VENDAS/HUB',
+        dedicada_transf_aderente: 'DEDICADA TRANSF',
+        transf_aderente: 'TRANSF',
+        transf_nao_aderente: 'TRANSF',
+        dedicada_nao_aderente: 'DEDICADA'
+      };
+      const compactMatrixLabel = compactPriorityLabels[printPriorityInfo.code] || matrixLabel;
       let priorityHtml = '';
 
       if (matrixRank < 99) {
-        const statusLine = operationalStatus && operationalStatus !== 'NO PRAZO'
-          ? `<div style="font-size:10px;font-weight:800;margin-top:4px;">${escapeHtml(operationalStatus)}</div>`
+        const statusBlock = operationalStatus && operationalStatus !== 'NO PRAZO'
+          ? `<span class="pcl-priority-chip pcl-priority-status">${escapeHtml(operationalStatus)}</span>`
           : '';
-        priorityHtml = `<div class="pcl-priority-print" style="width:100%; border:1px solid #000; text-align:center; padding:7px 9px; background:#fff; color:#000;">
-                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">PRIORIDADE P${matrixRank}</div>
-                          <div style="font-size:18px; font-weight:900; letter-spacing:.02em;">${escapeHtml(matrixLabel)}</div>
-                          ${statusLine}
-                        </div>`;
+        priorityHtml = `<span class="pcl-priority-text"><span class="pcl-priority-chip pcl-priority-rank">P${matrixRank}</span><span class="pcl-priority-chip">${escapeHtml(compactMatrixLabel)}</span>${statusBlock}</span>`;
       } else if (isGradeQueimada) {
-        priorityHtml = `<div class="pcl-priority-print" style="width:100%; border:1px solid #000; text-align:center; padding:6px 9px; background:#fff; color:#000;">
-                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
-                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">GRADE QUEIMADA</div>
-                        </div>`;
+        priorityHtml = `<span class="pcl-priority-text"><span class="pcl-priority-chip pcl-priority-rank">STATUS</span><span class="pcl-priority-chip">GRADE QUEIMADA</span></span>`;
       } else if (isAtrasado) {
-        priorityHtml = `<div class="pcl-priority-print" style="width:100%; border:1px solid #000; text-align:center; padding:6px 9px; background:#fff; color:#000;">
-                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
-                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">PERDA DE AGENDA</div>
-                        </div>`;
+        priorityHtml = `<span class="pcl-priority-text"><span class="pcl-priority-chip pcl-priority-rank">STATUS</span><span class="pcl-priority-chip">PERDA DE AGENDA</span></span>`;
       } else if (isAntecipacao) {
-        priorityHtml = `<div class="pcl-priority-print" style="width:100%; border:1px solid #000; text-align:center; padding:6px 9px; background:#fff; color:#000;">
-                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
-                          <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">ANTECIPAÇÃO</div>
-                        </div>`;
+        priorityHtml = `<span class="pcl-priority-text"><span class="pcl-priority-chip pcl-priority-rank">STATUS</span><span class="pcl-priority-chip">ANTECIPACAO</span></span>`;
       } else {
-        priorityHtml = `<div class="pcl-priority-print" style="width:100%; border:1px solid #000; text-align:center; padding:10px 10px; background:#fff; color:#000;">
-                          <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:4px;">STATUS</div>
-                          <div style="font-size:16px;">(${sheetStatusPrint})</div>
-                        </div>`;
+        priorityHtml = `<span class="pcl-priority-text"><span class="pcl-priority-chip pcl-priority-rank">STATUS</span><span class="pcl-priority-chip">${escapeHtml(sheetStatusPrint)}</span></span>`;
       }
 
       const allCanais = ['Y001', 'Y002', 'Y004', 'Y006', 'Y055'];
@@ -6546,8 +6625,6 @@
   text-align:center;
   letter-spacing:.12em;
   text-transform:uppercase;
-  -webkit-print-color-adjust:exact;
-  print-color-adjust:exact;
 ">
   REGRAS DE SEGURANÇA
 </div>
