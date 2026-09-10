@@ -2609,85 +2609,6 @@
       }
     }
 
-
-    /* ===== v35: destaque PCL-safe da validação ===== */
-    @media print {
-      .hm-main-sheet .load-validation {
-        border: 3px solid #000 !important;
-        background: #fff !important;
-        color: #000 !important;
-        box-shadow: none !important;
-        filter: none !important;
-        transform: none !important;
-        border-radius: 0 !important;
-      }
-
-      .hm-main-sheet .load-validation > div:first-child {
-        border-bottom: 2px solid #000 !important;
-        font-size: 11.5px !important;
-        font-weight: 900 !important;
-      }
-
-      .hm-main-sheet .load-validation table,
-      .hm-main-sheet .load-validation tr,
-      .hm-main-sheet .load-validation td {
-        border-color: #000 !important;
-        background: #fff !important;
-        color: #000 !important;
-        box-shadow: none !important;
-        filter: none !important;
-        transform: none !important;
-      }
-
-      .hm-main-sheet .load-validation td {
-        border-width: 1px !important;
-        border-style: solid !important;
-      }
-    }
-
-
-    /* ===== v38: quadrados SIM / NÃO / N/A - PCL SAFE ===== */
-    .xl-check-page .xl-yncell {
-      text-align: center !important;
-      vertical-align: middle !important;
-    }
-
-    .xl-check-page .xl-yn-box {
-      display: inline-block !important;
-      width: 8px !important;
-      height: 8px !important;
-      min-width: 8px !important;
-      min-height: 8px !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      border: 1px solid #000 !important;
-      background: #fff !important;
-      background-image: none !important;
-      box-shadow: none !important;
-      text-shadow: none !important;
-      filter: none !important;
-      transform: none !important;
-      border-radius: 0 !important;
-      box-sizing: border-box !important;
-      font-size: 0 !important;
-      line-height: 0 !important;
-    }
-
-    @media print {
-      .xl-check-page .xl-yn-box {
-        display: inline-block !important;
-        width: 8px !important;
-        height: 8px !important;
-        border: 1px solid #000 !important;
-        background: #fff !important;
-        background-image: none !important;
-        box-shadow: none !important;
-        filter: none !important;
-        transform: none !important;
-        border-radius: 0 !important;
-      }
-    }
-
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -6528,9 +6449,9 @@
       return items.map(item => `
         <tr>
           <td class="xl-qtext">${escapeHtml(item)}</td>
-          <td class="xl-yncell"><span class="xl-yn-box"></span></td>
-          <td class="xl-yncell"><span class="xl-yn-box"></span></td>
-          <td class="xl-yncell"><span class="xl-yn-box"></span></td>
+          <td class="xl-yncell"></td>
+          <td class="xl-yncell"></td>
+          <td class="xl-yncell"></td>
         </tr>
       `).join('');
     }
@@ -7080,105 +7001,6 @@
       const isBaldeio = !!isManual && (productRaw.includes('BALDEIO') || transpUpper === 'RITMO' || transpUpper === 'JSL');
       const isInsumoManual = !!isManual && !isBaldeio && productRaw.includes('INSUMO');
 
-      // ===== v31: validação física obrigatória do carregamento =====
-      // Aparece SOMENTE para CARREGAR, BALDEIO e DROP.
-      const validationFlowText = [
-        currentMode || '',
-        manualPresetType || '',
-        selectedFlowKey || '',
-        driverData?.operacao || '',
-        driverData?.flowKey || '',
-        driverData?.flowLabel || '',
-        operationTag || ''
-      ].join(' ').toUpperCase();
-
-      const validationIsDrop = !!isDropHookPrint;
-      const validationIsBaldeio = !!isBaldeio
-        || validationFlowText.includes('BALDEIO');
-      const validationIsCarregar = !validationIsDrop
-        && !validationIsBaldeio
-        && (
-          validationFlowText.includes('CARREGAR')
-          || validationFlowText.includes('LOAD')
-          || (currentMode || '').toString().toUpperCase() === 'LOAD'
-        );
-
-      const showLoadingValidation = validationIsDrop || validationIsBaldeio || validationIsCarregar;
-      const validationOperationLabel = validationIsDrop
-        ? 'DROP'
-        : (validationIsBaldeio ? 'BALDEIO' : 'CARREGAR');
-
-      const palletValues = (sheetDataArray || [])
-        .map(item => (item && headerMap.plt ? item[headerMap.plt] : ''))
-        .filter(value => value !== null && value !== undefined && String(value).trim() !== '');
-
-      let programmedPalletsPrint = '';
-      if (palletValues.length) {
-        const parsed = palletValues.map(value => {
-          let text = String(value).trim().replace(/\s+/g, '');
-          text = text.replace(/[^0-9,.-]/g, '');
-          if (!text) return NaN;
-
-          // Formato BR: 1.234,5 -> 1234.5 / 26,5 -> 26.5
-          if (text.includes(',')) {
-            text = text.replace(/\./g, '').replace(',', '.');
-          }
-          const number = Number(text);
-          return Number.isFinite(number) ? number : NaN;
-        });
-
-        if (parsed.length && parsed.every(Number.isFinite)) {
-          const total = parsed.reduce((sum, n) => sum + n, 0);
-          programmedPalletsPrint = Number.isInteger(total)
-            ? String(total)
-            : total.toFixed(1).replace('.', ',');
-        }
-      }
-
-      const loadingValidationHtml = showLoadingValidation ? `
-          <section class="load-validation" style="border:3px solid #000; margin-bottom:6px; background:#fff; color:#000;">
-            <div style="border-bottom:2px solid #000; padding:5px 7px; text-align:center; font-size:11.5px; font-weight:900; letter-spacing:0;">
-              VALIDAÇÃO DO CARREGAMENTO — PREENCHIMENTO OBRIGATÓRIO PELO CONFERENTE
-            </div>
-
-            <table style="width:100%; border-collapse:collapse; font-size:10px; background:#fff; color:#000;">
-              <tbody>
-                <tr>
-                  <td style="border:1px solid #111; padding:4px 6px; width:18%;"><strong>OPERAÇÃO:</strong> ${validationOperationLabel}</td>
-                  <td colspan="2" style="border:1px solid #111; padding:4px 6px; width:82%;">
-                    <strong>MODO REALIZADO:</strong>&nbsp;&nbsp;[ ] PRÉ-FATURADO&nbsp;&nbsp;&nbsp;[ ] D307&nbsp;&nbsp;&nbsp;[ ] EWM
-                  </td>
-                </tr>
-
-                <tr>
-                  <td colspan="2" style="border:1px solid #111; padding:4px 6px; width:56%;">
-                    <strong>PALETES PROGRAMADOS:</strong>
-                    <span style="display:inline-block; min-width:55px; text-align:center; font-weight:900;">${programmedPalletsPrint}</span>
-                    &nbsp;&nbsp;&nbsp;
-                    <strong>PALETES REAIS:</strong>
-                    <span style="display:inline-block; min-width:55px;">&nbsp;</span>
-                  </td>
-                  <td style="border:1px solid #111; padding:4px 6px; width:44%;">
-                    <strong>ASSINATURA:</strong>
-                    <span style="display:inline-block; width:66%;">&nbsp;</span>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td colspan="3" style="border:1px solid #111; padding:4px 6px;">
-                    <strong>NOME DO CONFERENTE:</strong>
-                    <span style="display:inline-block; width:72%;">&nbsp;</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div style="padding:3px 7px; text-align:center; font-size:9.5px; font-weight:900;">
-              NÃO LIBERAR O VEÍCULO SEM O PREENCHIMENTO DESTA VALIDAÇÃO.
-            </div>
-          </section>
-      ` : '';
-
       const productHeader = isManual
         ? (isBaldeio ? 'Produto' : (isInsumoManual ? 'Tipo de Produto' : 'Produto'))
         : 'Produto';
@@ -7310,33 +7132,6 @@
             .hm-main-sheet [style*="font-size:28px"] { font-size: 24px !important; }
             .hm-main-sheet [style*="font-size:18px"] { font-size: 15.5px !important; }
             .hm-main-sheet [style*="font-size:15px"] { font-size: 12.5px !important; }
-
-            /* v31 - bloco físico do conferente: somente texto e linhas pretas */
-            .hm-main-sheet .load-validation {
-              margin-bottom: 4px !important;
-              background: #fff !important;
-              color: #000 !important;
-              box-shadow: none !important;
-              filter: none !important;
-              transform: none !important;
-              border-radius: 0 !important;
-            }
-            .hm-main-sheet .load-validation table,
-            .hm-main-sheet .load-validation tbody,
-            .hm-main-sheet .load-validation tr,
-            .hm-main-sheet .load-validation td,
-            .hm-main-sheet .load-validation span,
-            .hm-main-sheet .load-validation div {
-              background: #fff !important;
-              color: #000 !important;
-              box-shadow: none !important;
-              filter: none !important;
-              transform: none !important;
-              border-radius: 0 !important;
-            }
-            .hm-main-sheet .load-validation td {
-              padding: 3px 5px !important;
-            }
           }
         </style>
         <div class="bg-white text-black font-sans print-main-container hm-sheet hm-main-sheet" style="padding:12px; font-size:14px; color:#111; border:2.5px solid #111; background:#fff;">
@@ -7440,9 +7235,14 @@
             </tbody>
           </table>
 
-          ${loadingValidationHtml}
-
           ${isDropHookPrint ? '' : `
+          <section style="border:2px solid #111; margin-bottom:6px;">
+            <div style="background:#f3f4f6; border-bottom:1px solid #111; padding:6px 9px; font-size:11.5px; font-weight:900; letter-spacing:.03em;">CHAMADO</div>
+            <div style="padding:6px 11px; min-height:28px;">
+              <div style="border-bottom:1px solid #888; height:20px;"></div>
+            </div>
+          </section>
+
           <section style="border:2px solid #111; margin-bottom:6px;">
             <div style="background:#f3f4f6; border-bottom:1px solid #111; padding:6px 9px; font-size:11.5px; font-weight:900; letter-spacing:.03em;">RESPONSÁVEIS / ASSINATURAS</div>
             <table style="width:100%; border-collapse:collapse; font-size:11px;">
@@ -7456,7 +7256,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td style="border:1px solid #cfcfcf; padding:7px 7px;">Marcação</td>
+                  <td style="border:1px solid #cfcfcf; padding:7px 7px;">Confirmação</td>
                   <td style="border:1px solid #cfcfcf; padding:7px 7px; text-align:center;">Motorista Manobra</td>
                   <td style="border:1px solid #cfcfcf; padding:6px 7px;">${driverData.name}</td>
                   <td style="border:1px solid #cfcfcf; padding:7px 7px;"></td>
@@ -7470,7 +7270,7 @@
                   </tr>
                 ` : ''}
                 <tr>
-                  <td style="border:1px solid #cfcfcf; padding:7px 7px;">Liberação Carregamento</td>
+                  <td style="border:1px solid #cfcfcf; padding:7px 7px;">Analista</td>
                   <td style="border:1px solid #cfcfcf; padding:7px 7px; text-align:center;">Analista</td>
                   <td style="border:1px solid #cfcfcf; padding:7px 7px;"></td>
                   <td style="border:1px solid #cfcfcf; padding:7px 7px;"></td>
