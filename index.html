@@ -7001,92 +7001,6 @@
       const isBaldeio = !!isManual && (productRaw.includes('BALDEIO') || transpUpper === 'RITMO' || transpUpper === 'JSL');
       const isInsumoManual = !!isManual && !isBaldeio && productRaw.includes('INSUMO');
 
-      // ===== VALIDAÇÃO SIMPLES DO CARREGAMENTO =====
-      // Exibir somente para CARREGAR, BALDEIO e DROP.
-      const validationIsDrop = !!isDropHookPrint || (currentMode || '').toString().toUpperCase() === 'DROP_HOOK';
-      const validationIsBaldeio = !!isBaldeio || (currentMode || '').toString().toUpperCase() === 'RITMO';
-      const validationIsCarregar = (currentMode || '').toString().toUpperCase() === 'LOAD';
-
-      const showLoadingValidation = validationIsDrop || validationIsBaldeio || validationIsCarregar;
-      const validationOperationLabel = validationIsDrop
-        ? 'DROP'
-        : (validationIsBaldeio ? 'BALDEIO' : 'CARREGAR');
-
-      // Soma os PLTs programados quando houver valor disponível na marcação.
-      let programmedPalletsPrint = '';
-      try {
-        const palletValues = (sheetDataArray || [])
-          .map(item => item ? item[headerMap.plt] : '')
-          .filter(value => value !== null && value !== undefined && String(value).trim() !== '');
-
-        const parsedPallets = palletValues.map(value => {
-          let text = String(value).trim().replace(/\s+/g, '');
-          text = text.replace(/[^0-9,.-]/g, '');
-          if (!text) return NaN;
-
-          if (text.includes(',')) {
-            text = text.replace(/\./g, '').replace(',', '.');
-          }
-
-          const n = Number(text);
-          return Number.isFinite(n) ? n : NaN;
-        });
-
-        if (parsedPallets.length && parsedPallets.every(Number.isFinite)) {
-          const total = parsedPallets.reduce((sum, n) => sum + n, 0);
-          programmedPalletsPrint = Number.isInteger(total)
-            ? String(total)
-            : total.toFixed(1).replace('.', ',');
-        }
-      } catch {}
-
-      // Somente texto + bordas simples para reduzir risco no PCL.
-      const loadingValidationHtml = showLoadingValidation ? `
-        <section style="border:2px solid #111; margin-bottom:6px; background:#fff; color:#111;">
-          <div style="border-bottom:1px solid #111; padding:5px 7px; text-align:center; font-size:11px; font-weight:900;">
-            VALIDAÇÃO DO CARREGAMENTO — CONFERENTE
-          </div>
-
-          <table style="width:100%; border-collapse:collapse; font-size:10.5px; background:#fff; color:#111;">
-            <tbody>
-              <tr>
-                <td style="border:1px solid #111; padding:5px 7px; width:24%;">
-                  <strong>OPERAÇÃO:</strong> ${validationOperationLabel}
-                </td>
-                <td style="border:1px solid #111; padding:5px 7px;">
-                  <strong>MODO REALIZADO:</strong>
-                  &nbsp;[ ] PRÉ-FATURADO
-                  &nbsp;&nbsp;[ ] D307
-                  &nbsp;&nbsp;[ ] EWM
-                </td>
-              </tr>
-
-              <tr>
-                <td style="border:1px solid #111; padding:5px 7px;">
-                  <strong>PALETES PROGRAMADOS:</strong> ${programmedPalletsPrint || ''}
-                </td>
-                <td style="border:1px solid #111; padding:5px 7px;">
-                  <strong>PALETES REAIS:</strong>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="border:1px solid #111; padding:5px 7px;">
-                  <strong>NOME DO CONFERENTE:</strong>
-                </td>
-                <td style="border:1px solid #111; padding:5px 7px;">
-                  <strong>ASSINATURA:</strong>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div style="padding:4px 7px; text-align:center; font-size:9.5px; font-weight:900;">
-            NÃO LIBERAR O VEÍCULO SEM O PREENCHIMENTO DESTA VALIDAÇÃO.
-          </div>
-        </section>
-      ` : '';
-
       const productHeader = isManual
         ? (isBaldeio ? 'Produto' : (isInsumoManual ? 'Tipo de Produto' : 'Produto'))
         : 'Produto';
@@ -7321,9 +7235,14 @@
             </tbody>
           </table>
 
-          ${loadingValidationHtml}
-
           ${isDropHookPrint ? '' : `
+          <section style="border:2px solid #111; margin-bottom:6px;">
+            <div style="background:#f3f4f6; border-bottom:1px solid #111; padding:6px 9px; font-size:11.5px; font-weight:900; letter-spacing:.03em;">CHAMADO</div>
+            <div style="padding:6px 11px; min-height:28px;">
+              <div style="border-bottom:1px solid #888; height:20px;"></div>
+            </div>
+          </section>
+
           <section style="border:2px solid #111; margin-bottom:6px;">
             <div style="background:#f3f4f6; border-bottom:1px solid #111; padding:6px 9px; font-size:11.5px; font-weight:900; letter-spacing:.03em;">RESPONSÁVEIS / ASSINATURAS</div>
             <table style="width:100%; border-collapse:collapse; font-size:11px;">
@@ -7337,7 +7256,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td style="border:1px solid #cfcfcf; padding:7px 7px;">Marcação</td>
+                  <td style="border:1px solid #cfcfcf; padding:7px 7px;">Confirmação</td>
                   <td style="border:1px solid #cfcfcf; padding:7px 7px; text-align:center;">Motorista Manobra</td>
                   <td style="border:1px solid #cfcfcf; padding:6px 7px;">${driverData.name}</td>
                   <td style="border:1px solid #cfcfcf; padding:7px 7px;"></td>
@@ -7351,7 +7270,7 @@
                   </tr>
                 ` : ''}
                 <tr>
-                  <td style="border:1px solid #cfcfcf; padding:7px 7px;">Liberação Carregamento</td>
+                  <td style="border:1px solid #cfcfcf; padding:7px 7px;">Analista</td>
                   <td style="border:1px solid #cfcfcf; padding:7px 7px; text-align:center;">Analista</td>
                   <td style="border:1px solid #cfcfcf; padding:7px 7px;"></td>
                   <td style="border:1px solid #cfcfcf; padding:7px 7px;"></td>
