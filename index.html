@@ -14,6 +14,9 @@
   <!-- IMask.js para máscaras de formulário -->
   <script src="https://unpkg.com/imask"></script>
 
+  <!-- QR Code do endereço (Google Maps) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2810,6 +2813,7 @@
     let dropHookAlsoUnload = false;
     let dropHookQuickMode = false;
     let baldeioQuickMode = false;
+    let currentRedirect = null; // DT do HEILO liberada pelo ATO para carregar na fábrica
 
     function isQuickPlateMode() {
       return dropHookQuickMode || baldeioQuickMode;
@@ -2877,6 +2881,7 @@
       dropHookAlsoUnload = false;
       dropHookQuickMode = false;
       baldeioQuickMode = false;
+      currentRedirect = null;
     }
 
     function updateReturnInitialButtonVisibility() {
@@ -2936,6 +2941,54 @@
     // --- Helpers ---
     function normalizeDigits(v) { return String(v || '').replace(/\D/g, ''); }
     function normalizeDtId(dt) { return normalizeDigits(dt); }
+
+    // DT: só números e sem zeros no começo (bloqueia DT digitada só com zeros)
+    function cleanDtInput(value) {
+      return String(value || '').replace(/\D/g, '').replace(/^0+/, '');
+    }
+
+    function attachDtGuard(el) {
+      if (!el) return;
+      const warn = document.createElement('div');
+      warn.className = 'help';
+      warn.style.cssText = 'color:#b91c1c;font-weight:800;display:none;margin-top:4px;';
+      warn.textContent = '⚠️ A DT não pode ser só zero. Digite o número correto.';
+      el.insertAdjacentElement('afterend', warn);
+
+      el.addEventListener('input', () => {
+        const raw = String(el.value || '').replace(/\D/g, '');
+        const clean = cleanDtInput(raw);
+        const soZeros = raw.length > 0 && clean.length === 0;
+        if (el.value !== clean) el.value = clean;
+        warn.style.display = soZeros ? 'block' : 'none';
+        el.classList.toggle('invalid', soZeros);
+      });
+    }
+
+    // Placa: não preenche sozinha com a placa da última visita; mostra um botão para o motorista escolher
+    function setPlateSuggestion(inputId, plate) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      const p = sanitizePlate(plate);
+      input.value = '';
+      document.getElementById(inputId + '-sugg')?.remove();
+      if (!isValidBrazilianPlate(p)) return;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = inputId + '-sugg';
+      btn.className = 'btn-ghost w-full py-3 rounded-xl text-base font-bold';
+      btn.style.cssText = 'border:2px dashed #00904A; text-align:center;';
+      btn.innerHTML = `Mesmo veículo da última vez?<br>
+        <span style="font-size:1.4rem; letter-spacing:.12em; font-weight:900;">${p}</span><br>
+        <span style="font-size:.8rem; opacity:.75;">Toque aqui para usar esta placa</span>`;
+      btn.addEventListener('click', () => {
+        input.value = p;
+        input.classList.remove('invalid');
+        btn.remove();
+      });
+      input.insertAdjacentElement('afterend', btn);
+    }
 
     function generateInternalId(prefix) {
       const now = new Date();
@@ -3818,6 +3871,9 @@
           flowStep2: driverData.flowStep2 || '',
           loadAlsoUnload: !!driverData.loadAlsoUnload,
           presetTransportadora: driverData.presetTransportadora || '',
+          redirecionado: !!driverData.redirecionado,
+          destinoOriginal: driverData.destinoOriginal || '',
+          redirecionadoPor: driverData.redirecionadoPor || '',
           isDrop: !!driverData.isDropHook,
           isDropHook: !!driverData.isDropHook,
           tipoMarcacao: driverData.isDropHook ? 'DROP' : 'NORMAL',
@@ -3884,6 +3940,19 @@
         };
 
         await setDoc(patioDocRef, patioDataToSave, { merge: true });
+
+        if (driverData.redirecionado) {
+          try {
+            const redirectRef = doc(db, 'artifacts', appId, 'public', 'data', 'redirects', cleanDtInput(dtId));
+            await setDoc(redirectRef, {
+              usadoEm: new Date().toISOString(),
+              usadoPorCpf: unmaskedCpf,
+              usadoPorMotorista: driverData.name || ''
+            }, { merge: true });
+          } catch (e) {
+            console.warn('Não consegui registrar o uso do redirecionamento:', e);
+          }
+        }
 
         if (driverData.isDropHook) {
           const dropRef = doc(db, 'artifacts', appId, 'public', 'data', 'drop_hooks', dtId);
@@ -4231,6 +4300,7 @@
       dropHookAlsoUnload = false;
       dropHookQuickMode = false;
       baldeioQuickMode = false;
+      currentRedirect = null;
       const specialCarrierDriver = isRitmoOrJslDriver(sessionDriver);
       const dropDriverAuthorized = isDropDriverAuthorized(sessionDriver);
 
@@ -4434,6 +4504,7 @@
       }
       dropHookQuickMode = false;
       baldeioQuickMode = false;
+      currentRedirect = null;
       resultsArea.innerHTML = '';
       pendingUnloadDt = '';
       requireUnloadDtInForm = false;
@@ -4711,16 +4782,18 @@
 
           const dtEl = document.getElementById('mode-dt');
           const unloadEl = document.getElementById('mode-unload-dt');
+          attachDtGuard(dtEl);
+          attachDtGuard(unloadEl);
 
           if (unloadEl && pendingUnloadDt) unloadEl.value = pendingUnloadDt;
 
           document.getElementById('mode-go')?.addEventListener('click', async () => {
             await unlockAudio();
-            const dt = dtEl?.value?.trim() || '';
-            if (!dt) return displayError('Digite a DT.', 4000);
+            const dt = cleanDtInput(dtEl?.value);
+            if (!dt) return displayError('Digite a DT da carga. Ela não pode ser só zero.', 5000, { field: dtEl });
             if (!isSheetReady || database.length === 0) return displayError('Planilha ainda não carregou. Tente novamente.', 4000);
 
-            pendingUnloadDt = needsUnload ? (unloadEl?.value || '').trim() : '';
+            pendingUnloadDt = needsUnload ? cleanDtInput(unloadEl?.value) : '';
             requireUnloadDtInForm = false;
             showUnloadInputs = !!needsUnload;
             performSearchByDt(dt);
@@ -4879,6 +4952,7 @@
             await unlockAudio();
             if (!isRitmoDriverAuthorized(sessionDriver)) {
               baldeioQuickMode = false;
+              currentRedirect = null;
               displayError('Seu CPF não está autorizado para o fluxo rápido de Baldeio Ritmo. Solicite a liberação no Painel do Analista.', 7000);
               return;
             }
@@ -4947,13 +5021,15 @@
 
           const cargaEl = document.getElementById('baldeio-dt-carga');
           const descEl = document.getElementById('baldeio-dt-desc');
+          attachDtGuard(cargaEl);
+          attachDtGuard(descEl);
           if (cargaEl && baldeioDtCarga) cargaEl.value = baldeioDtCarga;
           if (descEl && baldeioDtDescarga) descEl.value = baldeioDtDescarga;
 
           document.getElementById('baldeio-continue')?.addEventListener('click', async () => {
             await unlockAudio();
-            baldeioDtCarga = (cargaEl?.value || '').trim();
-            baldeioDtDescarga = (descEl?.value || '').trim();
+            baldeioDtCarga = cleanDtInput(cargaEl?.value);
+            baldeioDtDescarga = cleanDtInput(descEl?.value);
 
             const dtNorm = normalizeDtId(baldeioDtCarga);
 
@@ -5307,65 +5383,138 @@
       });
     }
 
-    function performSearchByDt(query) {
-      const q = query.trim();
+    async function loadDtRedirect(dt) {
+      const id = cleanDtInput(dt);
+      if (!id || !db || !appId) return null;
+      try {
+        const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'redirects', id));
+        if (snap.exists()) {
+          const data = snap.data() || {};
+          if (data.ativo !== false) return data;
+        }
+      } catch (e) {
+        console.warn('Falha ao consultar redirecionamento da DT:', e);
+      }
+      return null;
+    }
+
+    async function performSearchByDt(query) {
+      currentRedirect = null;
+      const q = cleanDtInput(query);
       if (!q) { displayError("Digite um número de DT para buscar."); return; }
       if (database.length === 0) { displayError("Os dados da planilha ainda não foram carregados."); return; }
 
-      const results = database.filter(row => (row[headerMap.dts] || '').toString().trim().toLowerCase() === q.toLowerCase());
+      const results = database.filter(row => cleanDtInput(row[headerMap.dts]) === q);
       if (results.length > 0) {
         const deposito = results[0][headerMap.deposito] || '';
         const normalizedDeposito = deposito.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         if (normalizedDeposito.includes('FABRICA')) {
           showDriverForm(results, { modeLabel: (requireUnloadDtInForm ? 'Carregamento + Descarga' : 'Carregamento'), isManualOverride: false });
         } else {
-          displayStandardResults(results);
+          fileStatus.textContent = 'Verificando liberação da DT...';
+          const redirect = await loadDtRedirect(q);
+          if (redirect) {
+            currentRedirect = {
+              ...redirect,
+              dt: q,
+              destinoOriginal: (deposito || redirect.destinoOriginal || 'HEILO').toString().trim().toUpperCase()
+            };
+            fileStatus.textContent = 'DT liberada para carregar na fábrica.';
+            showDriverForm(results, { modeLabel: 'Carregamento (redirecionado para a fábrica)', isManualOverride: false });
+          } else {
+            fileStatus.textContent = 'DT com destino fora da fábrica.';
+            displayStandardResults(results);
+          }
         }
       } else {
         displayNotFound(q);
       }
     }
 
+    const HEILO_ADDRESS = 'Rua Vereador Geraldo Nogueira da Silva, 5111, Caçapava, SP, 12280-001';
+    const HEILO_MAPS_URL = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(HEILO_ADDRESS);
+
     function displayStandardResults(dataArray) {
-      const firstResult = dataArray[0];
+      const firstResult = dataArray[0] || {};
       const dt = firstResult[headerMap.dts] || 'N/A';
+      const deposito = (firstResult[headerMap.deposito] || '').toString();
+      const isHeilo = deposito.toUpperCase().includes('HEILO');
+
+      // Fontes claras em fundo escuro (estilos inline para não serem sobrescritos pelo tema claro)
+      const label = 'font-size:.85rem; color:#cbd5e1; font-weight:700; margin:0;';
+      const value = 'font-size:1.1rem; color:#ffffff; font-weight:700; margin:0;';
+      const divider = 'border-top:1px solid rgba(255,255,255,.18); padding-top:10px; margin-top:10px;';
 
       const productListHtml = dataArray.map(item => `
-        <div class="border-t border-gray-700/50 pt-2 mt-2">
-          <p class="text-sm text-gray-400">Descrição do Produto</p>
-          <p class="text-lg">${item[headerMap.descricao] || 'N/A'}</p>
-          <p class="text-sm text-gray-400 mt-2">Quantidade</p>
-          <p class="text-lg">${item[headerMap.plt] || 'N/A'}</p>
+        <div style="${divider}">
+          <p style="${label}">Descrição do Produto</p>
+          <p style="${value}">${escapeHtml(item[headerMap.descricao] || 'N/A')}</p>
+          <p style="${label} margin-top:6px;">Quantidade</p>
+          <p style="${value}">${escapeHtml(item[headerMap.plt] || 'N/A')}</p>
         </div>
       `).join('');
 
-      let resultsHtml = `
-        <div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700">
-          <h3 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Detalhes para o DTS: ${dt}</h3>
-          <div class="space-y-2 text-gray-300">
-            <div>
-              <p class="text-sm text-gray-400">Destino</p>
-              <p class="text-lg">${firstResult[headerMap.deposito] || 'N/A'}</p>
+      const addressHtml = isHeilo ? `
+        <div style="${divider}">
+          <p style="${label}">Endereço de Entrega</p>
+          <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap; margin-top:6px;">
+            <div style="flex:1 1 220px; min-width:0;">
+              <p style="font-size:1.3rem; line-height:1.35; color:#ffffff; font-weight:900; margin:0;">
+                Rua Vereador Geraldo Nogueira da Silva, 5111<br>
+                Caçapava – SP<br>
+                CEP 12280-001
+              </p>
+              <a href="${HEILO_MAPS_URL}" target="_blank" rel="noopener"
+                 style="display:inline-block; margin-top:12px; padding:10px 16px; border-radius:12px; background:#00904A; color:#ffffff; font-weight:900; text-decoration:none;">
+                📍 Abrir no Google Maps
+              </a>
             </div>
-      `;
-
-      if ((firstResult[headerMap.deposito] || '').toUpperCase() === 'HEILO') {
-        resultsHtml += `
-          <div class="pt-4 border-t border-gray-700/50">
-            <p class="text-sm text-gray-400">Endereço de Entrega</p>
-            <p class="text-lg font-semibold">Rua Vereador Geraldo Nogueira da Silva, 5111, Caçapava, SP, 12280-001</p>
+            <div style="flex:0 0 auto; text-align:center;">
+              <div id="heilo-maps-qr" style="background:#ffffff; padding:10px; border-radius:12px; width:200px; height:200px; display:flex; align-items:center; justify-content:center;"></div>
+              <p style="font-size:.85rem; color:#ffffff; font-weight:800; margin:6px 0 0;">Aponte a câmera do celular</p>
+            </div>
           </div>
-        `;
-      }
+        </div>
+      ` : '';
 
-      resultsHtml += `
-            <h4 class="text-md font-semibold text-white pt-3">Itens da Carga:</h4>
-            ${productListHtml}
+      resultsArea.innerHTML = `
+        <div style="background:#1f2937; border:1px solid #374151; border-radius:16px; padding:22px; color:#ffffff;">
+          <h3 style="font-size:1.25rem; font-weight:900; color:#ffffff; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,.18);">
+            Detalhes para o DTS: ${escapeHtml(dt)}
+          </h3>
+          <div>
+            <p style="${label}">Destino</p>
+            <p style="${value}">${escapeHtml(deposito || 'N/A')}</p>
           </div>
+          ${addressHtml}
+          <p style="font-size:1rem; font-weight:900; color:#ffffff; margin:14px 0 0;">Itens da Carga:</p>
+          ${productListHtml}
+        </div>
+
+        <div class="form-hint-box mt-3" style="border:2px solid rgba(249,115,22,.55); background:#fff7ed; color:#7c2d12; font-weight:800;">
+          ⚠️ Esta DT não está liberada para carregar na fábrica.<br>
+          Se você foi orientado a carregar aqui, procure o ATO para liberar a DT.
+          Depois da liberação, toque em <b>Buscar DT</b> de novo.
         </div>
       `;
 
-      resultsArea.innerHTML = resultsHtml;
+      if (isHeilo) {
+        const qrBox = document.getElementById('heilo-maps-qr');
+        try {
+          if (!qrBox || typeof QRCode === 'undefined') throw new Error('Biblioteca de QR Code não carregou.');
+          new QRCode(qrBox, {
+            text: HEILO_MAPS_URL,
+            width: 180,
+            height: 180,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch (e) {
+          console.warn('Não consegui gerar o QR Code:', e);
+          if (qrBox) qrBox.innerHTML = '<span style="color:#111; font-weight:800; font-size:.85rem; text-align:center;">QR indisponível.<br>Use o botão do Maps.</span>';
+        }
+      }
     }
 
     function showDriverForm(dataArray, options = {}) {
@@ -5483,7 +5632,7 @@
             <div class="big-title text-white">Veículo</div>
 
             <input type="text" id="truck-plate" class="form-input input-xl" placeholder="Placa do cavalo">
-            <input type="text" id="trailer-plate" class="form-input input-xl" placeholder="Placa da carreta (opcional)">
+            <input type="text" id="trailer-plate" class="form-input input-xl" placeholder="Placa da carreta *">
 
             <select id="vehicle-type" class="form-select select-xl">
               <option value="">Tipo de veículo *</option>
@@ -5639,6 +5788,7 @@
       }
 
       const unloadEl = document.getElementById('unload-dt');
+      attachDtGuard(unloadEl);
       if (unloadEl && pendingUnloadDt) unloadEl.value = pendingUnloadDt;
 
       if (sessionDriver) {
@@ -5787,8 +5937,8 @@
       document.getElementById('driver-name').value = data.name || '';
       document.getElementById('driver-cnh').value = data.cnh || '';
       document.getElementById('cnh-expiry').value = data.cnhExpiry || '';
-      document.getElementById('truck-plate').value = sanitizePlate(data.truckPlate || '');
-      document.getElementById('trailer-plate').value = sanitizePlate(data.trailerPlate || '');
+      setPlateSuggestion('truck-plate', data.truckPlate);
+      setPlateSuggestion('trailer-plate', data.trailerPlate);
       document.getElementById('truck-axles').value = data.axles || '';
       const vehicleTypeEl = document.getElementById('vehicle-type');
       if (vehicleTypeEl) vehicleTypeEl.value = data.vehicleType || '';
@@ -5933,7 +6083,7 @@
             return;
           }
 
-          if (nextTrailer && !isValidBrazilianPlate(nextTrailer)) {
+          if (!isValidBrazilianPlate(nextTrailer)) {
             trailerInput?.classList.add('invalid');
             trailerInput?.focus();
             return;
@@ -6013,9 +6163,9 @@
       }
 
       if (!isQuickPlateMode() && !validateField(phoneEl, "Telefone é obrigatório.", () => (phoneMask?.unmaskedValue?.length || 0) >= 10)) return;
-      if (!validateField(plateEl, "Placa do cavalo é obrigatória.", () => isValidBrazilianPlate(plateEl?.value || ''))) return;
+      if (!validateField(plateEl, "Digite a placa do cavalo ou toque no botão da placa da última vez, se for o mesmo caminhão.", () => isValidBrazilianPlate(plateEl?.value || ''))) return;
       const trailerEl = document.getElementById('trailer-plate');
-      if (trailerEl?.value?.trim() && !validateField(trailerEl, "Placa da carreta inválida.", () => isValidBrazilianPlate(trailerEl?.value || ''))) return;
+      if (!validateField(trailerEl, "Digite a placa da carreta ou toque no botão da placa da última vez, se for a mesma carreta.", () => isValidBrazilianPlate(trailerEl?.value || ''))) return;
       const vehicleTypeEl = document.getElementById('vehicle-type');
       if (!isQuickPlateMode() && vehicleTypeEl && !validateField(vehicleTypeEl, "Tipo de veículo é obrigatório.")) return;
       const cnhEl = document.getElementById('driver-cnh');
@@ -6168,6 +6318,9 @@
       driverData.flowStep2 = selectedFlowStep2 || '';
       driverData.loadAlsoUnload = !!loadAlsoUnload;
       driverData.presetTransportadora = (presetTransportadora || '').toString().trim().toUpperCase();
+      driverData.redirecionado = !!currentRedirect;
+      driverData.destinoOriginal = currentRedirect?.destinoOriginal || '';
+      driverData.redirecionadoPor = currentRedirect?.liberadoPor || '';
 
       if ((presetTransportadora || '').toString().trim().toUpperCase() === 'HIDROMAN') {
         driverData.transportadora = 'HIDROMAN';
@@ -7398,6 +7551,7 @@ function showCallPanel(driverName, isAlert) {
       dropHookAlsoUnload = false;
       dropHookQuickMode = false;
       baldeioQuickMode = false;
+      currentRedirect = null;
 
       renderCpfGate();
       clearTimeout(panelTimeout);
