@@ -2714,7 +2714,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- Constantes ---
     const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHLJspPB5rUhpKWTUFGrtMeksd24eu1-I_l5S2qkhgFsie6cn1hITIUmr3k-ZuL4stm1x8MT0mC30s/pub?output=csv';
@@ -2814,6 +2814,9 @@
     let dropHookQuickMode = false;
     let baldeioQuickMode = false;
     let currentRedirect = null; // DT do HEILO liberada pelo ATO para carregar na fábrica
+    let redirectUnsub = null;     // escuta em tempo real da liberação da DT
+    let redirectWatchTimer = null;
+    const REDIRECT_WATCH_MAX_MS = 15 * 60 * 1000; // aguarda a liberação por até 15 minutos
 
     function isQuickPlateMode() {
       return dropHookQuickMode || baldeioQuickMode;
@@ -2882,6 +2885,7 @@
       dropHookQuickMode = false;
       baldeioQuickMode = false;
       currentRedirect = null;
+      stopRedirectWatch();
     }
 
     function updateReturnInitialButtonVisibility() {
@@ -2942,27 +2946,79 @@
     function normalizeDigits(v) { return String(v || '').replace(/\D/g, ''); }
     function normalizeDtId(dt) { return normalizeDigits(dt); }
 
-    // DT: só números e sem zeros no começo (bloqueia DT digitada só com zeros)
+    // DT: só números, sem zeros no começo e com 8 dígitos (padrão das DTs)
+    const DT_LEN = 8;
+
     function cleanDtInput(value) {
       return String(value || '').replace(/\D/g, '').replace(/^0+/, '');
     }
 
+    // DTs que não existem: 8 números iguais (11111111, 22222222...) e 12345678
+    function isFakeDt(clean) {
+      if (/^(\d)\1+$/.test(clean)) return true;
+      if (clean === '12345678') return true;
+      return false;
+    }
+
+    // Devolve a mensagem de erro da DT, ou '' se estiver certa
+    function dtErrorMsg(value, nome = 'A DT') {
+      const clean = cleanDtInput(value);
+      if (clean.length !== DT_LEN) return `${nome} tem ${DT_LEN} números. Você digitou ${clean.length}. Confira e digite de novo.`;
+      if (isFakeDt(clean)) return `${nome} ${clean} não existe. Digite a DT correta, como está no documento.`;
+      return '';
+    }
+
+    function isValidDt(value) {
+      return !dtErrorMsg(value);
+    }
+
     function attachDtGuard(el) {
-      if (!el) return;
-      const warn = document.createElement('div');
-      warn.className = 'help';
-      warn.style.cssText = 'color:#b91c1c;font-weight:800;display:none;margin-top:4px;';
-      warn.textContent = '⚠️ A DT não pode ser só zero. Digite o número correto.';
-      el.insertAdjacentElement('afterend', warn);
+      if (!el || el.dataset.dtGuard === '1') return;
+      el.dataset.dtGuard = '1';
+
+      const info = document.createElement('div');
+      info.className = 'help';
+      info.style.cssText = 'font-weight:800;margin-top:4px;display:none;';
+      el.insertAdjacentElement('afterend', info);
+
+      const refresh = (raw) => {
+        const clean = el.value;
+        const soZeros = raw.length > 0 && clean.length === 0;
+        el.classList.remove('invalid');
+        if (soZeros) {
+          info.style.display = 'block';
+          info.style.color = '#b91c1c';
+          info.textContent = '⚠️ A DT não pode ser só zero. Digite o número correto.';
+          el.classList.add('invalid');
+        } else if (clean.length === 0) {
+          info.style.display = 'none';
+        } else if (clean.length < DT_LEN) {
+          info.style.display = 'block';
+          info.style.color = '#c2410c';
+          const faltam = DT_LEN - clean.length;
+          info.textContent = `${clean.length} de ${DT_LEN} números · falta${faltam > 1 ? 'm' : ''} ${faltam}`;
+        } else if (isFakeDt(clean)) {
+          info.style.display = 'block';
+          info.style.color = '#b91c1c';
+          info.textContent = '⚠️ Essa DT não existe. Digite a DT correta, como está no documento.';
+          el.classList.add('invalid');
+        } else {
+          info.style.display = 'block';
+          info.style.color = '#15803d';
+          info.textContent = `✅ ${DT_LEN} números`;
+        }
+      };
 
       el.addEventListener('input', () => {
         const raw = String(el.value || '').replace(/\D/g, '');
-        const clean = cleanDtInput(raw);
-        const soZeros = raw.length > 0 && clean.length === 0;
+        // tira os zeros do começo e corta no 8º número (aceita colar DT com zeros na frente)
+        const clean = cleanDtInput(raw).slice(0, DT_LEN);
         if (el.value !== clean) el.value = clean;
-        warn.style.display = soZeros ? 'block' : 'none';
-        el.classList.toggle('invalid', soZeros);
+        refresh(raw);
       });
+
+      // se o campo já vier preenchido (ex.: voltar de tela), mostra o contador
+      if (el.value) { el.value = cleanDtInput(el.value).slice(0, DT_LEN); refresh(el.value); }
     }
 
     // Placa: não preenche sozinha com a placa da última visita; mostra um botão para o motorista escolher
@@ -3744,6 +3800,10 @@
         'VASILHAMES': 'Descarga de Vasilhames',
         'PRODUTO ACABADO': 'Descarga de Produto Acabado',
         'INSUMO': 'Descarga de Insumo',
+        'CAN PACK': 'Descarga de Can Pack',
+        'ARDAGH': 'Descarga de Ardagh',
+        'MALTE': 'Descarga de Malte',
+        'BARRIL VAZIO': 'Descarga de Barril Vazio',
       };
 
       if (mode === 'DROP_HOOK' || isDropHookFlow) {
@@ -4301,6 +4361,7 @@
       dropHookQuickMode = false;
       baldeioQuickMode = false;
       currentRedirect = null;
+      stopRedirectWatch();
       const specialCarrierDriver = isRitmoOrJslDriver(sessionDriver);
       const dropDriverAuthorized = isDropDriverAuthorized(sessionDriver);
 
@@ -4505,6 +4566,7 @@
       dropHookQuickMode = false;
       baldeioQuickMode = false;
       currentRedirect = null;
+      stopRedirectWatch();
       resultsArea.innerHTML = '';
       pendingUnloadDt = '';
       requireUnloadDtInForm = false;
@@ -4584,8 +4646,11 @@
               <button id="unload-opt-vasilhames" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
                 🍾 Vasilhames
               </button>
-              <button id="unload-opt-pa" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
-                🍺 Produto Acabado
+              <button id="unload-opt-malte" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                🌾 Malte
+              </button>
+              <button id="unload-opt-barril" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                🛢️ Barril Vazio
               </button>
               <button id="unload-opt-insumo" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
                 🧪 Insumo
@@ -4723,7 +4788,11 @@
             'PALETES VAZIO': 'UNLOAD_PALETES_VAZIO',
             'VASILHAMES': 'UNLOAD_VASILHAMES',
             'PRODUTO ACABADO': 'UNLOAD_PRODUTO_ACABADO',
-            'INSUMO': 'UNLOAD_INSUMO'
+            'INSUMO': 'UNLOAD_INSUMO',
+            'CAN PACK': 'UNLOAD_LATAS_CAN_PACK',
+            'ARDAGH': 'UNLOAD_LATAS_ARDAGH',
+            'MALTE': 'UNLOAD_MALTE',
+            'BARRIL VAZIO': 'UNLOAD_BARRIL_VAZIO'
           };
           const normalizedType = (typeLabel || '').toString().trim().toUpperCase();
           setFlowSelection(
@@ -4742,11 +4811,41 @@
           showDriverForm([{ [headerMap.dts]: manualDtIdOverride }], { modeLabel: typeLabel, isManualOverride: true });
         };
 
-        document.getElementById('unload-opt-latas')?.addEventListener('click', () => goManualUnload('Latas Vazias', 'LATAS'));
+        // Latas Vazias: o motorista escolhe o fornecedor, e o nome escolhido vira o tipo da descarga
+        const showLatasSupplier = () => {
+          actionArea.innerHTML = `
+            ${renderProgressBar(2, ['Identificação', 'Fluxo', 'Dados', 'Conferência'])}
+            <div class="section space-y-3">
+              <div class="step">PASSO 2</div>
+              <div class="big-title text-white">🥫 Latas Vazias</div>
+              <div class="help">De qual fornecedor são as latas?</div>
+
+              <div class="flow-group">
+                <div class="flow-group-title">Fornecedor</div>
+                <div class="space-y-2">
+                  <button id="latas-opt-canpack" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                    Can Pack
+                  </button>
+                  <button id="latas-opt-ardagh" class="btn-green w-full py-4 rounded-xl text-lg font-extrabold">
+                    Ardagh
+                  </button>
+                </div>
+              </div>
+
+              <button id="back-to-unload-types" class="btn-ghost w-full py-3 rounded-xl text-base font-bold">⬅ Voltar</button>
+            </div>
+          `;
+          try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+          document.getElementById('latas-opt-canpack')?.addEventListener('click', () => goManualUnload('Can Pack', 'CANPACK'));
+          document.getElementById('latas-opt-ardagh')?.addEventListener('click', () => goManualUnload('Ardagh', 'ARDAGH'));
+          document.getElementById('back-to-unload-types')?.addEventListener('click', () => renderModeForm('UNLOAD'));
+        };
+        document.getElementById('unload-opt-latas')?.addEventListener('click', async () => { await unlockAudio(); showLatasSupplier(); });
         document.getElementById('unload-opt-bulk')?.addEventListener('click', () => goManualUnload('Bulk', 'BULK'));
         document.getElementById('unload-opt-paletes')?.addEventListener('click', () => goManualUnload('Paletes Vazio', 'PAL'));
         document.getElementById('unload-opt-vasilhames')?.addEventListener('click', () => goManualUnload('Vasilhames', 'VAS'));
-        document.getElementById('unload-opt-pa')?.addEventListener('click', () => goManualUnload('Produto Acabado', 'PA'));
+        document.getElementById('unload-opt-malte')?.addEventListener('click', () => goManualUnload('Malte', 'MALTE'));
+        document.getElementById('unload-opt-barril')?.addEventListener('click', () => goManualUnload('Barril Vazio', 'BARRIL'));
         document.getElementById('unload-opt-insumo')?.addEventListener('click', () => goManualUnload('Insumo', 'INS'));
       }
 
@@ -4791,9 +4890,14 @@
             await unlockAudio();
             const dt = cleanDtInput(dtEl?.value);
             if (!dt) return displayError('Digite a DT da carga. Ela não pode ser só zero.', 5000, { field: dtEl });
+            const dtErr = dtErrorMsg(dt, 'A DT');
+            if (dtErr) return displayError(dtErr, 6000, { field: dtEl });
             if (!isSheetReady || database.length === 0) return displayError('Planilha ainda não carregou. Tente novamente.', 4000);
 
-            pendingUnloadDt = needsUnload ? cleanDtInput(unloadEl?.value) : '';
+            const unloadTyped = needsUnload ? cleanDtInput(unloadEl?.value) : '';
+            const unloadErr = unloadTyped ? dtErrorMsg(unloadTyped, 'A DT de descarga') : '';
+            if (unloadErr) return displayError(unloadErr, 6000, { field: unloadEl });
+            pendingUnloadDt = unloadTyped;
             requireUnloadDtInForm = false;
             showUnloadInputs = !!needsUnload;
             performSearchByDt(dt);
@@ -4953,6 +5057,7 @@
             if (!isRitmoDriverAuthorized(sessionDriver)) {
               baldeioQuickMode = false;
               currentRedirect = null;
+              stopRedirectWatch();
               displayError('Seu CPF não está autorizado para o fluxo rápido de Baldeio Ritmo. Solicite a liberação no Painel do Analista.', 7000);
               return;
             }
@@ -5028,8 +5133,14 @@
 
           document.getElementById('baldeio-continue')?.addEventListener('click', async () => {
             await unlockAudio();
-            baldeioDtCarga = cleanDtInput(cargaEl?.value);
-            baldeioDtDescarga = cleanDtInput(descEl?.value);
+            const cargaTyped = cleanDtInput(cargaEl?.value);
+            const descTyped = cleanDtInput(descEl?.value);
+            const cargaErr = cargaTyped ? dtErrorMsg(cargaTyped, 'A DT de carga') : '';
+            if (cargaErr) return displayError(cargaErr + ' Se não souber, deixe em branco.', 6000, { field: cargaEl });
+            const descErr = descTyped ? dtErrorMsg(descTyped, 'A DT de descarga') : '';
+            if (descErr) return displayError(descErr + ' Se não souber, deixe em branco.', 6000, { field: descEl });
+            baldeioDtCarga = cargaTyped;
+            baldeioDtDescarga = descTyped;
 
             const dtNorm = normalizeDtId(baldeioDtCarga);
 
@@ -5398,8 +5509,71 @@
       return null;
     }
 
+    function stopRedirectWatch() {
+      if (redirectUnsub) { try { redirectUnsub(); } catch {} }
+      redirectUnsub = null;
+      if (redirectWatchTimer) clearTimeout(redirectWatchTimer);
+      redirectWatchTimer = null;
+    }
+
+    function showRedirectNotice() {
+      const box = document.createElement('div');
+      box.className = 'form-hint-box';
+      box.style.cssText = 'border:2px solid rgba(0,144,74,.55); background:#ecfdf5; color:#14532d; font-weight:900; margin-bottom:12px;';
+      box.innerHTML = '✅ DT liberada pelo ATO para carregar aqui na fábrica.';
+      resultsArea.insertAdjacentElement('afterbegin', box);
+    }
+
+    function openRedirectedForm(redirect, dtId, results, deposito) {
+      currentRedirect = {
+        ...redirect,
+        dt: dtId,
+        destinoOriginal: (deposito || redirect.destinoOriginal || 'HEILO').toString().trim().toUpperCase()
+      };
+      fileStatus.textContent = 'DT liberada para carregar na fábrica.';
+      showDriverForm(results, { modeLabel: 'Carregamento (redirecionado para a fábrica)', isManualOverride: false });
+      showRedirectNotice();
+    }
+
+    // Fica "ouvindo" a liberação da DT: quando o ATO liberar no painel, a tela avança sozinha
+    function startRedirectWatch(dtId, results, deposito) {
+      stopRedirectWatch();
+      if (!db || !appId || !dtId) return;
+
+      const ref = doc(db, 'artifacts', appId, 'public', 'data', 'redirects', dtId);
+      try {
+        redirectUnsub = onSnapshot(ref, (snap) => {
+          if (!snap.exists()) return;
+          const data = snap.data() || {};
+          if (data.ativo === false) return;
+
+          // Só avança se o motorista ainda estiver na tela de espera desta DT
+          if (!document.getElementById('heilo-wait-box')) { stopRedirectWatch(); return; }
+
+          stopRedirectWatch();
+          playSound(true);
+          openRedirectedForm(data, dtId, results, deposito);
+        }, (err) => {
+          console.warn('Falha na escuta da liberação da DT:', err);
+          const waitText = document.getElementById('heilo-wait-text');
+          if (waitText) waitText.innerHTML = 'Não consegui acompanhar a liberação automaticamente. Depois que o ATO liberar, toque em <b>Buscar DT</b> de novo.';
+        });
+      } catch (e) {
+        console.warn('Não consegui iniciar a escuta da liberação:', e);
+        return;
+      }
+
+      redirectWatchTimer = setTimeout(() => {
+        stopRedirectWatch();
+        const waitText = document.getElementById('heilo-wait-text');
+        if (waitText) waitText.innerHTML = 'Tempo de espera encerrado. Se o ATO já liberou, toque em <b>Buscar DT</b> de novo.';
+        document.getElementById('heilo-wait-dot')?.remove();
+      }, REDIRECT_WATCH_MAX_MS);
+    }
+
     async function performSearchByDt(query) {
       currentRedirect = null;
+      stopRedirectWatch();
       const q = cleanDtInput(query);
       if (!q) { displayError("Digite um número de DT para buscar."); return; }
       if (database.length === 0) { displayError("Os dados da planilha ainda não foram carregados."); return; }
@@ -5414,16 +5588,11 @@
           fileStatus.textContent = 'Verificando liberação da DT...';
           const redirect = await loadDtRedirect(q);
           if (redirect) {
-            currentRedirect = {
-              ...redirect,
-              dt: q,
-              destinoOriginal: (deposito || redirect.destinoOriginal || 'HEILO').toString().trim().toUpperCase()
-            };
-            fileStatus.textContent = 'DT liberada para carregar na fábrica.';
-            showDriverForm(results, { modeLabel: 'Carregamento (redirecionado para a fábrica)', isManualOverride: false });
+            openRedirectedForm(redirect, q, results, deposito);
           } else {
-            fileStatus.textContent = 'DT com destino fora da fábrica.';
+            fileStatus.textContent = 'DT com destino fora da fábrica. Aguardando liberação do ATO...';
             displayStandardResults(results);
+            startRedirectWatch(q, results, deposito);
           }
         }
       } else {
@@ -5491,10 +5660,16 @@
           ${productListHtml}
         </div>
 
-        <div class="form-hint-box mt-3" style="border:2px solid rgba(249,115,22,.55); background:#fff7ed; color:#7c2d12; font-weight:800;">
+        <style>
+          @keyframes heiloWaitPulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(.8); } }
+        </style>
+        <div id="heilo-wait-box" class="form-hint-box mt-3" style="border:2px solid rgba(249,115,22,.55); background:#fff7ed; color:#7c2d12; font-weight:800;">
           ⚠️ Esta DT não está liberada para carregar na fábrica.<br>
           Se você foi orientado a carregar aqui, procure o ATO para liberar a DT.
-          Depois da liberação, toque em <b>Buscar DT</b> de novo.
+          <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+            <span id="heilo-wait-dot" style="width:10px; height:10px; border-radius:999px; background:#f97316; display:inline-block; flex:0 0 auto; animation:heiloWaitPulse 1.4s ease-in-out infinite;"></span>
+            <span id="heilo-wait-text">Aguardando liberação... Assim que o ATO liberar, a tela avança sozinha.</span>
+          </div>
         </div>
       `;
 
@@ -5569,6 +5744,10 @@
                     <option value="Paletes Vazio">Paletes Vazio</option>
                     <option value="Embalagem">Embalagem</option>
                     <option value="Latas Vazias">Latas Vazias</option>
+                    <option value="Can Pack">Can Pack</option>
+                    <option value="Ardagh">Ardagh</option>
+                    <option value="Malte">Malte</option>
+                    <option value="Barril Vazio">Barril Vazio</option>
                     <option value="Produto Acabado">Produto Acabado</option>
                     <option value="Insumo">Insumo</option>
                     <option value="Baldeio">Baldeio</option>
@@ -5756,6 +5935,10 @@
         if (v.includes('PALETES')) return 'Paletes Vazio: devolução/retorno de paletes vazios.';
         if (v.includes('LATAS VAZIAS') || v === 'LATAS') return 'Latas Vazias: retorno/recebimento de latas vazias (sem DT).';
         if (v.includes('PRODUTO ACABADO')) return 'Produto Acabado: cerveja pronta/paletizada.';
+        if (v.includes('CAN PACK')) return 'Can Pack: latas vazias do fornecedor Can Pack (sem DT).';
+        if (v.includes('ARDAGH')) return 'Ardagh: latas vazias do fornecedor Ardagh (sem DT).';
+        if (v.includes('MALTE')) return 'Malte: recebimento de malte.';
+        if (v.includes('BARRIL')) return 'Barril Vazio: retorno/recebimento de barris vazios.';
         if (v.includes('INSUMO')) return 'Insumo: matéria-prima/insumo para produção.';
         if (v.includes('BALDEIO') || v.includes('RITMO')) return 'Baldeio: transferência/ajuste de fluxo (DT opcional).';
         if (v.includes('DESCARGA')) return 'Descarga: recebimento/descarregamento.';
@@ -6176,6 +6359,9 @@
       const unloadDtEl = document.getElementById('unload-dt');
       if (requireUnloadDtInForm && unloadDtEl) {
         if (!validateField(unloadDtEl, "DT de descarga é obrigatória.", () => unloadDtEl.value.trim().length > 0)) return;
+      }
+      if (unloadDtEl && unloadDtEl.type !== 'hidden' && !unloadDtEl.hidden && cleanDtInput(unloadDtEl.value)) {
+        if (!validateField(unloadDtEl, dtErrorMsg(unloadDtEl.value, 'A DT de descarga') || 'DT de descarga inválida.', () => isValidDt(unloadDtEl.value))) return;
       }
 
       const summaryForPrint = getDriverFormSummary();
@@ -7035,6 +7221,10 @@
       else if (productRaw.includes('PRODUTO ACABADO')) operationTag = 'PRODUTO ACABADO';
       else if (productRaw.includes('PALETE')) operationTag = 'PALETES VAZIO';
       else if (productRaw.includes('VASILH')) operationTag = 'VASILHAMES';
+      else if (productRaw.includes('CAN PACK')) operationTag = 'CAN PACK';
+      else if (productRaw.includes('ARDAGH')) operationTag = 'ARDAGH';
+      else if (productRaw.includes('MALTE')) operationTag = 'MALTE';
+      else if (productRaw.includes('BARRIL')) operationTag = 'BARRIL VAZIO';
       else if (productRaw.includes('LATA')) operationTag = 'LATAS VAZIAS';
 
       if (!operationTag) {
@@ -7158,12 +7348,17 @@
         ? (isBaldeio ? 'Produto' : (isInsumoManual ? 'Tipo de Produto' : 'Produto'))
         : 'Produto';
 
+      // Descarregar (Can Pack, Ardagh, Malte, Barril Vazio...): sempre mostra o tipo escolhido em Produto,
+      // mesmo quando o motorista é Ritmo/JSL
+      const isUnloadPrint = (currentMode || '').toString().toUpperCase() === 'UNLOAD'
+        || (selectedFlowKey || '').toString().toUpperCase().startsWith('UNLOAD');
+
       const safeRows = sheetDataArray.length ? sheetDataArray : [{}];
       const rowsHtml = safeRows.map(item => {
         const prod = isDropHookPrint
           ? ''
           : (isManual
-            ? (isBaldeio ? '' : ((item[headerMap.produto] || '') || (operationTag || '')))
+            ? ((isBaldeio && !isUnloadPrint) ? '' : escapeHtml((item[headerMap.produto] || '') || manualPresetType || (operationTag || '')))
             : (item[headerMap.produto] || ''));
 
         const qtd = isDropHookPrint
@@ -7552,6 +7747,7 @@ function showCallPanel(driverName, isAlert) {
       dropHookQuickMode = false;
       baldeioQuickMode = false;
       currentRedirect = null;
+      stopRedirectWatch();
 
       renderCpfGate();
       clearTimeout(panelTimeout);
