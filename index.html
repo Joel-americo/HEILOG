@@ -7310,23 +7310,23 @@
         const statusLine = operationalStatus && operationalStatus !== 'NO PRAZO'
           ? `<div style="font-size:10px;font-weight:800;margin-top:4px;">${escapeHtml(operationalStatus)}</div>`
           : '';
-        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:7px 9px; background:#fff; border-radius:0; color:#111;">
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:7px 9px; background:${matrixRank <= 5 ? '#FDE68A' : '#DCFCE7'}; border-radius:0; color:#111;">
                           <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">PRIORIDADE P${matrixRank}</div>
                           <div style="font-size:18px; font-weight:900; letter-spacing:.02em;">${escapeHtml(matrixLabel)}</div>
                           ${statusLine}
                         </div>`;
       } else if (isGradeQueimada) {
-        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#fff; border-radius:0;">
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#FBBF24; border-radius:0;">
                           <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
                           <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">GRADE QUEIMADA</div>
                         </div>`;
       } else if (isAtrasado) {
-        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#fff; border-radius:0;">
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#FACC15; border-radius:0;">
                           <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
                           <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">PERDA DE AGENDA</div>
                         </div>`;
       } else if (isAntecipacao) {
-        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#fff; border-radius:0; color:#111;">
+        priorityHtml = `<div style="width:100%; border:1.8px solid #1a1a1a; text-align:center; padding:6px 9px; background:#F87171; border-radius:0; color:#111;">
                           <div style="font-size:11px; font-weight:900; letter-spacing:.06em; margin-bottom:3px;">STATUS</div>
                           <div style="font-size:18px; font-weight:900; letter-spacing:.03em;">ANTECIPAÇÃO</div>
                         </div>`;
